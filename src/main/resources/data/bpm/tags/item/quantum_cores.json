@@ -1,0 +1,8 @@
+{
+  "replace": false,
+  "values": [
+    "bpm:quantum_core",
+    "bpm:refined_quantum_core",
+    "bpm:pristine_quantum_core"
+  ]
+}

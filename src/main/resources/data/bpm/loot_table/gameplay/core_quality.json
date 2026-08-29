@@ -1,0 +1,25 @@
+{
+  "type": "minecraft:generic",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "bpm:quantum_core",
+          "weight": 70
+        },
+        {
+          "type": "minecraft:item",
+          "name": "bpm:refined_quantum_core",
+          "weight": 25
+        },
+        {
+          "type": "minecraft:item",
+          "name": "bpm:pristine_quantum_core",
+          "weight": 5
+        }
+      ]
+    }
+  ]
+}

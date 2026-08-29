@@ -1,0 +1,8 @@
+{
+  "replace": false,
+  "values": [
+    "bpm:entanglium_ore",
+    "bpm:deepslate_entanglium_ore",
+    "bpm:entanglium_block"
+  ]
+}

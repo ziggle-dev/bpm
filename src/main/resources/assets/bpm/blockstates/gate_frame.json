@@ -1,0 +1,122 @@
+{
+  "multipart": [
+    {
+      "when": {
+        "formed": "false"
+      },
+      "apply": {
+        "model": "bpm:block/gate_frame_block"
+      }
+    },
+    {
+      "when": {
+        "formed": "true",
+        "axis": "x",
+        "along": "base"
+      },
+      "apply": {
+        "model": "bpm:block/gate_frame_base"
+      }
+    },
+    {
+      "when": {
+        "formed": "true",
+        "axis": "x",
+        "along": "horizontal"
+      },
+      "apply": {
+        "model": "bpm:block/gate_frame_h"
+      }
+    },
+    {
+      "when": {
+        "formed": "true",
+        "axis": "x",
+        "along": "vertical"
+      },
+      "apply": {
+        "model": "bpm:block/gate_frame_v"
+      }
+    },
+    {
+      "when": {
+        "formed": "true",
+        "axis": "x",
+        "along": "back",
+        "flip": "false"
+      },
+      "apply": {
+        "model": "bpm:block/gate_frame_back"
+      }
+    },
+    {
+      "when": {
+        "formed": "true",
+        "axis": "x",
+        "along": "back",
+        "flip": "true"
+      },
+      "apply": {
+        "model": "bpm:block/gate_frame_back",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "formed": "true",
+        "axis": "z",
+        "along": "base"
+      },
+      "apply": {
+        "model": "bpm:block/gate_frame_base",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "formed": "true",
+        "axis": "z",
+        "along": "horizontal"
+      },
+      "apply": {
+        "model": "bpm:block/gate_frame_h",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "formed": "true",
+        "axis": "z",
+        "along": "vertical"
+      },
+      "apply": {
+        "model": "bpm:block/gate_frame_v",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "formed": "true",
+        "axis": "z",
+        "along": "back",
+        "flip": "false"
+      },
+      "apply": {
+        "model": "bpm:block/gate_frame_back",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "formed": "true",
+        "axis": "z",
+        "along": "back",
+        "flip": "true"
+      },
+      "apply": {
+        "model": "bpm:block/gate_frame_back",
+        "y": 270
+      }
+    }
+  ]
+}

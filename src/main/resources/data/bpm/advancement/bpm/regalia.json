@@ -1,0 +1,85 @@
+{
+  "display": {
+    "icon": {
+      "id": "bpm:warden_visor"
+    },
+    "title": {
+      "translate": "advancements.bpm.regalia.title"
+    },
+    "description": {
+      "translate": "advancements.bpm.regalia.description"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": true
+  },
+  "criteria": {
+    "warden_visor": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "bpm:warden_visor"
+            ]
+          }
+        ]
+      }
+    },
+    "phase_gauntlet": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "bpm:phase_gauntlet"
+            ]
+          }
+        ]
+      }
+    },
+    "entangled_compass": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "bpm:entangled_compass"
+            ]
+          }
+        ]
+      }
+    },
+    "warden_program": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "bpm:warden_program"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "parent": "bpm:bpm/warden",
+  "requirements": [
+    [
+      "warden_visor"
+    ],
+    [
+      "phase_gauntlet"
+    ],
+    [
+      "entangled_compass"
+    ],
+    [
+      "warden_program"
+    ]
+  ],
+  "rewards": {
+    "experience": 50
+  }
+}

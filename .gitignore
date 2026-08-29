@@ -1,0 +1,21 @@
+# gradle
+/build
+/.gradle
+/.kotlin
+build-*/
+# ide
+/.idea
+*.iml
+/out
+# runs
+/run
+/runs
+/run-*
+# misc
+*.log
+hs_err_pid*.log
+imgui.ini
+# local-only: design docs, generator scripts, Blockbench sources
+/docs
+/tools
+/art

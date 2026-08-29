@@ -1,0 +1,37 @@
+{
+  "display": {
+    "icon": {
+      "id": "bpm:entanglium_shard"
+    },
+    "title": {
+      "translate": "advancements.bpm.root.title"
+    },
+    "description": {
+      "translate": "advancements.bpm.root.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false,
+    "background": "bpm:textures/block/chamber_wall.png"
+  },
+  "criteria": {
+    "shard": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "bpm:entanglium_shard"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "shard"
+    ]
+  ]
+}

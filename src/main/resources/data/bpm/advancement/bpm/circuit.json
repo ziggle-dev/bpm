@@ -1,0 +1,37 @@
+{
+  "display": {
+    "icon": {
+      "id": "bpm:entangled_circuit"
+    },
+    "title": {
+      "translate": "advancements.bpm.circuit.title"
+    },
+    "description": {
+      "translate": "advancements.bpm.circuit.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "circuit": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "bpm:entangled_circuit"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "parent": "bpm:bpm/alloy",
+  "requirements": [
+    [
+      "circuit"
+    ]
+  ]
+}

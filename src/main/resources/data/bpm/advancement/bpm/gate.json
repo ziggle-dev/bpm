@@ -1,0 +1,42 @@
+{
+  "display": {
+    "icon": {
+      "id": "bpm:quantum_gate"
+    },
+    "title": {
+      "translate": "advancements.bpm.gate.title"
+    },
+    "description": {
+      "translate": "advancements.bpm.gate.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "placed": {
+      "trigger": "minecraft:placed_block",
+      "conditions": {
+        "location": [
+          {
+            "condition": "minecraft:location_check",
+            "predicate": {
+              "block": {
+                "blocks": [
+                  "bpm:quantum_gate"
+                ]
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "parent": "bpm:bpm/frame",
+  "requirements": [
+    [
+      "placed"
+    ]
+  ]
+}

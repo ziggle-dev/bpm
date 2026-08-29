@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " L ",
+    "CAC",
+    " P "
+  ],
+  "key": {
+    "L": {
+      "item": "bpm:coherence_lens"
+    },
+    "A": {
+      "item": "bpm:quantum_alloy_ingot"
+    },
+    "C": {
+      "item": "bpm:entangled_circuit"
+    },
+    "P": {
+      "item": "bpm:phase_conduit"
+    }
+  },
+  "result": {
+    "id": "bpm:observer_turret",
+    "count": 1
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "type": "minecraft:stonecutting",
+  "ingredient": {
+    "item": "bpm:chamber_wall"
+  },
+  "result": {
+    "id": "bpm:chamber_wall_trim",
+    "count": 1
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "display": {
+    "icon": {
+      "id": "bpm:quantum_core"
+    },
+    "title": {
+      "translate": "advancements.bpm.core.title"
+    },
+    "description": {
+      "translate": "advancements.bpm.core.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "core": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "#bpm:quantum_cores"
+          }
+        ]
+      }
+    }
+  },
+  "parent": "bpm:bpm/warden",
+  "requirements": [
+    [
+      "core"
+    ]
+  ]
+}

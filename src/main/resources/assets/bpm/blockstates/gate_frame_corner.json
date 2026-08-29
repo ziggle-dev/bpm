@@ -1,0 +1,96 @@
+{
+  "multipart": [
+    {
+      "when": {
+        "formed": "false"
+      },
+      "apply": {
+        "model": "bpm:block/gate_frame_corner_block"
+      }
+    },
+    {
+      "when": {
+        "formed": "true",
+        "axis": "x",
+        "corner": "bottom_left"
+      },
+      "apply": {
+        "model": "bpm:block/gate_frame_corner_base"
+      }
+    },
+    {
+      "when": {
+        "formed": "true",
+        "axis": "x",
+        "corner": "bottom_right"
+      },
+      "apply": {
+        "model": "bpm:block/gate_frame_corner_base"
+      }
+    },
+    {
+      "when": {
+        "formed": "true",
+        "axis": "x",
+        "corner": "top_left"
+      },
+      "apply": {
+        "model": "bpm:block/gate_frame_corner_top_left"
+      }
+    },
+    {
+      "when": {
+        "formed": "true",
+        "axis": "x",
+        "corner": "top_right"
+      },
+      "apply": {
+        "model": "bpm:block/gate_frame_corner_top_right"
+      }
+    },
+    {
+      "when": {
+        "formed": "true",
+        "axis": "z",
+        "corner": "bottom_left"
+      },
+      "apply": {
+        "model": "bpm:block/gate_frame_corner_base",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "formed": "true",
+        "axis": "z",
+        "corner": "bottom_right"
+      },
+      "apply": {
+        "model": "bpm:block/gate_frame_corner_base",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "formed": "true",
+        "axis": "z",
+        "corner": "top_left"
+      },
+      "apply": {
+        "model": "bpm:block/gate_frame_corner_top_left",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "formed": "true",
+        "axis": "z",
+        "corner": "top_right"
+      },
+      "apply": {
+        "model": "bpm:block/gate_frame_corner_top_right",
+        "y": 90
+      }
+    }
+  ]
+}

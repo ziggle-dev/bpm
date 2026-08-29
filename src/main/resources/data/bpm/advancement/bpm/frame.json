@@ -1,0 +1,37 @@
+{
+  "display": {
+    "icon": {
+      "id": "bpm:gate_frame"
+    },
+    "title": {
+      "translate": "advancements.bpm.frame.title"
+    },
+    "description": {
+      "translate": "advancements.bpm.frame.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "frame": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "bpm:gate_frame"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "parent": "bpm:bpm/alloy",
+  "requirements": [
+    [
+      "frame"
+    ]
+  ]
+}

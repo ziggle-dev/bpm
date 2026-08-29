@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "bpm:block/chamber_wall_vent"
+    }
+  }
+}

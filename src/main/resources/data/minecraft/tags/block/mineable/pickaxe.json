@@ -1,0 +1,50 @@
+{
+  "replace": false,
+  "values": [
+    "bpm:entanglium_ore",
+    "bpm:deepslate_entanglium_ore",
+    "bpm:entanglium_block",
+    "bpm:quantum_alloy_block",
+    "bpm:chamber_floor",
+    "bpm:chamber_floor_circuit",
+    "bpm:chamber_wall",
+    "bpm:chamber_pillar",
+    "bpm:chamber_light",
+    "bpm:containment_barrier",
+    "bpm:gate_frame",
+    "bpm:gate_frame_corner",
+    {
+      "id": "bpm:phase_spike",
+      "required": false
+    },
+    {
+      "id": "bpm:decoherence_vent",
+      "required": false
+    },
+    {
+      "id": "bpm:observer_turret",
+      "required": false
+    },
+    {
+      "id": "bpm:phase_block",
+      "required": false
+    },
+    {
+      "id": "bpm:core_pedestal",
+      "required": false
+    },
+    {
+      "id": "bpm:quantum_gate",
+      "required": false
+    },
+    "bpm:quantum_controller",
+    "bpm:chamber_wall_panel",
+    "bpm:chamber_wall_vent",
+    "bpm:chamber_wall_trim",
+    "bpm:chamber_wall_conduit",
+    "bpm:quantum_alloy_stairs",
+    "bpm:quantum_alloy_slab",
+    "bpm:signal_emitter",
+    "bpm:quantum_monitor"
+  ]
+}

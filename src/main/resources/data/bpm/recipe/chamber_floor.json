@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "DDD",
+    "DSD",
+    "DDD"
+  ],
+  "key": {
+    "D": {
+      "item": "minecraft:polished_deepslate"
+    },
+    "S": {
+      "item": "bpm:entanglium_shard"
+    }
+  },
+  "result": {
+    "id": "bpm:chamber_floor",
+    "count": 8
+  }
+}

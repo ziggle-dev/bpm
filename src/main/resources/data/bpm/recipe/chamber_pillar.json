@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "W",
+    "S",
+    "W"
+  ],
+  "key": {
+    "W": {
+      "item": "bpm:chamber_wall"
+    },
+    "S": {
+      "item": "bpm:entanglium_shard"
+    }
+  },
+  "result": {
+    "id": "bpm:chamber_pillar",
+    "count": 2
+  }
+}

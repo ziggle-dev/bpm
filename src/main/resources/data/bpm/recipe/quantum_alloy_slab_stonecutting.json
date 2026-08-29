@@ -1,0 +1,10 @@
+{
+  "type": "minecraft:stonecutting",
+  "ingredient": {
+    "item": "bpm:quantum_alloy_block"
+  },
+  "result": {
+    "id": "bpm:quantum_alloy_slab",
+    "count": 2
+  }
+}

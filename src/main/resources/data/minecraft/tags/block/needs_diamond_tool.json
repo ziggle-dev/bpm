@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "bpm:quantum_alloy_block",
+    "bpm:gate_frame",
+    "bpm:gate_frame_corner",
+    "bpm:quantum_alloy_stairs",
+    "bpm:quantum_alloy_slab"
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "display": {
+    "icon": {
+      "id": "bpm:signal_emitter"
+    },
+    "title": {
+      "translate": "advancements.bpm.automated.title"
+    },
+    "description": {
+      "translate": "advancements.bpm.automated.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "emitter": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "bpm:signal_emitter"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "parent": "bpm:bpm/controller",
+  "requirements": [
+    [
+      "emitter"
+    ]
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "GGG",
+    "GLG",
+    "GGG"
+  ],
+  "key": {
+    "G": {
+      "item": "minecraft:glass"
+    },
+    "L": {
+      "item": "bpm:coherence_lens"
+    }
+  },
+  "result": {
+    "id": "bpm:containment_barrier",
+    "count": 8
+  }
+}

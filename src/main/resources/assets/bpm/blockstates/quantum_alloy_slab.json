@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "bpm:block/quantum_alloy_slab"
+    },
+    "type=top": {
+      "model": "bpm:block/quantum_alloy_slab_top"
+    },
+    "type=double": {
+      "model": "bpm:block/quantum_alloy_block"
+    }
+  }
+}

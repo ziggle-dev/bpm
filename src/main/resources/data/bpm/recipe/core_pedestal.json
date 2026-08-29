@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "A A",
+    "PCP",
+    "WWW"
+  ],
+  "key": {
+    "A": {
+      "item": "bpm:quantum_alloy_ingot"
+    },
+    "P": {
+      "item": "bpm:phase_conduit"
+    },
+    "C": {
+      "item": "bpm:entangled_circuit"
+    },
+    "W": {
+      "item": "bpm:chamber_wall"
+    }
+  },
+  "result": {
+    "id": "bpm:core_pedestal",
+    "count": 1
+  }
+}

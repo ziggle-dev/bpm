@@ -1,0 +1,37 @@
+{
+  "display": {
+    "icon": {
+      "id": "bpm:quantum_alloy_ingot"
+    },
+    "title": {
+      "translate": "advancements.bpm.alloy.title"
+    },
+    "description": {
+      "translate": "advancements.bpm.alloy.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "ingot": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "bpm:quantum_alloy_ingot"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "parent": "bpm:bpm/root",
+  "requirements": [
+    [
+      "ingot"
+    ]
+  ]
+}

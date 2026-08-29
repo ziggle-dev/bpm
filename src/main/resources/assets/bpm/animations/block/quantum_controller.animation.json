@@ -1,0 +1,1879 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.quantum_controller.idle": {
+      "loop": true,
+      "animation_length": 4,
+      "bones": {
+        "core": {
+          "rotation": {
+            "vector": [
+              0,
+              "-query.life_time * 180 * variable.spin_speed - variable.phase",
+              0
+            ]
+          },
+          "position": {
+            "vector": [
+              0,
+              "math.sin(query.life_time * 60 * variable.spin_speed + variable.phase) * 0.5 * variable.bob_amount",
+              0
+            ]
+          },
+          "scale": {
+            "vector": [
+              "(1 + 0.10 * variable.bob_amount * math.sin((query.life_time * 120 * variable.spin_speed + variable.phase)))",
+              "(1 + 0.10 * variable.bob_amount * math.sin((query.life_time * 120 * variable.spin_speed + variable.phase)))",
+              "(1 + 0.10 * variable.bob_amount * math.sin((query.life_time * 120 * variable.spin_speed + variable.phase)))"
+            ]
+          }
+        },
+        "core_inner": {
+          "rotation": {
+            "vector": [
+              "-query.life_time * 90 * variable.spin_speed",
+              "query.life_time * 90 * variable.spin_speed",
+              0
+            ]
+          },
+          "scale": {
+            "vector": [
+              "((1 - 0.22 * variable.bob_amount * math.sin((query.life_time * 120 * variable.spin_speed + variable.phase)) + 0.05 * variable.bob_amount * math.sin(2 * (query.life_time * 120 * variable.spin_speed + variable.phase))) / (1 + 0.10 * variable.bob_amount * math.sin((query.life_time * 120 * variable.spin_speed + variable.phase))))",
+              "((1 - 0.22 * variable.bob_amount * math.sin((query.life_time * 120 * variable.spin_speed + variable.phase)) + 0.05 * variable.bob_amount * math.sin(2 * (query.life_time * 120 * variable.spin_speed + variable.phase))) / (1 + 0.10 * variable.bob_amount * math.sin((query.life_time * 120 * variable.spin_speed + variable.phase))))",
+              "((1 - 0.22 * variable.bob_amount * math.sin((query.life_time * 120 * variable.spin_speed + variable.phase)) + 0.05 * variable.bob_amount * math.sin(2 * (query.life_time * 120 * variable.spin_speed + variable.phase))) / (1 + 0.10 * variable.bob_amount * math.sin((query.life_time * 120 * variable.spin_speed + variable.phase))))"
+            ]
+          }
+        },
+        "orbitals": {
+          "rotation": {
+            "vector": [
+              0,
+              "query.life_time * 30 * variable.spin_speed - variable.phase",
+              0
+            ]
+          }
+        },
+        "ring_a": {
+          "rotation": {
+            "vector": [
+              0,
+              "-query.life_time * 90 * variable.spin_speed",
+              0
+            ]
+          }
+        },
+        "ring_b": {
+          "rotation": {
+            "vector": [
+              0,
+              "-query.life_time * 90 * variable.spin_speed",
+              0
+            ]
+          }
+        },
+        "ring_c": {
+          "rotation": {
+            "vector": [
+              0,
+              "-query.life_time * 90 * variable.spin_speed",
+              0
+            ]
+          }
+        },
+        "beam_ne": {
+          "scale": {
+            "vector": [
+              "1 + 0.35 * variable.beam_power * math.clamp(math.sin(query.life_time * 180 + 0), 0, 1)",
+              1,
+              "1 + 0.35 * variable.beam_power * math.clamp(math.sin(query.life_time * 180 + 0), 0, 1)"
+            ]
+          }
+        },
+        "beam_nw": {
+          "scale": {
+            "vector": [
+              "1 + 0.35 * variable.beam_power * math.clamp(math.sin(query.life_time * 180 + 90), 0, 1)",
+              1,
+              "1 + 0.35 * variable.beam_power * math.clamp(math.sin(query.life_time * 180 + 90), 0, 1)"
+            ]
+          }
+        },
+        "beam_se": {
+          "scale": {
+            "vector": [
+              "1 + 0.35 * variable.beam_power * math.clamp(math.sin(query.life_time * 180 + 180), 0, 1)",
+              1,
+              "1 + 0.35 * variable.beam_power * math.clamp(math.sin(query.life_time * 180 + 180), 0, 1)"
+            ]
+          }
+        },
+        "beam_sw": {
+          "scale": {
+            "vector": [
+              "1 + 0.35 * variable.beam_power * math.clamp(math.sin(query.life_time * 180 + 270), 0, 1)",
+              1,
+              "1 + 0.35 * variable.beam_power * math.clamp(math.sin(query.life_time * 180 + 270), 0, 1)"
+            ]
+          }
+        },
+        "beam_ne_seg": {
+          "position": {
+            "vector": [
+              0,
+              "math.min(10, math.mod(query.life_time * variable.beam_speed + 0, 1) * 11.5) - 10",
+              0
+            ]
+          }
+        },
+        "beam_nw_seg": {
+          "position": {
+            "vector": [
+              0,
+              "math.min(10, math.mod(query.life_time * variable.beam_speed + 0.25, 1) * 11.5) - 10",
+              0
+            ]
+          }
+        },
+        "beam_se_seg": {
+          "position": {
+            "vector": [
+              0,
+              "math.min(10, math.mod(query.life_time * variable.beam_speed + 0.5, 1) * 11.5) - 10",
+              0
+            ]
+          }
+        },
+        "beam_sw_seg": {
+          "position": {
+            "vector": [
+              0,
+              "math.min(10, math.mod(query.life_time * variable.beam_speed + 0.75, 1) * 11.5) - 10",
+              0
+            ]
+          }
+        },
+        "beam_ne_h": {
+          "scale": {
+            "vector": [
+              1,
+              "math.clamp((math.min(10, math.mod(query.life_time * variable.beam_speed + 0, 1) * 11.5) - math.min(10, math.max(0, math.mod(query.life_time * variable.beam_speed + 0, 1) * 11.5 - (4 - 0.25 * math.min(10, math.mod(query.life_time * variable.beam_speed + 0, 1) * 11.5))))), 0, 1)",
+              1
+            ]
+          }
+        },
+        "beam_ne_s1": {
+          "scale": {
+            "vector": [
+              1,
+              "math.clamp((math.min(10, math.mod(query.life_time * variable.beam_speed + 0, 1) * 11.5) - math.min(10, math.max(0, math.mod(query.life_time * variable.beam_speed + 0, 1) * 11.5 - (4 - 0.25 * math.min(10, math.mod(query.life_time * variable.beam_speed + 0, 1) * 11.5))))) - 1, 0, 1)",
+              1
+            ]
+          }
+        },
+        "beam_ne_s2": {
+          "scale": {
+            "vector": [
+              1,
+              "math.clamp((math.min(10, math.mod(query.life_time * variable.beam_speed + 0, 1) * 11.5) - math.min(10, math.max(0, math.mod(query.life_time * variable.beam_speed + 0, 1) * 11.5 - (4 - 0.25 * math.min(10, math.mod(query.life_time * variable.beam_speed + 0, 1) * 11.5))))) - 2, 0, 1)",
+              1
+            ]
+          }
+        },
+        "beam_ne_s3": {
+          "scale": {
+            "vector": [
+              1,
+              "math.clamp((math.min(10, math.mod(query.life_time * variable.beam_speed + 0, 1) * 11.5) - math.min(10, math.max(0, math.mod(query.life_time * variable.beam_speed + 0, 1) * 11.5 - (4 - 0.25 * math.min(10, math.mod(query.life_time * variable.beam_speed + 0, 1) * 11.5))))) - 3, 0, 1)",
+              1
+            ]
+          }
+        },
+        "beam_nw_h": {
+          "scale": {
+            "vector": [
+              1,
+              "math.clamp((math.min(10, math.mod(query.life_time * variable.beam_speed + 0.25, 1) * 11.5) - math.min(10, math.max(0, math.mod(query.life_time * variable.beam_speed + 0.25, 1) * 11.5 - (4 - 0.25 * math.min(10, math.mod(query.life_time * variable.beam_speed + 0.25, 1) * 11.5))))), 0, 1)",
+              1
+            ]
+          }
+        },
+        "beam_nw_s1": {
+          "scale": {
+            "vector": [
+              1,
+              "math.clamp((math.min(10, math.mod(query.life_time * variable.beam_speed + 0.25, 1) * 11.5) - math.min(10, math.max(0, math.mod(query.life_time * variable.beam_speed + 0.25, 1) * 11.5 - (4 - 0.25 * math.min(10, math.mod(query.life_time * variable.beam_speed + 0.25, 1) * 11.5))))) - 1, 0, 1)",
+              1
+            ]
+          }
+        },
+        "beam_nw_s2": {
+          "scale": {
+            "vector": [
+              1,
+              "math.clamp((math.min(10, math.mod(query.life_time * variable.beam_speed + 0.25, 1) * 11.5) - math.min(10, math.max(0, math.mod(query.life_time * variable.beam_speed + 0.25, 1) * 11.5 - (4 - 0.25 * math.min(10, math.mod(query.life_time * variable.beam_speed + 0.25, 1) * 11.5))))) - 2, 0, 1)",
+              1
+            ]
+          }
+        },
+        "beam_nw_s3": {
+          "scale": {
+            "vector": [
+              1,
+              "math.clamp((math.min(10, math.mod(query.life_time * variable.beam_speed + 0.25, 1) * 11.5) - math.min(10, math.max(0, math.mod(query.life_time * variable.beam_speed + 0.25, 1) * 11.5 - (4 - 0.25 * math.min(10, math.mod(query.life_time * variable.beam_speed + 0.25, 1) * 11.5))))) - 3, 0, 1)",
+              1
+            ]
+          }
+        },
+        "beam_se_h": {
+          "scale": {
+            "vector": [
+              1,
+              "math.clamp((math.min(10, math.mod(query.life_time * variable.beam_speed + 0.5, 1) * 11.5) - math.min(10, math.max(0, math.mod(query.life_time * variable.beam_speed + 0.5, 1) * 11.5 - (4 - 0.25 * math.min(10, math.mod(query.life_time * variable.beam_speed + 0.5, 1) * 11.5))))), 0, 1)",
+              1
+            ]
+          }
+        },
+        "beam_se_s1": {
+          "scale": {
+            "vector": [
+              1,
+              "math.clamp((math.min(10, math.mod(query.life_time * variable.beam_speed + 0.5, 1) * 11.5) - math.min(10, math.max(0, math.mod(query.life_time * variable.beam_speed + 0.5, 1) * 11.5 - (4 - 0.25 * math.min(10, math.mod(query.life_time * variable.beam_speed + 0.5, 1) * 11.5))))) - 1, 0, 1)",
+              1
+            ]
+          }
+        },
+        "beam_se_s2": {
+          "scale": {
+            "vector": [
+              1,
+              "math.clamp((math.min(10, math.mod(query.life_time * variable.beam_speed + 0.5, 1) * 11.5) - math.min(10, math.max(0, math.mod(query.life_time * variable.beam_speed + 0.5, 1) * 11.5 - (4 - 0.25 * math.min(10, math.mod(query.life_time * variable.beam_speed + 0.5, 1) * 11.5))))) - 2, 0, 1)",
+              1
+            ]
+          }
+        },
+        "beam_se_s3": {
+          "scale": {
+            "vector": [
+              1,
+              "math.clamp((math.min(10, math.mod(query.life_time * variable.beam_speed + 0.5, 1) * 11.5) - math.min(10, math.max(0, math.mod(query.life_time * variable.beam_speed + 0.5, 1) * 11.5 - (4 - 0.25 * math.min(10, math.mod(query.life_time * variable.beam_speed + 0.5, 1) * 11.5))))) - 3, 0, 1)",
+              1
+            ]
+          }
+        },
+        "beam_sw_h": {
+          "scale": {
+            "vector": [
+              1,
+              "math.clamp((math.min(10, math.mod(query.life_time * variable.beam_speed + 0.75, 1) * 11.5) - math.min(10, math.max(0, math.mod(query.life_time * variable.beam_speed + 0.75, 1) * 11.5 - (4 - 0.25 * math.min(10, math.mod(query.life_time * variable.beam_speed + 0.75, 1) * 11.5))))), 0, 1)",
+              1
+            ]
+          }
+        },
+        "beam_sw_s1": {
+          "scale": {
+            "vector": [
+              1,
+              "math.clamp((math.min(10, math.mod(query.life_time * variable.beam_speed + 0.75, 1) * 11.5) - math.min(10, math.max(0, math.mod(query.life_time * variable.beam_speed + 0.75, 1) * 11.5 - (4 - 0.25 * math.min(10, math.mod(query.life_time * variable.beam_speed + 0.75, 1) * 11.5))))) - 1, 0, 1)",
+              1
+            ]
+          }
+        },
+        "beam_sw_s2": {
+          "scale": {
+            "vector": [
+              1,
+              "math.clamp((math.min(10, math.mod(query.life_time * variable.beam_speed + 0.75, 1) * 11.5) - math.min(10, math.max(0, math.mod(query.life_time * variable.beam_speed + 0.75, 1) * 11.5 - (4 - 0.25 * math.min(10, math.mod(query.life_time * variable.beam_speed + 0.75, 1) * 11.5))))) - 2, 0, 1)",
+              1
+            ]
+          }
+        },
+        "beam_sw_s3": {
+          "scale": {
+            "vector": [
+              1,
+              "math.clamp((math.min(10, math.mod(query.life_time * variable.beam_speed + 0.75, 1) * 11.5) - math.min(10, math.max(0, math.mod(query.life_time * variable.beam_speed + 0.75, 1) * 11.5 - (4 - 0.25 * math.min(10, math.mod(query.life_time * variable.beam_speed + 0.75, 1) * 11.5))))) - 3, 0, 1)",
+              1
+            ]
+          }
+        }
+      }
+    },
+    "animation.quantum_controller.open": {
+      "animation_length": 1,
+      "bones": {
+        "core": {
+          "position": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.15": {
+              "post": {
+                "vector": [
+                  0,
+                  1.5,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.6": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          },
+          "scale": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.15": {
+              "post": {
+                "vector": [
+                  1.6,
+                  1.6,
+                  1.6
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.4": {
+              "post": {
+                "vector": [
+                  0.9,
+                  0.9,
+                  0.9
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.75": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "core_inner": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "0.6": {
+              "vector": [
+                0,
+                -360,
+                0
+              ]
+            }
+          }
+        },
+        "orbitals": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "0.75": {
+              "vector": [
+                0,
+                90,
+                0
+              ]
+            }
+          },
+          "scale": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.2": {
+              "post": {
+                "vector": [
+                  1.35,
+                  1.35,
+                  1.35
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.75": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "beam_ne": {
+          "scale": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.15": {
+              "post": {
+                "vector": [
+                  2.2,
+                  1,
+                  2.2
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.6": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "beam_nw": {
+          "scale": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.15": {
+              "post": {
+                "vector": [
+                  2.2,
+                  1,
+                  2.2
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.6": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "beam_se": {
+          "scale": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.15": {
+              "post": {
+                "vector": [
+                  2.2,
+                  1,
+                  2.2
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.6": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "beam_sw": {
+          "scale": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.15": {
+              "post": {
+                "vector": [
+                  2.2,
+                  1,
+                  2.2
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.6": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        }
+      }
+    },
+    "animation.quantum_controller.close": {
+      "animation_length": 0.8,
+      "bones": {
+        "core": {
+          "position": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.2": {
+              "post": {
+                "vector": [
+                  0,
+                  -0.8,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.7": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          },
+          "scale": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.2": {
+              "post": {
+                "vector": [
+                  0.8,
+                  0.8,
+                  0.8
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.7": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "orbitals": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "0.7": {
+              "vector": [
+                0,
+                -60,
+                0
+              ]
+            }
+          },
+          "scale": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.25": {
+              "post": {
+                "vector": [
+                  0.85,
+                  0.85,
+                  0.85
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.7": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "beam_ne": {
+          "scale": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.2": {
+              "post": {
+                "vector": [
+                  0.5,
+                  1,
+                  0.5
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.7": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "beam_nw": {
+          "scale": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.2": {
+              "post": {
+                "vector": [
+                  0.5,
+                  1,
+                  0.5
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.7": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "beam_se": {
+          "scale": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.2": {
+              "post": {
+                "vector": [
+                  0.5,
+                  1,
+                  0.5
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.7": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "beam_sw": {
+          "scale": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.2": {
+              "post": {
+                "vector": [
+                  0.5,
+                  1,
+                  0.5
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.7": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        }
+      }
+    },
+    "animation.quantum_controller.powerup": {
+      "animation_length": 1.6,
+      "bones": {
+        "core": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "1.3": {
+              "vector": [
+                0,
+                1080,
+                0
+              ]
+            }
+          },
+          "position": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  0,
+                  -5,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.3": {
+              "post": {
+                "vector": [
+                  0,
+                  -5,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.0": {
+              "post": {
+                "vector": [
+                  0,
+                  0.8,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.3": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          },
+          "scale": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  0.4,
+                  0.4,
+                  0.4
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.3": {
+              "post": {
+                "vector": [
+                  0.4,
+                  0.4,
+                  0.4
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.0": {
+              "post": {
+                "vector": [
+                  1.25,
+                  1.25,
+                  1.25
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.3": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "core_inner": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "1.3": {
+              "vector": [
+                0,
+                -720,
+                0
+              ]
+            }
+          }
+        },
+        "orbitals": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "1.4": {
+              "vector": [
+                0,
+                360,
+                0
+              ]
+            }
+          },
+          "scale": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "0.6": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "1.1": {
+              "vector": [
+                1.2,
+                1.2,
+                1.2
+              ]
+            },
+            "1.4": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            }
+          }
+        },
+        "beam_ne": {
+          "scale": {
+            "0.0": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            },
+            "0.2": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            },
+            "0.55": {
+              "vector": [
+                1.5,
+                1,
+                1.5
+              ]
+            },
+            "0.8": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            }
+          }
+        },
+        "beam_nw": {
+          "scale": {
+            "0.0": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            },
+            "0.3": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            },
+            "0.65": {
+              "vector": [
+                1.5,
+                1,
+                1.5
+              ]
+            },
+            "0.9": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            }
+          }
+        },
+        "beam_se": {
+          "scale": {
+            "0.0": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            },
+            "0.4": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            },
+            "0.75": {
+              "vector": [
+                1.5,
+                1,
+                1.5
+              ]
+            },
+            "1.0": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            }
+          }
+        },
+        "beam_sw": {
+          "scale": {
+            "0.0": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            },
+            "0.5": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            },
+            "0.85": {
+              "vector": [
+                1.5,
+                1,
+                1.5
+              ]
+            },
+            "1.1": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            }
+          }
+        },
+        "beam_ne_seg": {
+          "scale": {
+            "0.0": {
+              "vector": [
+                1,
+                0,
+                1
+              ]
+            },
+            "0.2": {
+              "vector": [
+                1,
+                0,
+                1
+              ]
+            },
+            "0.6": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            }
+          }
+        },
+        "beam_nw_seg": {
+          "scale": {
+            "0.0": {
+              "vector": [
+                1,
+                0,
+                1
+              ]
+            },
+            "0.3": {
+              "vector": [
+                1,
+                0,
+                1
+              ]
+            },
+            "0.7": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            }
+          }
+        },
+        "beam_se_seg": {
+          "scale": {
+            "0.0": {
+              "vector": [
+                1,
+                0,
+                1
+              ]
+            },
+            "0.4": {
+              "vector": [
+                1,
+                0,
+                1
+              ]
+            },
+            "0.8": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            }
+          }
+        },
+        "beam_sw_seg": {
+          "scale": {
+            "0.0": {
+              "vector": [
+                1,
+                0,
+                1
+              ]
+            },
+            "0.5": {
+              "vector": [
+                1,
+                0,
+                1
+              ]
+            },
+            "0.9": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            }
+          }
+        }
+      }
+    },
+    "animation.quantum_controller.powerdown": {
+      "loop": "hold_on_last_frame",
+      "animation_length": 1.2,
+      "bones": {
+        "beam_ne": {
+          "scale": {
+            "0.0": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            },
+            "0.05": {
+              "vector": [
+                1.4,
+                1,
+                1.4
+              ]
+            },
+            "0.35": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            }
+          }
+        },
+        "beam_nw": {
+          "scale": {
+            "0.0": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            },
+            "0.15": {
+              "vector": [
+                1.4,
+                1,
+                1.4
+              ]
+            },
+            "0.45": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            }
+          }
+        },
+        "beam_se": {
+          "scale": {
+            "0.0": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            },
+            "0.25": {
+              "vector": [
+                1.4,
+                1,
+                1.4
+              ]
+            },
+            "0.55": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            }
+          }
+        },
+        "beam_sw": {
+          "scale": {
+            "0.0": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            },
+            "0.35": {
+              "vector": [
+                1.4,
+                1,
+                1.4
+              ]
+            },
+            "0.65": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            }
+          }
+        },
+        "orbitals": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "0.7": {
+              "vector": [
+                0,
+                -180,
+                0
+              ]
+            }
+          },
+          "scale": {
+            "0.0": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            },
+            "0.15": {
+              "vector": [
+                1.15,
+                1.15,
+                1.15
+              ]
+            },
+            "0.7": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "core": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "1.0": {
+              "vector": [
+                0,
+                360,
+                0
+              ]
+            }
+          },
+          "position": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.25": {
+              "post": {
+                "vector": [
+                  0,
+                  1,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.0": {
+              "post": {
+                "vector": [
+                  0,
+                  -5,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          },
+          "scale": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.2": {
+              "post": {
+                "vector": [
+                  1.2,
+                  1.2,
+                  1.2
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.0": {
+              "post": {
+                "vector": [
+                  0.4,
+                  0.4,
+                  0.4
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "core_inner": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "1.0": {
+              "vector": [
+                0,
+                -360,
+                0
+              ]
+            }
+          }
+        },
+        "beam_ne_seg": {
+          "position": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "0.4": {
+              "vector": [
+                0,
+                10,
+                0
+              ]
+            }
+          },
+          "scale": {
+            "0.0": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            },
+            "0.4": {
+              "vector": [
+                1,
+                0,
+                1
+              ]
+            }
+          }
+        },
+        "beam_nw_seg": {
+          "position": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "0.5": {
+              "vector": [
+                0,
+                10,
+                0
+              ]
+            }
+          },
+          "scale": {
+            "0.0": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            },
+            "0.5": {
+              "vector": [
+                1,
+                0,
+                1
+              ]
+            }
+          }
+        },
+        "beam_se_seg": {
+          "position": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "0.6": {
+              "vector": [
+                0,
+                10,
+                0
+              ]
+            }
+          },
+          "scale": {
+            "0.0": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            },
+            "0.6": {
+              "vector": [
+                1,
+                0,
+                1
+              ]
+            }
+          }
+        },
+        "beam_sw_seg": {
+          "position": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "0.7": {
+              "vector": [
+                0,
+                10,
+                0
+              ]
+            }
+          },
+          "scale": {
+            "0.0": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            },
+            "0.7": {
+              "vector": [
+                1,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      }
+    },
+    "animation.quantum_controller.off": {
+      "loop": true,
+      "animation_length": 3,
+      "bones": {
+        "core": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "3.0": {
+              "vector": [
+                0,
+                360,
+                0
+              ]
+            }
+          },
+          "position": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  0,
+                  -5,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.5": {
+              "post": {
+                "vector": [
+                  0,
+                  -4.6,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "3.0": {
+              "post": {
+                "vector": [
+                  0,
+                  -5,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          },
+          "scale": {
+            "vector": [
+              "(0.4 * (1 + 0.10 * math.sin((query.life_time * 60 + variable.phase))))",
+              "(0.4 * (1 + 0.10 * math.sin((query.life_time * 60 + variable.phase))))",
+              "(0.4 * (1 + 0.10 * math.sin((query.life_time * 60 + variable.phase))))"
+            ]
+          }
+        },
+        "core_inner": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "3.0": {
+              "vector": [
+                0,
+                -360,
+                0
+              ]
+            }
+          },
+          "scale": {
+            "vector": [
+              "((1 - 0.18 * math.sin((query.life_time * 60 + variable.phase))) / (1 + 0.10 * math.sin((query.life_time * 60 + variable.phase))))",
+              "((1 - 0.18 * math.sin((query.life_time * 60 + variable.phase))) / (1 + 0.10 * math.sin((query.life_time * 60 + variable.phase))))",
+              "((1 - 0.18 * math.sin((query.life_time * 60 + variable.phase))) / (1 + 0.10 * math.sin((query.life_time * 60 + variable.phase))))"
+            ]
+          }
+        },
+        "orbitals": {
+          "scale": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "3.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "beam_ne": {
+          "scale": {
+            "0.0": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            },
+            "3.0": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            }
+          }
+        },
+        "beam_nw": {
+          "scale": {
+            "0.0": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            },
+            "3.0": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            }
+          }
+        },
+        "beam_se": {
+          "scale": {
+            "0.0": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            },
+            "3.0": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            }
+          }
+        },
+        "beam_sw": {
+          "scale": {
+            "0.0": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            },
+            "3.0": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            }
+          }
+        },
+        "beam_ne_seg": {
+          "scale": {
+            "0.0": {
+              "vector": [
+                1,
+                0,
+                1
+              ]
+            },
+            "3.0": {
+              "vector": [
+                1,
+                0,
+                1
+              ]
+            }
+          }
+        },
+        "beam_nw_seg": {
+          "scale": {
+            "0.0": {
+              "vector": [
+                1,
+                0,
+                1
+              ]
+            },
+            "3.0": {
+              "vector": [
+                1,
+                0,
+                1
+              ]
+            }
+          }
+        },
+        "beam_se_seg": {
+          "scale": {
+            "0.0": {
+              "vector": [
+                1,
+                0,
+                1
+              ]
+            },
+            "3.0": {
+              "vector": [
+                1,
+                0,
+                1
+              ]
+            }
+          }
+        },
+        "beam_sw_seg": {
+          "scale": {
+            "0.0": {
+              "vector": [
+                1,
+                0,
+                1
+              ]
+            },
+            "3.0": {
+              "vector": [
+                1,
+                0,
+                1
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "geckolib_format_version": 2
+}

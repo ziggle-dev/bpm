@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "": { "model": "bpm:block/experience" }
+  }
+}

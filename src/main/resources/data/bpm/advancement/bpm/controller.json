@@ -1,0 +1,37 @@
+{
+  "display": {
+    "icon": {
+      "id": "bpm:quantum_controller"
+    },
+    "title": {
+      "translate": "advancements.bpm.controller.title"
+    },
+    "description": {
+      "translate": "advancements.bpm.controller.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "controller": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "bpm:quantum_controller"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "parent": "bpm:bpm/core",
+  "requirements": [
+    [
+      "controller"
+    ]
+  ]
+}

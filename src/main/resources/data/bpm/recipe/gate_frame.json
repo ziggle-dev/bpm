@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "AAA",
+    "ASA",
+    "AAA"
+  ],
+  "key": {
+    "A": {
+      "item": "bpm:quantum_alloy_ingot"
+    },
+    "S": {
+      "item": "bpm:entanglium_shard"
+    }
+  },
+  "result": {
+    "id": "bpm:gate_frame",
+    "count": 8
+  }
+}

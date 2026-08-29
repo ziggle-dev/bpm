@@ -1,0 +1,37 @@
+{
+  "display": {
+    "icon": {
+      "id": "bpm:quantum_linker"
+    },
+    "title": {
+      "translate": "advancements.bpm.linker.title"
+    },
+    "description": {
+      "translate": "advancements.bpm.linker.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "linker": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "bpm:quantum_linker"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "parent": "bpm:bpm/circuit",
+  "requirements": [
+    [
+      "linker"
+    ]
+  ]
+}

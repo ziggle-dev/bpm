@@ -1,0 +1,42 @@
+{
+  "display": {
+    "icon": {
+      "id": "bpm:warden_plating"
+    },
+    "title": {
+      "translate": "advancements.bpm.warden.title"
+    },
+    "description": {
+      "translate": "advancements.bpm.warden.description"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "killed": {
+      "trigger": "minecraft:player_killed_entity",
+      "conditions": {
+        "entity": [
+          {
+            "condition": "minecraft:entity_properties",
+            "entity": "this",
+            "predicate": {
+              "type": "bpm:quantum_warden"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "parent": "bpm:bpm/chamber",
+  "requirements": [
+    [
+      "killed"
+    ]
+  ],
+  "rewards": {
+    "experience": 100
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "variants": {
+    "power=0": {
+      "model": "bpm:block/signal_emitter"
+    },
+    "power=1": {
+      "model": "bpm:block/signal_emitter_on"
+    },
+    "power=2": {
+      "model": "bpm:block/signal_emitter_on"
+    },
+    "power=3": {
+      "model": "bpm:block/signal_emitter_on"
+    },
+    "power=4": {
+      "model": "bpm:block/signal_emitter_on"
+    },
+    "power=5": {
+      "model": "bpm:block/signal_emitter_on"
+    },
+    "power=6": {
+      "model": "bpm:block/signal_emitter_on"
+    },
+    "power=7": {
+      "model": "bpm:block/signal_emitter_on"
+    },
+    "power=8": {
+      "model": "bpm:block/signal_emitter_on"
+    },
+    "power=9": {
+      "model": "bpm:block/signal_emitter_on"
+    },
+    "power=10": {
+      "model": "bpm:block/signal_emitter_on"
+    },
+    "power=11": {
+      "model": "bpm:block/signal_emitter_on"
+    },
+    "power=12": {
+      "model": "bpm:block/signal_emitter_on"
+    },
+    "power=13": {
+      "model": "bpm:block/signal_emitter_on"
+    },
+    "power=14": {
+      "model": "bpm:block/signal_emitter_on"
+    },
+    "power=15": {
+      "model": "bpm:block/signal_emitter_on"
+    }
+  }
+}

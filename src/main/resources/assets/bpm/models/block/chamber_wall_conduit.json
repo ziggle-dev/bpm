@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "bpm:block/chamber_wall_conduit"
+  }
+}

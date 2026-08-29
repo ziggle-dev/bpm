@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "SSS",
+    "ACA",
+    "WWW"
+  ],
+  "key": {
+    "S": {
+      "item": "bpm:entanglium_shard"
+    },
+    "A": {
+      "item": "bpm:quantum_alloy_ingot"
+    },
+    "C": {
+      "item": "bpm:entangled_circuit"
+    },
+    "W": {
+      "item": "bpm:chamber_wall"
+    }
+  },
+  "result": {
+    "id": "bpm:phase_spike",
+    "count": 1
+  }
+}

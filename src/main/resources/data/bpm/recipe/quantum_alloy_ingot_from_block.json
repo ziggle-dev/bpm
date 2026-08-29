@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "bpm:quantum_alloy_block"
+    }
+  ],
+  "result": {
+    "id": "bpm:quantum_alloy_ingot",
+    "count": 9
+  }
+}

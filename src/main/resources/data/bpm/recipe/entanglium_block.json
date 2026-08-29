@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "SSS",
+    "SSS",
+    "SSS"
+  ],
+  "key": {
+    "S": {
+      "item": "bpm:entanglium_shard"
+    }
+  },
+  "result": {
+    "id": "bpm:entanglium_block",
+    "count": 1
+  }
+}

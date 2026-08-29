@@ -1,0 +1,84 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "bpm:block/gate_frame_full_side_off",
+    "side_off": "bpm:block/gate_frame_full_side_off",
+    "side": "bpm:block/gate_frame_full_side",
+    "top": "bpm:block/gate_frame_full_top",
+    "plate": "bpm:block/gate_frame_plate",
+    "end": "bpm:block/gate_frame_end",
+    "emblem_off": "bpm:block/gate_frame_corner_off",
+    "emblem": "bpm:block/gate_frame_corner",
+    "back": "bpm:block/gate_frame_back"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        -3
+      ],
+      "to": [
+        16,
+        16,
+        3
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#back"
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#plate"
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            6,
+            16
+          ],
+          "texture": "#plate"
+        },
+        "west": {
+          "uv": [
+            10,
+            0,
+            16,
+            16
+          ],
+          "texture": "#plate"
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            16,
+            6
+          ],
+          "texture": "#plate"
+        },
+        "down": {
+          "uv": [
+            0,
+            10,
+            16,
+            16
+          ],
+          "texture": "#plate"
+        }
+      }
+    }
+  ]
+}

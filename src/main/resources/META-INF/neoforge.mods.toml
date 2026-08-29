@@ -1,0 +1,37 @@
+modLoader="kotlinforforge"
+loaderVersion="[5,)"
+license="MIT"
+
+[[mods]]
+modId="bpm"
+version="0.1.0"
+displayName="bpm"
+description='''Visual scripting for automation: graphs run on the server, edited in-game, rendered in the world.'''
+
+[[dependencies.bpm]]
+    modId="kotlinforforge"
+    type="required"
+    versionRange="[5.12,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.bpm]]
+    modId="geckolib"
+    type="required"
+    versionRange="[4.5,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.bpm]]
+    modId="neoforge"
+    type="required"
+    versionRange="[21.1,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.bpm]]
+    modId="minecraft"
+    type="required"
+    versionRange="[1.21.1,1.22)"
+    ordering="NONE"
+    side="BOTH"
+
+[features.bpm]
+openGLVersion="[3.2,)"

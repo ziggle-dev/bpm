@@ -1,0 +1,4 @@
+[submodule "vscript"]
+	path = vscript
+	url = https://github.com/osrsx/osrsx-vscript.git
+	branch = refactor/domain-agnostic

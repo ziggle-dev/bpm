@@ -1,0 +1,31 @@
+{
+  "display": {
+    "icon": {
+      "id": "bpm:coherence_lens"
+    },
+    "title": {
+      "translate": "advancements.bpm.chamber.title"
+    },
+    "description": {
+      "translate": "advancements.bpm.chamber.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "entered": {
+      "trigger": "minecraft:changed_dimension",
+      "conditions": {
+        "to": "bpm:decoherence"
+      }
+    }
+  },
+  "parent": "bpm:bpm/gate",
+  "requirements": [
+    [
+      "entered"
+    ]
+  ]
+}
