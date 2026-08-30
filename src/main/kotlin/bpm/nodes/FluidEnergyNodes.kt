@@ -1,5 +1,6 @@
 package bpm.nodes
 
+import bpm.BpmConfig.orDefault
 import bpm.catalog.McVs
 import bpm.catalog.values.FluidStackValue
 import bpm.catalog.values.RegistryIds
@@ -118,6 +119,68 @@ object FluidNodes {
     }
 }
 
+/**
+ * Whether a source block belongs to a body big enough to treat as bottomless.
+ *
+ * **The flood fill is bounded and the answer is cached, and it has to be both.** `fluids.pickup` is
+ * ordinarily called from `on tick`, so an unbounded search of an ocean would run every tick and stall the
+ * server; the fill therefore stops the moment it has counted enough to decide, and never visits more than
+ * the threshold. Even so, ten thousand block lookups is not something to do sixty times a second, so the
+ * verdict is remembered per block for [TTL_TICKS].
+ *
+ * Caching a verdict means it can be stale. In the direction that matters it cannot bite: a body large
+ * enough to pass has to lose thousands of blocks before it would fail, which nothing does inside ten
+ * seconds. A body that GROWS past the threshold merely stays finite a little longer than it needs to.
+ */
+private object Bottomless {
+
+    /** How long a verdict is trusted. Short enough to notice the world changing, long enough to matter. */
+    private const val TTL_TICKS = 200L
+
+    private class Verdict(val bottomless: Boolean, val until: Long)
+
+    private data class Key(val dim: net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level>, val pos: Long)
+
+    private val verdicts = HashMap<Key, Verdict>()
+
+    fun covers(level: net.minecraft.server.level.ServerLevel, pos: net.minecraft.core.BlockPos, fluid: Fluid): Boolean {
+        val threshold = bpm.BpmConfig.FLUID_INFINITE_SOURCES.orDefault()
+        if (threshold <= 0) return false
+        val now = level.gameTime
+        val key = Key(level.dimension(), pos.asLong())
+        verdicts[key]?.let { if (now < it.until) return it.bottomless }
+        if (verdicts.size > MAX_CACHED) verdicts.entries.removeIf { now >= it.value.until }
+        val bottomless = count(level, pos, fluid, threshold) >= threshold
+        verdicts[key] = Verdict(bottomless, now + TTL_TICKS)
+        return bottomless
+    }
+
+    /** Connected source blocks of the same fluid, counting no further than [cap]. */
+    private fun count(level: net.minecraft.server.level.ServerLevel, from: net.minecraft.core.BlockPos, fluid: Fluid, cap: Int): Int {
+        val seen = HashSet<Long>()
+        val queue = ArrayDeque<net.minecraft.core.BlockPos>()
+        seen += from.asLong()
+        queue += from
+        var found = 0
+        while (queue.isNotEmpty() && found < cap) {
+            val at = queue.removeFirst()
+            found++
+            for (dir in net.minecraft.core.Direction.entries) {
+                val next = at.relative(dir)
+                if (!seen.add(next.asLong())) continue
+                // An unloaded chunk stops the search rather than loading the world to answer a question.
+                if (!level.hasChunkAt(next)) continue
+                val fs = level.getBlockState(next).fluidState
+                if (fs.isEmpty || !fs.isSource || fs.type != fluid) continue
+                queue += next
+            }
+        }
+        return found
+    }
+
+    private const val MAX_CACHED = 512
+}
+
 /** Buckets without the bucket: a source block into the tanks and back. */
 internal object FluidWorld {
     private val BUCKET: Int = FluidType.BUCKET_VOLUME
@@ -125,8 +188,12 @@ internal object FluidWorld {
     fun place(host: ControllerHost, linkName: String, fluidId: String?): Boolean {
         val r = host.link(linkName) ?: return false
         if (!r.loaded) return false
+        for (pos in targets(r)) if (placeAt(host, pos, linkName, fluidId)) return true
+        return false
+    }
+
+    private fun placeAt(host: ControllerHost, pos: net.minecraft.core.BlockPos, linkName: String, fluidId: String?): Boolean {
         val level = host.level
-        val pos = r.link.pos
         val tanks = host.selfTanks
         val kind: Fluid = (if (fluidId != null) RegistryIds.fluid(fluidId) else firstBucket(tanks)) ?: return false
         val flowing = kind as? FlowingFluid ?: return false
@@ -155,8 +222,12 @@ internal object FluidWorld {
     fun pickup(host: ControllerHost, linkName: String): Boolean {
         val r = host.link(linkName) ?: return false
         if (!r.loaded) return false
+        for (pos in targets(r)) if (pickupAt(host, pos, linkName)) return true
+        return false
+    }
+
+    private fun pickupAt(host: ControllerHost, pos: net.minecraft.core.BlockPos, linkName: String): Boolean {
         val level = host.level
-        val pos = r.link.pos
         val state = level.getBlockState(pos)
         val fs = state.fluidState
         if (fs.isEmpty || !fs.isSource) return false
@@ -164,14 +235,38 @@ internal object FluidWorld {
         val stack = FluidStack(fs.type, BUCKET)
         val tanks = host.selfTanks
         if (tanks.fill(stack, IFluidHandler.FluidAction.SIMULATE) < BUCKET) return false
-        val got = block.pickupBlock(null, level, pos, state)
-        if (got.isEmpty) return false
-        tanks.fill(stack, IFluidHandler.FluidAction.EXECUTE)
+        // A big enough body is bottomless: fill from it and leave the block where it is. An ocean or a
+        // nether lava sea qualifies; a pond does not, and gets drained a block at a time as before.
+        if (Bottomless.covers(level, pos, fs.type)) {
+            tanks.fill(stack, IFluidHandler.FluidAction.EXECUTE)
+        } else {
+            val got = block.pickupBlock(null, level, pos, state)
+            if (got.isEmpty) return false
+            tanks.fill(stack, IFluidHandler.FluidAction.EXECUTE)
+        }
         val sound = block.pickupSound.orElse(null) ?: fs.type.fluidType.getSound(SoundActions.BUCKET_FILL) ?: SoundEvents.BUCKET_FILL
         level.playSound(null, pos, sound, SoundSource.BLOCKS, 1f, 1f)
         level.gameEvent(null, GameEvent.FLUID_PICKUP, pos)
         host.transferred(linkName, ControllerHost.SELF, BUCKET, bpm.net.EffectKind.FLUID, net.minecraft.core.registries.BuiltInRegistries.FLUID.getKey(fs.type).toString())
         return true
+    }
+
+    /**
+     * The blocks a bucket would act on for this link: the one it names, then the space its face opens onto.
+     *
+     * **A link can never name a fluid directly when it was made with the wand.** Linking goes through
+     * `useOn`, whose hit result comes from the player's ordinary reach, and that clips straight through
+     * liquids — you cannot right-click water, you hit whatever is behind it. So "the water here" is always
+     * a link to the SOLID block beside it plus the face you clicked, and looking only at the linked block
+     * meant `fluids.pickup` found stone and gave up every time.
+     *
+     * Trying the face's outward neighbour second is exactly what a bucket does: right-click a block face
+     * and the liquid comes from, or goes into, the space in front of it. The linked position is still tried
+     * first, so a coordinate link (`controller.linkAt`) naming the fluid outright keeps working.
+     */
+    private fun targets(r: bpm.world.ResolvedLink): List<net.minecraft.core.BlockPos> {
+        val side = r.link.side ?: return listOf(r.link.pos)
+        return listOf(r.link.pos, r.link.pos.relative(side))
     }
 
     private fun firstBucket(tanks: IFluidHandler): Fluid? {

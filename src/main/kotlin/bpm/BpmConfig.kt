@@ -31,6 +31,7 @@ object BpmConfig {
     val TRAP_TURRET_TARGETS_PLAYERS_OVERWORLD: ModConfigSpec.BooleanValue
     val TRAP_TURRET_HEAL: ModConfigSpec.DoubleValue
     val EFFECTS_MAX_RIFTS: ModConfigSpec.IntValue
+    val FLUID_INFINITE_SOURCES: ModConfigSpec.IntValue
 
     val SPEC: ModConfigSpec
 
@@ -68,6 +69,13 @@ object BpmConfig {
         B.pop()
         B.push("effects")
         EFFECTS_MAX_RIFTS = B.defineInRange("maxRifts", 24, 0, 256)
+        B.pop()
+        B.push("fluids")
+        FLUID_INFINITE_SOURCES = B.comment(
+            "A body of liquid with at least this many connected source blocks is treated as bottomless:",
+            "fluids.pickup fills from it without taking the block. An ocean or a nether lava sea passes;",
+            "a pond does not. Set to 0 to turn it off and always consume the source.",
+        ).defineInRange("infiniteSources", 10000, 0, 1000000)
         B.pop()
         SPEC = B.build()
     }
