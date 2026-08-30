@@ -2,10 +2,17 @@ package bpm.client.render
 
 import bpm.Bpm
 import bpm.world.entity.QuantumWardenEntity
+import com.mojang.blaze3d.vertex.PoseStack
+import com.mojang.blaze3d.vertex.VertexConsumer
+import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.client.renderer.entity.EntityRendererProvider
+import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.world.phys.Vec3
+import org.joml.Vector3f
+import software.bernie.geckolib.cache.`object`.GeoBone
 import software.bernie.geckolib.renderer.GeoEntityRenderer
 
 private fun rl(path: String) = ResourceLocation.fromNamespaceAndPath(Bpm.ID, path)
@@ -25,4 +32,51 @@ class WardenRenderer(context: EntityRendererProvider.Context) : GeoEntityRendere
 
     override fun getRenderType(animatable: QuantumWardenEntity, texture: ResourceLocation, bufferSource: MultiBufferSource?, partialTick: Float): RenderType =
         RenderType.entityTranslucent(texture)
+
+    /**
+     * Publish the two beam roots, and spark at them.
+     *
+     * The server spawns bolts from [bpm.world.entity.QuantumWardenEntity.claw], which is trigonometry
+     * against the body yaw — 1.2 out, 0.4 forward, 1.8 up — and has to be, because the bone matrices only
+     * exist here on the client. What that hand-written offset cannot do is follow the ANIMATION: the arms
+     * swing through `attack_beam`, drop through `stagger` and vanish through `blink_out`, and a fixed offset
+     * ignores all of it. So the authoritative bolt keeps its offset and the tell that reads at range — the
+     * charge at each claw — comes off the bone, which means it tracks the arm wherever the clip puts it.
+     */
+    override fun renderRecursively(
+        poseStack: PoseStack, animatable: QuantumWardenEntity, bone: GeoBone, renderType: RenderType,
+        bufferSource: MultiBufferSource, buffer: VertexConsumer, isReRender: Boolean, partialTick: Float,
+        packedLight: Int, packedOverlay: Int, colour: Int,
+    ) {
+        if (!isReRender && (bone.name == BEAM_L || bone.name == BEAM_R)) {
+            val local = poseStack.last().pose().transformPosition(Vector3f(0f, 0f, 0f))
+            val cam = Minecraft.getInstance().gameRenderer.mainCamera.position
+            val at = Vec3(local.x + cam.x, local.y + cam.y, local.z + cam.z)
+            BoneAnchors.capture(animatable.id, bone.name, at)
+            spark(animatable, at)
+        }
+        super.renderRecursively(poseStack, animatable, bone, renderType, bufferSource, buffer, isReRender, partialTick, packedLight, packedOverlay, colour)
+    }
+
+    /** A charge at the claw — thicker once the plates are down, which is when it is worth closing on. */
+    private fun spark(warden: QuantumWardenEntity, at: Vec3) {
+        val level = warden.level()
+        val chance = if (warden.shielded) SPARK_SHIELDED else SPARK_EXPOSED
+        if (level.random.nextFloat() > chance) return
+        level.addParticle(
+            ParticleTypes.ELECTRIC_SPARK,
+            at.x + (level.random.nextDouble() - 0.5) * 0.25,
+            at.y + (level.random.nextDouble() - 0.5) * 0.25,
+            at.z + (level.random.nextDouble() - 0.5) * 0.25,
+            0.0, 0.01, 0.0,
+        )
+    }
+
+    companion object {
+        /** The roots of the two arm beams — where a bolt leaves the model. */
+        const val BEAM_L = "beam_l"
+        const val BEAM_R = "beam_r"
+        private const val SPARK_SHIELDED = 0.06f
+        private const val SPARK_EXPOSED = 0.22f
+    }
 }

@@ -442,6 +442,8 @@ object WorldNodes {
                 for (entity in host.level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity::class.java, box)) {
                     val stack = entity.item
                     if (stack.isEmpty || !matcher.matches(stack)) continue
+                    // Taken from the entity and given to the buffer within the one tick: there is never a
+                    // moment where both hold it, which is the only reason this cannot duplicate.
                     val left = ItemHandlerHelper.insertItemStacked(host.selfInventory, stack.copy(), false)
                     val taken = stack.count - left.count
                     if (taken <= 0) continue

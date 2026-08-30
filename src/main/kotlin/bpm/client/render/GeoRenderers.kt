@@ -8,11 +8,17 @@ import bpm.world.ControllerStatus
 import bpm.world.LinkerItem
 import bpm.world.ModBlockEntities
 import bpm.world.ModComponents
+import com.mojang.blaze3d.vertex.PoseStack
+import com.mojang.blaze3d.vertex.VertexConsumer
+import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.phys.AABB
+import net.minecraft.world.phys.Vec3
+import org.joml.Vector3f
+import software.bernie.geckolib.cache.`object`.GeoBone
 import net.neoforged.neoforge.client.event.EntityRenderersEvent
 import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions
 import software.bernie.geckolib.animatable.GeoAnimatable
@@ -55,6 +61,32 @@ class ControllerRenderer : GeoBlockRenderer<ControllerBlockEntity>(ControllerMod
 
     override fun getRenderType(animatable: ControllerBlockEntity, texture: ResourceLocation, bufferSource: MultiBufferSource?, partialTick: Float): RenderType =
         RenderType.entityTranslucent(texture)
+
+    /**
+     * Publish where the core actually is, for the effects that hang off it.
+     *
+     * The core BOBS — `animation.quantum_controller.idle` moves it, at a rate `variable.bob_amount` scales
+     * with the controller's status — so the constant [bpm.client.fx.EffectManager] used to place the
+     * controller's end of a transfer was wrong by a few pixels on most frames and by design. At this point
+     * in the walk the pose is the bone's own transform, so it is the answer rather than an estimate of it.
+     */
+    override fun renderRecursively(
+        poseStack: PoseStack, animatable: ControllerBlockEntity, bone: GeoBone, renderType: RenderType,
+        bufferSource: MultiBufferSource, buffer: VertexConsumer, isReRender: Boolean, partialTick: Float,
+        packedLight: Int, packedOverlay: Int, colour: Int,
+    ) {
+        if (!isReRender && bone.name == CORE) {
+            val local = poseStack.last().pose().transformPosition(Vector3f(0f, 0f, 0f))
+            val cam = Minecraft.getInstance().gameRenderer.mainCamera.position
+            BoneAnchors.capture(animatable.blockPos, CORE, Vec3(local.x + cam.x, local.y + cam.y, local.z + cam.z))
+        }
+        super.renderRecursively(poseStack, animatable, bone, renderType, bufferSource, buffer, isReRender, partialTick, packedLight, packedOverlay, colour)
+    }
+
+    companion object {
+        /** The bone the controller's own end of every effect hangs from. */
+        const val CORE = "core"
+    }
 }
 
 class ControllerItemRenderer : GeoItemRenderer<ControllerBlockItem>(ControllerModel()) {
@@ -127,17 +159,9 @@ object GeoRenderers {
                 else -> 0.0
             }
         }
-        // The rifts: how fast things flow through, and a per-rift spiral offset.
-        MolangQueries.setActorVariable<Any>("variable.flow_speed") { actor ->
-            when (val a = actor.animatable()) {
-                is bpm.client.fx.Rift -> a.flowSpeed
-                else -> 1.0
-            }
-        }
         MolangQueries.setActorVariable<Any>("variable.phase") { actor ->
             when (val a = actor.animatable()) {
                 is ControllerBlockEntity -> a.animPhase
-                is bpm.client.fx.Rift -> a.phase
                 is bpm.world.devices.DeviceBlockEntity -> a.animPhase
                 is bpm.world.entity.QuantumWardenEntity -> a.animPhase
                 else -> 0.0
@@ -170,8 +194,6 @@ object GeoRenderers {
             val stack = actor.animationState().getData(DataTickets.ITEMSTACK)
             if (stack != null && stack.has(ModComponents.SELECTED_CONTROLLER.get())) 1.0 else 0.0
         }
-        // Rift (phase 7): default flow so a rift rendered before the effect system sets it is not frozen.
-        MolangQueries.setActorVariable<Any>("variable.flow_speed") { 1.0 }
     }
 
     private fun statusOf(be: ControllerBlockEntity): ControllerStatus {

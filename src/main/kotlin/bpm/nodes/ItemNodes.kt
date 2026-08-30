@@ -252,13 +252,13 @@ object ItemNodes {
         }
         func("drop") {
             title("Drop Items")
-            doc("Throw items out of the controller's buffer onto the ground at a link (or at the controller, with `self`) — what a player dropping them leaves. Answers how many items went out.")
+            doc("Let items out of the controller's buffer onto the ground at a link (or at the controller, with `self`) — released from the same spot the animation reaches to, and dropped straight down. Answers how many items went out.")
             val link = param("Link", McVs.link, "where they land", default = "self")
             val filter = param("Filter", McVs.filter.orNull(), "only these; empty for anything")
             val max = param("Max", McVs.int, "at most this many items", default = 64L)
             result("Dropped", McVs.int)
             command {
-                val center = centerOf(host, link()) ?: return@command 0L
+                val at = riftPointOf(host, link()) ?: return@command 0L
                 val m = host.matcher(filter())
                 val inv = host.selfInventory
                 var left = max().toInt().coerceAtLeast(0)
@@ -273,11 +273,15 @@ object ItemNodes {
                     // entities, so afterwards it is empty and would count for nothing.
                     val n = out.count
                     if (first.isEmpty()) first = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(out.item).toString()
-                    net.minecraft.world.Containers.dropItemStack(host.level, center.x, center.y, center.z, out)
+                    // Held back until the drawn item has finished its flight, or the real one exists while
+                    // its own animation is still in the air and you see two of it.
+                    host.jobs.start(ReleaseJob(host.level, at, out))
                     dropped += n
                     left -= n
                 }
-                if (dropped > 0) host.transferred(ControllerHost.SELF, link(), dropped, item = first)
+                // DROP rather than ITEMS: the client draws the outgoing leg and stops, because what arrives
+                // at the far end is the entity itself rather than a picture of one.
+                if (dropped > 0) host.transferred(ControllerHost.SELF, link(), dropped, kind = bpm.net.EffectKind.DROP, item = first)
                 dropped.toLong()
             }
         }
@@ -428,3 +432,71 @@ object ItemNodes {
         return Json.parse(element.toString())
     }
 }
+
+/**
+ * The mouth of a link's rift — where `items.drop` puts a stack into the world, and where `world.vacuum`
+ * pulls one to before it is swallowed.
+ *
+ * A link with no face of its own, and the controller itself, use the point above rather than out of a side.
+ */
+internal fun riftPointOf(host: ControllerHost, link: String): net.minecraft.world.phys.Vec3? {
+    if (link == ControllerHost.SELF || link.isEmpty()) return bpm.world.LinkAnchors.selfHand(host.pos)
+    val r = host.link(link) ?: return null
+    if (!r.loaded) return null
+    // Out of the RIFT, not off the hand: with no drawn arrival, the entity itself is what emerges, so it
+    // has to appear where the portal hangs rather than where a hand would have set it down.
+    return bpm.world.LinkAnchors.offFace(r.link.pos, r.link.side)
+}
+
+/**
+ * Hold a stack until its rift is ready to produce it, then put it in the world.
+ *
+ * Started fire-and-forget: the node ignores the await, so the fiber never parks and the graph carries on
+ * while the item is still notionally in flight. The stack has already left the controller's inventory by
+ * this point, so [cancel] must still put it somewhere — a stop or a redeploy mid-flight would otherwise
+ * delete it.
+ */
+internal class ReleaseJob(
+    private val level: net.minecraft.world.level.Level,
+    private val at: net.minecraft.world.phys.Vec3,
+    private val stack: net.minecraft.world.item.ItemStack,
+) : bpm.runtime.TickJob("items.release") {
+
+    private var wait = bpm.world.EffectTiming.EMERGE_TICKS
+
+    override fun advance(): Boolean {
+        if (--wait > 0) return false
+        releaseStack(level, at, stack)
+        finish(null)
+        return true
+    }
+
+    /** The graph stopped while this was in the air. The items are real; put them down rather than lose them. */
+    override fun cancel() {
+        releaseStack(level, at, stack)
+    }
+}
+
+/**
+ * Put [stack] in the world so that it LOOKS like it is at [at], and do nothing else.
+ *
+ * `Containers.dropItemStack` is what this used to call, and it is built for a broken chest: it scatters the
+ * stack inside the block on all three axes and throws it with a random velocity. Both are wrong for a
+ * controller placing something deliberately.
+ *
+ * [at] is where the item should appear, not where the entity goes — see
+ * [bpm.world.LinkAnchors.ITEM_RENDER_LIFT] for why those differ by about a quarter of a block, and why the
+ * correction is vertical no matter which way the link faces.
+ */
+internal fun releaseStack(level: net.minecraft.world.level.Level, at: net.minecraft.world.phys.Vec3, stack: net.minecraft.world.item.ItemStack) {
+    if (stack.isEmpty) return
+    val p = entityPointFor(at)
+    val entity = net.minecraft.world.entity.item.ItemEntity(level, p.x, p.y, p.z, stack, 0.0, 0.0, 0.0)
+    entity.setDefaultPickUpDelay()
+    level.addFreshEntity(entity)
+}
+
+/** Where to PUT an item entity so that it LOOKS like it is at [visual]. See [bpm.world.LinkAnchors.ITEM_RENDER_LIFT]. */
+internal fun entityPointFor(visual: net.minecraft.world.phys.Vec3): net.minecraft.world.phys.Vec3 =
+    visual.subtract(0.0, bpm.world.LinkAnchors.ITEM_RENDER_LIFT, 0.0)
+

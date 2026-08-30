@@ -444,7 +444,12 @@ class LinkRenamedPayload(val docId: UUID, val oldName: String, val newName: Stri
 enum class EffectOp { BEGIN, PULSE, END }
 
 /** What an effect shows: things moving (a stream between two rifts), or a job at a block (one rift with the tool at work). */
-enum class EffectKind { ITEMS, FLUID, ENERGY, XP, MINE, USE, STRIKE }
+/**
+ * [DROP] is [ITEMS] with the arrival left off: the client draws the outgoing leg only, because the thing
+ * that appears at the far end is a real `ItemEntity` the server spawns out of the target rift. Appended
+ * rather than inserted — the payload writes an enum by ordinal.
+ */
+enum class EffectKind { ITEMS, FLUID, ENERGY, XP, MINE, USE, STRIKE, DROP }
 
 /**
  * Server → client: one step of an in-world effect. For a transfer, [origin] / [target] are the two ends

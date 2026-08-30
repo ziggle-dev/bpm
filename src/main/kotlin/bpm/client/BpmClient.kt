@@ -33,6 +33,7 @@ object BpmClient {
             Bpm.LOGGER.info("bpm client ready (smoke frames: {})", SmokeRun.frames)
         })
         modBus.addListener(EntityRenderersEvent.RegisterRenderers::class.java, Consumer(GeoRenderers::registerRenderers))
+        modBus.addListener(net.neoforged.neoforge.client.event.RegisterShadersEvent::class.java, Consumer(bpm.client.render.RiftShader::register))
         modBus.addListener(net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent::class.java, Consumer { e ->
             // The glowmask survey (GlowLayer) is per resource set: forget it when packs reload.
             e.registerReloadListener(net.minecraft.server.packs.resources.ResourceManagerReloadListener { bpm.client.render.Glowmasks.invalidate() })
@@ -64,12 +65,35 @@ object BpmClient {
 
     private fun onRegisterClientCommands(event: RegisterClientCommandsEvent) {
         event.dispatcher.register(
-            Commands.literal("bpm").then(
-                Commands.literal("editor").executes {
-                    ClientHooks.openWorkbench(null)
-                    1
-                },
-            ),
+            Commands.literal("bpm")
+                .then(
+                    Commands.literal("editor").executes {
+                        ClientHooks.openWorkbench(null)
+                        1
+                    },
+                )
+                // Both rift looks are built; this picks which one draws, live, with no restart.
+                .then(
+                    Commands.literal("rift").then(
+                        Commands.argument("style", com.mojang.brigadier.arguments.StringArgumentType.word())
+                            .suggests { _, builder ->
+                                bpm.client.render.RiftStyle.entries.forEach { builder.suggest(it.name.lowercase()) }
+                                builder.buildFuture()
+                            }
+                            .executes { ctx ->
+                                val name = com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "style")
+                                val picked = bpm.client.render.RiftStyle.entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
+                                if (picked == null) {
+                                    ctx.source.sendFailure(net.minecraft.network.chat.Component.literal("unknown rift style '$name' (cube, tear)"))
+                                    0
+                                } else {
+                                    bpm.client.render.RiftRenderer.style = picked
+                                    ctx.source.sendSuccess({ net.minecraft.network.chat.Component.literal("rift style: ${picked.name.lowercase()}") }, false)
+                                    1
+                                }
+                            },
+                    ),
+                ),
         )
     }
 }
