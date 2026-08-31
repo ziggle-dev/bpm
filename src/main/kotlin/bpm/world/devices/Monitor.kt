@@ -128,19 +128,92 @@ class MonitorBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(D
     var widgets: List<Widget> = emptyList()
         private set
 
+    /** When the graph last asked for this content, and how long it may outlive that — see [serverTick]. */
+    private var shownAt: Long = 0L
+    private var timeout: Int = DEFAULT_TIMEOUT
+
+    /**
+     * Presses waiting to be read, and where every toggle stands, by widget id.
+     *
+     * Held on the wall itself, not routed anywhere: a graph reads them back through the same link it drew
+     * with, so a monitor needs no idea which controller is watching it.
+     */
+    private val pressed = HashMap<String, Int>()
+    private val values = HashMap<String, Double>()
+
+    /** Someone pressed [id]. Counted, so two quick presses are two presses. */
+    fun press(id: String) {
+        pressed[id] = (pressed[id] ?: 0).coerceAtMost(MAX_PENDING - 1) + 1
+    }
+
+    fun setValue(id: String, value: Double) {
+        values[id] = value
+    }
+
+    /** Was [id] pressed since anything last asked — and if so, take it. */
+    fun takePress(id: String): Boolean {
+        val n = pressed[id] ?: return false
+        if (n <= 1) pressed.remove(id) else pressed[id] = n - 1
+        return true
+    }
+
+    fun valueOf(id: String): Double = values[id] ?: 0.0
+
+    /** What someone typed into a field, by widget id. */
+    private val texts = HashMap<String, String>()
+
+    fun setText(id: String, text: String) {
+        texts[id] = text
+        sync()
+    }
+
+    fun textOf(id: String): String = texts[id] ?: ""
+
     /**
      * Replaces the screen's content. A graph hands the same list over every tick, so nothing is sent or marked
      * for saving unless something on the screen actually changed — a chunk dirtied every tick is re-saved every
      * 10 s, which on a dedicated server with synchronous chunk writes is a visible stall.
      */
-    fun show(list: List<Widget>) {
+    fun show(list: List<Widget>, timeoutTicks: Int = DEFAULT_TIMEOUT) {
+        // A control the graph declared but nobody has touched starts where the graph put it. Once someone
+        // has, the wall owns it: redrawing the screen must not snap a switch back under their hand.
+        for (w in list) {
+            if (w.id.isEmpty()) continue
+            when (w.kind) {
+                Widget.TOGGLE, Widget.SLIDER -> if (w.id !in values) values[w.id] = w.value
+                Widget.FIELD -> if (w.id !in texts) texts[w.id] = w.text
+            }
+        }
+        // The heartbeat is stamped BEFORE the diff. A screen showing something that has not changed is still
+        // being kept alive by the graph that keeps asking for it; expiring it because the numbers held steady
+        // would blank exactly the displays that are working.
+        shownAt = level?.gameTime ?: 0L
+        timeout = timeoutTicks.coerceAtLeast(0)
         val next = list.take(Widget.MAX_WIDGETS)
         if (next.size == widgets.size && next.indices.all { next[it].sameAs(widgets[it]) }) return
         widgets = next
         sync()
     }
 
+    /**
+     * A screen goes dark when nothing has refreshed it for [timeout] ticks.
+     *
+     * `show` is a heartbeat, not a one-shot: a graph that stops running, is unlinked, or takes a branch that
+     * no longer draws leaves its last frame on the wall forever otherwise, and stale numbers that look live
+     * are worse than no numbers. A timeout of 0 means the content stays until something replaces it.
+     */
+    override fun serverTick() {
+        super.serverTick()
+        if (widgets.isEmpty() || timeout <= 0) return
+        val l = level ?: return
+        if (l.gameTime - shownAt <= timeout) return
+        clear()
+        MonitorWall.setOn(l, blockPos, false)
+    }
+
     fun clear() {
+        pressed.clear()
+        texts.clear()
         if (widgets.isEmpty()) return
         widgets = emptyList()
         sync()
@@ -160,5 +233,17 @@ class MonitorBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(D
 
     companion object {
         val IDLE: RawAnimation = RawAnimation.begin().thenLoop("animation.quantum_monitor.idle")
+
+        /**
+         * How long a screen keeps showing something nothing has refreshed — one second.
+         *
+         * `on tick` runs twenty times a second, so a graph that is drawing at all refreshes many times over
+         * inside this. Long enough that a slow pass or a stretched latent node never blinks the screen;
+         * short enough that a graph which stopped does not leave a lie on the wall.
+         */
+        const val DEFAULT_TIMEOUT = 20
+
+        /** Unread presses kept per widget — enough for a fast double-tap, not a queue that grows unwatched. */
+        const val MAX_PENDING = 8
     }
 }

@@ -33,6 +33,7 @@ object Bpm {
         bpm.chamber.ChamberFight.install(NeoForge.EVENT_BUS)
         bpm.world.CoreTiers.install(NeoForge.EVENT_BUS)
         bpm.world.LinkerCombat.install(NeoForge.EVENT_BUS)
+        bpm.world.devices.MonitorInput.install(NeoForge.EVENT_BUS)
         RuntimeManager.install(NeoForge.EVENT_BUS)
         BpmNetwork.install(MOD_BUS)
         ServerNet.install(NeoForge.EVENT_BUS)

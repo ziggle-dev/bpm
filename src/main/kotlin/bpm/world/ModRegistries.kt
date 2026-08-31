@@ -87,6 +87,12 @@ object ModComponents {
     /** Game time at which the linker's tracking pulse is ready again. */
     val TRACK_READY_AT = REG.registerComponentType("track_ready_at") { b -> b.persistent(com.mojang.serialization.Codec.LONG).networkSynchronized(net.minecraft.network.codec.ByteBufCodecs.VAR_LONG) }
 
+    /** The controller a tether's bearer has let reach them — see `docs/DESIGN_PLAYER_LINK.md`. */
+    val TETHER_CONTROLLER = REG.registerComponentType("tether_controller") { b -> b.persistent(GlobalPos.CODEC).networkSynchronized(GlobalPos.STREAM_CODEC) }
+
+    /** What that controller may do to them: [bpm.world.Grants], comma-joined so it reads in F3+H. */
+    val TETHER_GRANTS = REG.registerComponentType("tether_grants") { b -> b.persistent(com.mojang.serialization.Codec.STRING).networkSynchronized(net.minecraft.network.codec.ByteBufCodecs.STRING_UTF8) }
+
     /** What the Entangled Compass seeks. */
     val COMPASS_MODE = REG.registerComponentType("compass_mode") { b -> b.persistent(com.mojang.serialization.Codec.STRING).networkSynchronized(net.minecraft.network.codec.ByteBufCodecs.STRING_UTF8) }
 }
@@ -119,6 +125,8 @@ object BpmRegistries {
         DeviceBlocks.REG.register(bus)
         DeviceItems.REG.register(bus)
         DeviceBlockEntities.REG.register(bus)
+        bpm.world.assembly.ModRecipes.TYPES.register(bus)
+        bpm.world.assembly.ModRecipes.SERIALIZERS.register(bus)
         ModAttachments.REG.register(bus)
         bpm.world.entity.ModEntities.REG.register(bus)
         bus.addListener(net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent::class.java, Consumer(bpm.world.entity.ModEntities::attributes))
@@ -131,6 +139,20 @@ object BpmRegistries {
             event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, ModBlockEntities.CONTROLLER.get()) { be, _ -> be.inventory }
             event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, ModBlockEntities.CONTROLLER.get()) { be, _ -> be.tanks }
             event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, ModBlockEntities.CONTROLLER.get()) { be, _ -> be.energy }
+            // The assembler takes its catalyst from anywhere, but is FED from underneath only.
+            //
+            // The machine is meant to be plumbed, not surrounded: power and experience come up into it from
+            // below, which keeps its four sides clear for the pedestals that have to see it and stops a
+            // build turning into a cube of pipework. Items are the exception because the catalyst is what a
+            // player hands it, and reaching under a block to do that would be miserable.
+            event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, DeviceBlockEntities.ASSEMBLER.get()) { be, _ -> be.items }
+            event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, DeviceBlockEntities.ASSEMBLER.get()) { be, side ->
+                if (side == net.minecraft.core.Direction.DOWN) be.tanks else null
+            }
+            event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, DeviceBlockEntities.ASSEMBLER.get()) { be, side ->
+                if (side == net.minecraft.core.Direction.DOWN) be.energy else null
+            }
+            event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, DeviceBlockEntities.PEDESTAL.get()) { be, _ -> bpm.world.devices.PedestalSlot(be) }
         })
     }
 }

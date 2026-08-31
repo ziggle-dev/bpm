@@ -137,13 +137,13 @@ object ServerNet {
         return ControllerStatusPayload(
             be.blockPos, be.status, be.docId, name, be.docVersion, be.runningVersion, be.enabled, be.debugBuild, be.lastError,
             rt?.runtime?.fibers?.size ?: 0, rt?.jobs?.size ?: 0, rt?.transfers ?: 0, buffer,
-            tanks, be.energy.energyStored, be.energy.maxEnergyStored,
+            tanks, be.energy.energyStored, be.energy.maxEnergyStored, be.maxLinks, be.maxPlayerLinks,
         )
     }
 
     private fun links(be: ControllerBlockEntity) = LinkTableSyncPayload(
         be.blockPos,
-        be.links.all.map { LinkDto(it.name, it.pos, it.side?.get3DDataValue() ?: -1, it.dimension.location().toString()) },
+        be.links.all.map { it.toDto() },
     )
 
     /** Status (and links when [withLinks]) to everyone watching [be]. */
@@ -371,6 +371,68 @@ object ServerNet {
         if (be.enabled != p.enabled) be.setEnabled(p.enabled) else if (debugChanged) be.requestRestart()
         be.setChanged()
         broadcastController(be)
+    }
+
+    /**
+     * A watched key moved: hand it to every running controller that has a presence link for this player and
+     * was granted `input`. Everything else — offline, out of range, tether pocketed, grant off — is `mayI`
+     * saying no, and the key simply goes nowhere.
+     */
+    fun onKeyEdge(p: KeyEdgePayload, ctx: IPayloadContext) {
+        val player = ctx.player() as? ServerPlayer ?: return
+        val key = bpm.world.KeyNames.normalise(p.key)
+        if (key.isEmpty()) return
+        for (be in bpm.runtime.RuntimeManager.all()) {
+            val rt = be.runtime ?: continue
+            if (be.links.byPlayer(player.uuid) == null) continue
+            if (rt.presence(player.uuid)?.mayI(bpm.world.Grant.INPUT) != true) continue
+            rt.key(player.uuid, key, p.down, p.modifier)
+        }
+    }
+
+    /**
+     * A panel was pressed. Only the controller the payload names hears it, and only when that controller's
+     * tether grants `input` — a client cannot press a panel it was never shown.
+     */
+    fun onHudInput(p: HudInputPayload, ctx: IPayloadContext) {
+        val player = ctx.player() as? ServerPlayer ?: return
+        val be = player.level().getBlockEntity(p.controller) as? ControllerBlockEntity ?: return
+        val rt = be.runtime ?: return
+        if (rt.presence(player.uuid)?.mayI(bpm.world.Grant.INPUT) != true) return
+        if (p.press) {
+            rt.hud.press(player.uuid, p.id)
+            return
+        }
+        // What the number means is the WIDGET's to say, not the client's: a slider's range lives here.
+        val widget = rt.hud[player.uuid]?.widgets?.firstOrNull { it.id == p.id } ?: return
+        when (widget.kind) {
+            bpm.world.devices.Widget.SLIDER -> rt.hud.setValue(player.uuid, p.id, p.value.coerceIn(0f, 1f).toDouble() * widget.max)
+            bpm.world.devices.Widget.FIELD -> rt.hud.setText(player.uuid, p.id, p.text.take(MonitorTextPayload.MAX_TEXT))
+            else -> rt.hud.setValue(player.uuid, p.id, p.value.toDouble())
+        }
+    }
+
+    /**
+     * A slider was dragged. The number is re-derived from the player's own look ray rather than believed:
+     * a client that could name a value could set any slider on any wall from anywhere.
+     */
+    fun onMonitorDrag(p: MonitorDragPayload, ctx: IPayloadContext) {
+        val player = ctx.player() as? ServerPlayer ?: return
+        val be = bpm.world.devices.MonitorInput.originLookedAt(player, p.origin) ?: return
+        val widget = be.widgets.firstOrNull { it.id == p.id && it.kind == bpm.world.devices.Widget.SLIDER } ?: return
+        val ray = player.pick(bpm.world.devices.MonitorInput.REACH, 0f, false) as? net.minecraft.world.phys.BlockHitResult ?: return
+        val looking = bpm.world.devices.MonitorInput.hit(player, ray.blockPos) ?: return
+        if (looking.first.blockPos != be.blockPos || looking.second.widget.id != p.id) return
+        be.setValue(p.id, looking.second.along * widget.max)
+    }
+
+    /** Text typed into a field. Same rule: the player has to be looking at that field. */
+    fun onMonitorText(p: MonitorTextPayload, ctx: IPayloadContext) {
+        val player = ctx.player() as? ServerPlayer ?: return
+        val be = bpm.world.devices.MonitorInput.originLookedAt(player, p.origin) ?: return
+        if (be.widgets.none { it.id == p.id && it.kind == bpm.world.devices.Widget.FIELD }) return
+        be.setText(p.id, p.text.take(MonitorTextPayload.MAX_TEXT))
+        be.press(p.id)
     }
 
     fun onRunControl(p: RunControlPayload, ctx: IPayloadContext) {
@@ -627,4 +689,4 @@ object ServerNet {
 }
 
 /** The link table as the client draws it; kept here so `Link` stays a server type. */
-fun Link.toDto() = LinkDto(name, pos, side?.get3DDataValue() ?: -1, dimension.location().toString())
+fun Link.toDto() = LinkDto(name, pos, side?.get3DDataValue() ?: -1, dimension.location().toString(), player?.toString().orEmpty())

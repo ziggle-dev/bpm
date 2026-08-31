@@ -53,6 +53,58 @@ interface ControllerHost {
 
     fun entity(handle: Any?): Entity?
 
+    /**
+     * The presence link for a player, when this controller has one — the seam every `player.*` verb asks its
+     * permission through. Null when nobody tethered, which reads as "this controller may not."
+     *
+     * Defaulted to null so a host that knows nothing about people (a test double, an addon's own) needs no
+     * ceremony: the safe answer to "may I read this player" is no.
+     */
+    fun presence(player: java.util.UUID): bpm.world.PresenceLink? = null
+
+    /**
+     * Ask that a tethered player's client start reporting [key] — a canonical [bpm.world.KeyNames] name.
+     *
+     * Until a graph names a key, no client sends it: that is what keeps this from being a keylogger.
+     * [requireModifier] wants it only while the bpm modifier is held, and [consume] stops the game seeing it
+     * at all, so `alt+W` can be a graph's key without walking you forward.
+     */
+    fun watchKey(player: java.util.UUID, key: String, requireModifier: Boolean, consume: Boolean) {}
+
+    /**
+     * Whether a tethered player pressed [key] since anything last asked, taking the edge if so, and whether
+     * they are holding it right now. See `docs/DESIGN_PLAYER_LINK.md` §9.
+     */
+    fun takeKey(player: java.util.UUID, key: String): Boolean = false
+    fun keyHeld(player: java.util.UUID, key: String): Boolean = false
+
+    /**
+     * The on-screen panel seams — see `docs/DESIGN_PLAYER_LINK.md` §10. Defaulted to doing nothing, so a host
+     * with no screens to draw on simply draws none.
+     */
+    fun showPanel(
+        player: net.minecraft.server.level.ServerPlayer,
+        widgets: List<bpm.world.devices.Widget>,
+        anchor: String,
+        offsetX: Int,
+        offsetY: Int,
+        width: Int,
+        scale: Double,
+        timeoutTicks: Int,
+    ) {}
+
+    fun clearPanel(player: java.util.UUID): Boolean = false
+    fun panelVisible(player: java.util.UUID): Boolean = false
+    fun takePanelPress(player: java.util.UUID, id: String): Boolean = false
+    fun panelValue(player: java.util.UUID, id: String): Double = 0.0
+    fun panelText(player: java.util.UUID, id: String): String = ""
+
+    /**
+     * Log [message] the first time [key] comes up in this run. The `player.*` verbs are asked every tick, so a
+     * refusal that logged each time would bury the console it is trying to help.
+     */
+    fun warnOnce(key: String, message: String) {}
+
     /** A filter compiled against this world's registries — see [FilterValue.matcher]. */
     fun matcher(filter: StructValue?): FilterValue.Matcher = FilterValue.matcher(filter, registries)
 
@@ -116,6 +168,8 @@ object DetachedHost : ControllerHost {
     override val selfTanks: IFluidHandler get() = none()
     override val selfEnergy: IEnergyStorage get() = none()
     override fun entity(handle: Any?): Entity? = none()
+    override fun presence(player: java.util.UUID): bpm.world.PresenceLink? = none()
+    override fun warnOnce(key: String, message: String) = none()
     override fun emitSignal(side: Direction, strength: Int) = none()
     override fun emitted(side: Direction): Int = none()
     override fun requestSleep(reason: String) = none()

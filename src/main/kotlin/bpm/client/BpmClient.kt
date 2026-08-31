@@ -34,6 +34,7 @@ object BpmClient {
         })
         modBus.addListener(EntityRenderersEvent.RegisterRenderers::class.java, Consumer(GeoRenderers::registerRenderers))
         modBus.addListener(net.neoforged.neoforge.client.event.RegisterShadersEvent::class.java, Consumer(bpm.client.render.RiftShader::register))
+        modBus.addListener(net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent::class.java, Consumer(Keys::register))
         modBus.addListener(net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent::class.java, Consumer { e ->
             // The glowmask survey (GlowLayer) is per resource set: forget it when packs reload.
             e.registerReloadListener(net.minecraft.server.packs.resources.ResourceManagerReloadListener { bpm.client.render.Glowmasks.invalidate() })
@@ -51,9 +52,12 @@ object BpmClient {
         })
         NeoForge.EVENT_BUS.addListener(RegisterClientCommandsEvent::class.java, Consumer(::onRegisterClientCommands))
         NeoForge.EVENT_BUS.addListener(ClientTickEvent.Post::class.java, Consumer { ClientNet.tick() })
+        NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.client.event.ClientTickEvent.Pre::class.java, Consumer { Keys.tick() })
+        NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.client.event.InputEvent.Key::class.java, Consumer(Keys::onKey))
+        NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.client.event.RenderGuiEvent.Post::class.java, Consumer(bpm.client.mc.HudOverlay::render))
         NeoForge.EVENT_BUS.addListener(ClientTickEvent.Post::class.java, Consumer { bpm.client.fx.EffectManager.tick() })
         NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.client.event.RenderLevelStageEvent::class.java, Consumer(bpm.client.fx.EffectManager::render))
-        NeoForge.EVENT_BUS.addListener(ClientPlayerNetworkEvent.LoggingOut::class.java, Consumer { ClientNet.reset(); WorkbenchSession.reset(); bpm.client.mc.BlockPreviewRenderer.clear() })
+        NeoForge.EVENT_BUS.addListener(ClientPlayerNetworkEvent.LoggingOut::class.java, Consumer { ClientNet.reset(); WorkbenchSession.reset(); bpm.client.mc.BlockPreviewRenderer.clear(); bpm.client.mc.HudOverlay.reset(); Keys.reset() })
     }
 
     private fun onScreenInit(event: ScreenEvent.Init.Post) {
@@ -69,6 +73,14 @@ object BpmClient {
                 .then(
                     Commands.literal("editor").executes {
                         ClientHooks.openWorkbench(null)
+                        1
+                    },
+                )
+                .then(
+                    // For "the pictures are blank in my modpack": says whether anything was asked for,
+                    // whether it drew, and what went wrong if it threw.
+                    Commands.literal("previews").executes { ctx ->
+                        ctx.source.sendSuccess({ net.minecraft.network.chat.Component.literal(bpm.client.mc.BlockPreviewRenderer.diagnostics()) }, false)
                         1
                     },
                 )

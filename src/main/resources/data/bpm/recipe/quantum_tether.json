@@ -1,0 +1,30 @@
+{
+  "type": "bpm:assembly",
+  "ingredients": [
+    {
+      "item": "bpm:entangled_circuit"
+    },
+    {
+      "item": "bpm:phase_conduit"
+    },
+    {
+      "item": "bpm:phase_conduit"
+    },
+    {
+      "item": "bpm:entanglium_shard"
+    },
+    {
+      "item": "bpm:entanglium_shard"
+    }
+  ],
+  "catalyst": {
+    "item": "bpm:coherence_lens"
+  },
+  "energy": 60000,
+  "experience": 12000,
+  "ticks": 400,
+  "result": {
+    "id": "bpm:quantum_tether",
+    "count": 1
+  }
+}

@@ -47,8 +47,13 @@ object RiftShader {
     fun typeFor(style: RiftStyle): RenderType = if (style == RiftStyle.CUBE) CUBE else TEAR
 
     /**
-     * Additive, unculled, and no depth write — a rift is light added to what is behind it, and writing
-     * depth would let it occlude the items flying through it.
+     * Additive and unculled, and it DOES write depth.
+     *
+     * Depth used to be off on the theory that a rift is light added to the scene rather than a surface. But
+     * a hole is a surface: without depth, anything drawn after it painted straight over the disc, so a
+     * column of fluid entering the tear looked stuck to the front of it. Both fragment shaders already
+     * `discard` transparent fragments — and the tear discards everything outside its radius — so only the
+     * visible mouth writes depth, never the quad it is cut from.
      */
     private fun type(name: String, shader: () -> ShaderInstance?): RenderType = RenderType.create(
         name,
@@ -62,7 +67,7 @@ object RiftShader {
             .setTextureState(RenderStateShard.NO_TEXTURE)
             .setTransparencyState(RenderStateShard.ADDITIVE_TRANSPARENCY)
             .setCullState(RenderStateShard.NO_CULL)
-            .setWriteMaskState(RenderStateShard.COLOR_WRITE)
+            .setWriteMaskState(RenderStateShard.COLOR_DEPTH_WRITE)
             .createCompositeState(false),
     )
 

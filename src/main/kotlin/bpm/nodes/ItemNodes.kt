@@ -17,6 +17,10 @@ import net.minecraft.world.item.ItemStack
 
 /** `items.*` — inventories reached through links, and what is in a stack. */
 object ItemNodes {
+
+    /** A Max pin as a real limit: 0 means no limit, because "move nothing" is never what anyone asked for. */
+    private fun limit(max: Long): Int = if (max <= 0L) Int.MAX_VALUE else max.toInt()
+
     fun contribution(host: ControllerHost): Contribution = library("items", "Items") {
 
         // ---- what a link holds -------------------------------------------------------------------
@@ -177,20 +181,28 @@ object ItemNodes {
 
         func("move") {
             title("Move Items")
-            doc("Move up to Max matching items from one link to another. Answers how many moved — 0 when either side is missing, unloaded or full.")
+            doc(
+                """
+                Move up to Max matching items from one link to another. Answers how many moved — 0 when
+                either side is missing, unloaded or full.
+
+                **Max 0 means everything.** One call moves at most Max items, so the default of 64 empties a
+                stack a tick and a full inventory takes a while; 0 is the way to say "all of it, now".
+                """,
+            )
             val from = param("From", McVs.link, "where from")
             val to = param("To", McVs.link, "where to")
             val filter = param("Filter", McVs.filter.orNull(), "only these; empty for anything")
-            val max = param("Max", McVs.int, "at most this many", default = 64L)
+            val max = param("Max", McVs.int, "at most this many; 0 for no limit", default = 64L)
+            val fx = param("Effects", McVs.bool, "draw the rift and what travels through it", default = true)
             result("Moved", McVs.int)
             command {
                 val a = host.items(from()) ?: return@command 0L
                 val b = host.items(to()) ?: return@command 0L
                 val m = host.matcher(filter())
-                val sample = Transfer.stacks(a, m).firstOrNull()?.let { net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(it.item).toString() } ?: ""
-                val moved = Transfer.items(a, b, m, max().toInt().coerceAtLeast(0))
-                if (moved > 0) host.transferred(from(), to(), moved, item = sample)
-                moved.toLong()
+                val moved = Transfer.items(a, b, m, limit(max()))
+                if (moved.count > 0 && fx()) host.transferred(from(), to(), moved.count, item = moved.name)
+                moved.count.toLong()
             }
         }
         func("moveSlot") {
@@ -200,15 +212,15 @@ object ItemNodes {
             val slot = param("Slot", McVs.int, "which slot, 0-based")
             val to = param("To", McVs.link, "where to")
             val max = param("Max", McVs.int, "at most this many", default = 64L)
+            val fx = param("Effects", McVs.bool, "draw the rift and what travels through it", default = true)
             result("Moved", McVs.int)
             command {
                 val a = host.items(from()) ?: return@command 0L
                 val b = host.items(to()) ?: return@command 0L
                 val s = slot().toInt()
-                val sample = if (s in 0 until a.slots) net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(a.getStackInSlot(s).item).toString() else ""
-                val moved = Transfer.moveSlot(a, s, b, max().toInt().coerceAtLeast(0))
-                if (moved > 0) host.transferred(from(), to(), moved, item = sample)
-                moved.toLong()
+                val moved = Transfer.moveSlot(a, s, b, limit(max()))
+                if (moved.count > 0 && fx()) host.transferred(from(), to(), moved.count, item = moved.name)
+                moved.count.toLong()
             }
         }
         func("insert") {
@@ -252,16 +264,29 @@ object ItemNodes {
         }
         func("drop") {
             title("Drop Items")
-            doc("Let items out of the controller's buffer onto the ground at a link (or at the controller, with `self`) — released from the same spot the animation reaches to, and dropped straight down. Answers how many items went out.")
-            val link = param("Link", McVs.link, "where they land", default = "self")
+            doc(
+                """
+                Let items out onto the ground at a link — released from the same spot the animation reaches to,
+                and dropped straight down. Answers how many items went out.
+
+                From is where they come from and Link is where they land, both defaulting to `self`: the
+                controller's own buffer, and the ground beneath it. Any link can be either end, so a graph can
+                empty a chest — or a person — onto the floor somewhere else entirely.
+
+                **Max 0 means everything**, as it does for Move Items.
+                """,
+            )
+            val link = param("Link", McVs.link, "where they land", default = ControllerHost.SELF)
             val filter = param("Filter", McVs.filter.orNull(), "only these; empty for anything")
-            val max = param("Max", McVs.int, "at most this many items", default = 64L)
+            val max = param("Max", McVs.int, "at most this many items; 0 for no limit", default = 64L)
+            val from = param("From", McVs.link, "where they come from", default = ControllerHost.SELF)
+            val fx = param("Effects", McVs.bool, "draw the rift and what travels through it", default = true)
             result("Dropped", McVs.int)
             command {
                 val at = riftPointOf(host, link()) ?: return@command 0L
                 val m = host.matcher(filter())
-                val inv = host.selfInventory
-                var left = max().toInt().coerceAtLeast(0)
+                val inv = host.items(from()) ?: return@command 0L
+                var left = limit(max())
                 var dropped = 0
                 var first = ""
                 for (slot in 0 until inv.slots) {
@@ -281,7 +306,7 @@ object ItemNodes {
                 }
                 // DROP rather than ITEMS: the client draws the outgoing leg and stops, because what arrives
                 // at the far end is the entity itself rather than a picture of one.
-                if (dropped > 0) host.transferred(ControllerHost.SELF, link(), dropped, kind = bpm.net.EffectKind.DROP, item = first)
+                if (dropped > 0 && fx()) host.transferred(from(), link(), dropped, kind = bpm.net.EffectKind.DROP, item = first)
                 dropped.toLong()
             }
         }

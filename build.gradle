@@ -154,6 +154,10 @@ dependencies {
     // cables and pipes. Runtime only — nothing compiles against it, and it is never bundled.
     runtimeOnly "mekanism:Mekanism:${mekanism_version}"
     runtimeOnly "mekanism:Mekanism:${mekanism_version}:generators"
+    // JEI: the API on the compile path for our own recipe category (bpm/compat/jei), the full mod at runtime
+    // for recipes and item lookup while testing. compileOnly, so a pack without JEI simply never loads the
+    // plugin class — @JeiPlugin is only read by JEI itself.
+    compileOnly "mezz.jei:jei-1.21.1-neoforge-api:${jei_version}"
     // JEI (recipes and item lookup while testing) and Just Dire Things (more machines, tools and goo to link).
     runtimeOnly "mezz.jei:jei-1.21.1-neoforge:${jei_version}"
     runtimeOnly "curse.maven:${justdirethings_curse}"

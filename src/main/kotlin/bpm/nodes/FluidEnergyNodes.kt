@@ -63,12 +63,13 @@ object FluidNodes {
             val to = param("To", McVs.link, "where to")
             val fluid = param("Fluid", McVs.fluid.orNull(), "only this fluid; empty for whatever is first")
             val max = param("Max", McVs.int, "at most this many millibuckets", default = 1000L)
+            val fx = param("Effects", McVs.bool, "draw the rift and what travels through it", default = true)
             result("Moved", McVs.int)
             command {
                 val a = host.fluids(from()) ?: return@command 0L
                 val b = host.fluids(to()) ?: return@command 0L
                 val moved = Transfer.fluids(a, b, fluid(), max().toInt().coerceAtLeast(0))
-                if (moved > 0) host.transferred(from(), to(), moved, bpm.net.EffectKind.FLUID, fluid() ?: "")
+                if (moved > 0 && fx()) host.transferred(from(), to(), moved, bpm.net.EffectKind.FLUID, fluid() ?: "")
                 moved.toLong()
             }
         }
@@ -106,15 +107,17 @@ object FluidNodes {
             doc("Pour a bucket's worth (1000 mB) from the controller's tanks into the world at a link — a source block where the link points, or into a block that can hold a liquid. Answers whether it went.")
             val link = param("Link", McVs.link, "where the source block goes")
             val fluid = param("Fluid", McVs.fluid.orNull(), "which fluid; empty for the first tank holding a bucket's worth")
+            val fx = param("Effects", McVs.bool, "draw the rift and what travels through it", default = true)
             result("Ok", McVs.bool)
-            command { FluidWorld.place(host, link(), fluid()?.takeIf { it.isNotBlank() }) }
+            command { FluidWorld.place(host, link(), fluid()?.takeIf { it.isNotBlank() }, fx()) }
         }
         func("pickup") {
             title("Pick Up Fluid")
             doc("Take the source block a link points at — or the liquid a block there holds — into the controller's tanks, as a bucket would. Answers whether it did.")
             val link = param("Link", McVs.link, "which block")
+            val fx = param("Effects", McVs.bool, "draw the rift and what travels through it", default = true)
             result("Ok", McVs.bool)
-            command { FluidWorld.pickup(host, link()) }
+            command { FluidWorld.pickup(host, link(), fx()) }
         }
     }
 }
@@ -185,14 +188,14 @@ private object Bottomless {
 internal object FluidWorld {
     private val BUCKET: Int = FluidType.BUCKET_VOLUME
 
-    fun place(host: ControllerHost, linkName: String, fluidId: String?): Boolean {
+    fun place(host: ControllerHost, linkName: String, fluidId: String?, effects: Boolean = true): Boolean {
         val r = host.link(linkName) ?: return false
         if (!r.loaded) return false
-        for (pos in targets(r)) if (placeAt(host, pos, linkName, fluidId)) return true
+        for (pos in targets(r)) if (placeAt(host, pos, linkName, fluidId, effects)) return true
         return false
     }
 
-    private fun placeAt(host: ControllerHost, pos: net.minecraft.core.BlockPos, linkName: String, fluidId: String?): Boolean {
+    private fun placeAt(host: ControllerHost, pos: net.minecraft.core.BlockPos, linkName: String, fluidId: String?, effects: Boolean): Boolean {
         val level = host.level
         val tanks = host.selfTanks
         val kind: Fluid = (if (fluidId != null) RegistryIds.fluid(fluidId) else firstBucket(tanks)) ?: return false
@@ -215,18 +218,18 @@ internal object FluidWorld {
         tanks.drain(stack, IFluidHandler.FluidAction.EXECUTE)
         level.playSound(null, pos, type.getSound(SoundActions.BUCKET_EMPTY) ?: SoundEvents.BUCKET_EMPTY, SoundSource.BLOCKS, 1f, 1f)
         level.gameEvent(null, GameEvent.FLUID_PLACE, pos)
-        host.transferred(ControllerHost.SELF, linkName, BUCKET, bpm.net.EffectKind.FLUID, net.minecraft.core.registries.BuiltInRegistries.FLUID.getKey(stack.fluid).toString())
+        if (effects) host.transferred(ControllerHost.SELF, linkName, BUCKET, bpm.net.EffectKind.FLUID, net.minecraft.core.registries.BuiltInRegistries.FLUID.getKey(stack.fluid).toString())
         return true
     }
 
-    fun pickup(host: ControllerHost, linkName: String): Boolean {
+    fun pickup(host: ControllerHost, linkName: String, effects: Boolean = true): Boolean {
         val r = host.link(linkName) ?: return false
         if (!r.loaded) return false
-        for (pos in targets(r)) if (pickupAt(host, pos, linkName)) return true
+        for (pos in targets(r)) if (pickupAt(host, pos, linkName, effects)) return true
         return false
     }
 
-    private fun pickupAt(host: ControllerHost, pos: net.minecraft.core.BlockPos, linkName: String): Boolean {
+    private fun pickupAt(host: ControllerHost, pos: net.minecraft.core.BlockPos, linkName: String, effects: Boolean): Boolean {
         val level = host.level
         val state = level.getBlockState(pos)
         val fs = state.fluidState
@@ -247,7 +250,7 @@ internal object FluidWorld {
         val sound = block.pickupSound.orElse(null) ?: fs.type.fluidType.getSound(SoundActions.BUCKET_FILL) ?: SoundEvents.BUCKET_FILL
         level.playSound(null, pos, sound, SoundSource.BLOCKS, 1f, 1f)
         level.gameEvent(null, GameEvent.FLUID_PICKUP, pos)
-        host.transferred(linkName, ControllerHost.SELF, BUCKET, bpm.net.EffectKind.FLUID, net.minecraft.core.registries.BuiltInRegistries.FLUID.getKey(fs.type).toString())
+        if (effects) host.transferred(linkName, ControllerHost.SELF, BUCKET, bpm.net.EffectKind.FLUID, net.minecraft.core.registries.BuiltInRegistries.FLUID.getKey(fs.type).toString())
         return true
     }
 
@@ -308,12 +311,13 @@ object EnergyNodes {
             val from = param("From", McVs.link, "where from")
             val to = param("To", McVs.link, "where to")
             val max = param("Max", McVs.int, "at most this much", default = 1000L)
+            val fx = param("Effects", McVs.bool, "draw the rift and what travels through it", default = true)
             result("Moved", McVs.int)
             command {
                 val a = host.energy(from()) ?: return@command 0L
                 val b = host.energy(to()) ?: return@command 0L
                 val moved = Transfer.energy(a, b, max().toInt().coerceAtLeast(0))
-                if (moved > 0) host.transferred(from(), to(), moved, bpm.net.EffectKind.ENERGY)
+                if (moved > 0 && fx()) host.transferred(from(), to(), moved, bpm.net.EffectKind.ENERGY)
                 moved.toLong()
             }
         }

@@ -17,8 +17,8 @@ class LinkTableTest {
         val t = LinkTable()
         val a = t.add(link("chest", 1))
         val b = t.add(link("chest", 2))
-        assertEquals("chest", a.name)
-        assertEquals("chest-2", b.name)
+        assertEquals("chest", a?.name)
+        assertEquals("chest-2", b?.name)
         assertEquals(setOf("chest", "chest-2"), t.names)
         assertNotNull(t.at(BlockPos(2, 64, 0), Direction.UP))
         assertNull(t.at(BlockPos(2, 64, 0), Direction.DOWN))
@@ -68,5 +68,88 @@ class LinkTableTest {
     fun `an auto name is the block's path`() {
         assertEquals("chest", LinkTable.autoName(net.minecraft.resources.ResourceLocation.parse("minecraft:chest")))
         assertEquals("tank", LinkTable.autoName(net.minecraft.resources.ResourceLocation.parse("mekanism:machines/tank")))
+    }
+
+    @Test
+    fun `a full table refuses new links, keeps the ones it has, and says which are past the cap`() {
+        var cap = 2
+        val t = LinkTable { LinkCaps(cap, 0) }
+        assertNotNull(t.add(link("a", 1)))
+        assertNotNull(t.add(link("b", 2)))
+        assertTrue(t.full)
+        assertNull(t.add(link("c", 3)), "a full table took a third link")
+        assertEquals(setOf("a", "b"), t.names)
+
+        // Every add is a new entry — a taken name is numbered — so a full table refuses those too.
+        assertNull(t.add(link("a", 9)), "a full table numbered a duplicate name into a new slot")
+        assertEquals(BlockPos(1, 64, 0), t["a"]?.pos)
+
+        // Lowering the cap never deletes: the tail goes quiet instead.
+        cap = 1
+        assertEquals(listOf("b"), t.overCapacity)
+        assertTrue(t.isOverCapacity("b"))
+        assertTrue(!t.isOverCapacity("a"))
+        assertEquals(setOf("a", "b"), t.names, "lowering the cap dropped a link")
+    }
+
+    @Test
+    fun `blocks and people are capped separately, and neither crowds the other out`() {
+        val t = LinkTable { LinkCaps(2, 1) }
+        val alice = java.util.UUID.randomUUID()
+        val bob = java.util.UUID.randomUUID()
+
+        assertNotNull(t.add(link("chest", 1)))
+        assertNotNull(t.add(link("chest", 2)))
+        assertTrue(t.full)
+        // A full block table still has room for a person.
+        assertNotNull(t.add(link("alice", 3, side = null).copy(player = alice)), "a full block table refused a presence link")
+        assertTrue(t.presenceFull)
+        assertNull(t.add(link("bob", 4, side = null).copy(player = bob)), "a full presence table took a second person")
+        assertNull(t.add(link("barrel", 5)), "a full block table took a third block")
+
+        assertEquals(listOf("chest", "chest-2"), t.blocks.map { it.name })
+        assertEquals(listOf("alice"), t.presence.map { it.name })
+        assertEquals("alice", t.byPlayer(alice)?.name)
+        assertNull(t.byPlayer(bob))
+    }
+
+    @Test
+    fun `each kind counts its own capacity, so a person is never crowded out by chests`() {
+        val t = LinkTable { LinkCaps(1, 1) }
+        val alice = java.util.UUID.randomUUID()
+        t.add(link("chest", 1))
+        t.add(link("alice", 2, side = null).copy(player = alice))
+        // The presence link is the second entry in the table but the first of its kind: it must still resolve.
+        assertTrue(!t.isOverCapacity("alice"), "a presence link was capped by the block links ahead of it")
+        assertTrue(!t.isOverCapacity("chest"))
+        assertEquals(emptyList(), t.overCapacity)
+    }
+
+    @Test
+    fun `a presence link survives a save and a load, and forgetting a player removes it`() {
+        val t = LinkTable()
+        val alice = java.util.UUID.randomUUID()
+        t.add(link("chest", 1))
+        t.add(link("alice", 2, side = null).copy(player = alice))
+
+        val loaded = LinkTable()
+        loaded.load(t.save())
+        assertEquals(setOf("chest", "alice"), loaded.names)
+        assertEquals(alice, loaded["alice"]?.player)
+        assertTrue(loaded["alice"]!!.isPresence)
+        assertNull(loaded["chest"]?.player, "a block link came back carrying a player")
+        assertNull(loaded["chest"]?.let { if (it.isPresence) it else null })
+
+        assertTrue(loaded.removePlayer(alice))
+        assertEquals(setOf("chest"), loaded.names)
+        assertTrue(!loaded.removePlayer(alice), "forgetting a player twice reported success")
+    }
+
+    @Test
+    fun `a presence name is the player's, lowercased and numbered when taken`() {
+        val t = LinkTable()
+        assertEquals("steve", t.presenceName("Steve"))
+        t.add(link("steve", 1, side = null).copy(player = java.util.UUID.randomUUID()))
+        assertEquals("steve-2", t.presenceName("Steve"))
     }
 }

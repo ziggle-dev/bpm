@@ -1,6 +1,5 @@
 package bpm.nodes
 
-import bpm.catalog.McTypes
 import bpm.catalog.McVs
 import bpm.runtime.PredicateJob
 import io.osrsx.vscript.nodes.Contribution
@@ -49,19 +48,43 @@ object RedstoneNodes {
         }
         func("emitted") {
             title("Emitted Level")
-            doc("The signal this controller is putting out of one of its faces.")
-            val side = param("Side", McVs.direction, "which face")
+            doc("The signal being emitted at a link — for `self`, the strongest of the controller's own faces.")
+            val link = param("Link", McVs.link, "where", default = ControllerHost.SELF)
             result("Level", McVs.int)
-            query { McTypes.direction(side())?.let { host.emitted(it).toLong() } ?: 0L }
+            query {
+                if (link() == ControllerHost.SELF) {
+                    net.minecraft.core.Direction.values().maxOf { host.emitted(it) }.toLong()
+                } else {
+                    host.link(link())?.takeIf { it.loaded }
+                        ?.let { bpm.world.SignalEmitterBlock.levelAt(host.level, it.link.pos) }?.toLong() ?: 0L
+                }
+            }
         }
         func("emit") {
             title("Emit Redstone")
-            doc("Put a signal out of one of this controller's faces, 0 to 15, until changed.")
-            val side = param("Side", McVs.direction, "which face")
+            doc(
+                """
+                Put a signal out at a link, 0 to 15, until changed.
+
+                A face is not the unit any more: everything else in a graph is addressed by link, and picking a
+                side of the controller meant the one verb that could not reach past the block it lived in.
+                `self` powers every face of the controller; any other link powers a **Signal Emitter** block
+                there, which powers everything around it strongly.
+
+                Answers false when the link is neither `self` nor a loaded emitter.
+                """,
+            )
+            val link = param("Link", McVs.link, "where to emit", default = ControllerHost.SELF)
             val level = param("Level", McVs.int, "0 to 15", default = 15L)
+            result("Ok", McVs.bool)
             command {
-                McTypes.direction(side())?.let { host.emitSignal(it, level().toInt().coerceIn(0, 15)) }
-                null
+                val strength = level().toInt().coerceIn(0, 15)
+                if (link() == ControllerHost.SELF) {
+                    for (d in net.minecraft.core.Direction.values()) host.emitSignal(d, strength)
+                    return@command true
+                }
+                val target = host.link(link())?.takeIf { it.loaded } ?: return@command false
+                bpm.world.SignalEmitterBlock.emit(host.level, target.link.pos, strength)
             }
         }
         func("waitFor") {

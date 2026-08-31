@@ -1,7 +1,6 @@
 package bpm.client.fx
 
-import kotlin.math.cos
-import kotlin.math.exp
+import kotlin.math.sin
 
 /**
  * One quantum rift, client-side only: the state behind a world-space portal. It tears open, idles pulling
@@ -30,15 +29,52 @@ class Rift(val inward: Boolean) {
     private var closedAt = -1
     private var pulseAt = -100
 
+    /** When it last tore itself open again after having faded shut — see [openness]. */
+    private var reopenAt = -100
+
+    // How hard the tear is working, 0..1. Each batch adds to it and every tick takes a little away, so it
+    // measures the RATE rather than the last event: a stream moving something every tick sits at 1, a
+    // transfer every couple of seconds barely lifts it. [last] is the previous tick's value, so the wobble
+    // interpolates instead of stepping once a tick.
+    private var heat = 0.0
+    private var last = 0.0
+
     val done: Boolean get() = closing && age - closedAt >= CLOSE_TICKS
 
     fun tick() {
         age++
+        last = heat
+        heat = (heat - COOL_PER_TICK).coerceAtLeast(0.0)
     }
 
     fun pulse() {
-        if (!closing) pulseAt = age
+        if (closing) return
+        // A batch arriving after the mouth had already begun falling shut is a fresh tear, not a
+        // continuation of the last one, so it gets its own way in.
+        if (age - pulseAt > HOLD_TICKS) reopenAt = age
+        pulseAt = age
+        // Accumulating rather than resetting to 1 is what makes this a measure of how BUSY the tear is: one
+        // batch nudges it, a batch every tick pins it at full within a few ticks.
+        heat = (heat + HEAT_PER_PULSE).coerceAtMost(1.0)
     }
+
+    /**
+     * Whether something is actually going through it THIS INSTANT — not whether the mouth is open.
+     *
+     * The two are deliberately different. [openness] holds for [HOLD_TICKS] after a batch so a stream of
+     * batches reads as one continuous tear rather than a stutter, and that hold is right for a hole: a hole
+     * does not blink shut between the things falling through it. It is wrong for the liquid, which is only
+     * there while it is moving — gating the fluid column on openness left a thin shape hanging in the tear
+     * for the whole of a `wait`, because the mouth was still legitimately open.
+     */
+    fun running(partialTick: Float): Float {
+        if (closing) return 0f
+        val since = age + partialTick - pulseAt
+        return (1f - since / RUN_TICKS).coerceIn(0f, 1f)
+    }
+
+    /** How hard it is working right now, interpolated across the tick. */
+    fun activity(partialTick: Float): Float = (last + (heat - last) * partialTick).toFloat().coerceIn(0f, 1f)
 
     fun close() {
         if (closing) return
@@ -70,24 +106,44 @@ class Rift(val inward: Boolean) {
         // Tying it to the last batch instead makes the behaviour fall out for any interval, with nothing to
         // tune per graph: hold for a beat, then fall shut. A `wait 10` never leaves the hold and stays open
         // continuously; a `wait 20` closes in the gap and tears itself open again on the next batch.
-        val alive = 1f - ((since - HOLD_TICKS) / FADE_TICKS).coerceIn(0f, 1f)
+        // In and out BOTH take time. The fade-out was already gradual but the way back in was a step: the
+        // instant a batch landed, `since` reset to zero and this term jumped straight to 1, so a tear that
+        // had gently shut over eight ticks flicked back open in one. A hole opening is worth watching as
+        // much as one closing, and on a `wait` loop you watch it happen over and over.
+        val fadeOut = 1f - ((since - HOLD_TICKS) / FADE_TICKS).coerceIn(0f, 1f)
+        val fadeIn = ((t - reopenAt) / REOPEN_TICKS).coerceIn(0f, 1f)
+        val alive = ease(fadeIn) * ease(fadeOut)
 
         val swell = if (since in 0f..PULSE_TICKS) 0.22f * (1f - since / PULSE_TICKS) else 0f
-        return ease(opened) * ease(shut) * ease(alive) + swell * alive
+        return ease(opened) * ease(shut) * alive + swell * alive
     }
 
     /**
-     * The kick from the last batch, ringing down: how the tear reacts to something going through it.
+     * How the tear moves while it works: a slow wobble in place, never a shove.
      *
-     * A damped oscillation rather than a fade, which is what makes it feel like a membrane rather than a
-     * light being turned up — it overshoots, comes back past rest, and settles. Unsigned: WHICH WAY it
-     * throws is the travel vector the renderer applies it along, so a mouth letting things out lurches
-     * after them and one taking things in gets knocked back by them, from the same curve.
+     * It used to RECOIL — a damped ring thrown along the travel vector, so the mouth lurched bodily after
+     * whatever went through it. Two problems: a hole in space that slides about reads as an object rather
+     * than an opening, and at one batch a tick the ring never got past its own first instant, which is a
+     * buzz rather than a kick. A hole should not move. It should sit where it is and be unstable, and how
+     * unstable says how much is going through it.
+     *
+     * Yaw and tilt separately, on slow periods that do not divide into each other, so the two never line up
+     * into an obvious cycle.
      */
-    fun recoil(partialTick: Float): Float {
-        val x = (age + partialTick - pulseAt) / RING_TICKS
-        if (x < 0f || x > 1f) return 0f
-        return exp(-4.5f * x) * cos(9.2f * x)
+    fun yawWobble(partialTick: Float): Float {
+        val t = age + partialTick
+        return (sin(t * 0.055f) * 7f + sin(t * 0.021f + 1.3f) * 3f) * activity(partialTick)
+    }
+
+    fun tiltWobble(partialTick: Float): Float {
+        val t = age + partialTick
+        return sin(t * 0.043f + 1.7f) * 5f * activity(partialTick)
+    }
+
+    /** A gentle breathe in size, the last of the old kick worth keeping. */
+    fun breathe(partialTick: Float): Float {
+        val t = age + partialTick
+        return 1f + sin(t * 0.07f) * 0.05f * activity(partialTick)
     }
 
     /** Smoothstep, so the tear does not start and stop with a corner. */
@@ -104,13 +160,17 @@ class Rift(val inward: Boolean) {
         /** …and how long it takes to shut once it starts. Together these set the interval that reads as continuous. */
         private const val FADE_TICKS = 8f
 
-        /** How long the kick takes to ring out. */
-        private const val RING_TICKS = 14f
+        /** How long it takes to tear itself open again after a lapse. A little quicker than it shuts. */
+        private const val REOPEN_TICKS = 6f
 
-        /** How far the ring throws the tear along the travel vector, in blocks. */
-        const val RECOIL_TRAVEL = 0.22f
+        /** How long after a batch liquid is still visibly running — see [running]. */
+        private const val RUN_TICKS = 5f
 
-        /** …and how much of it also goes into the tear's size. */
-        const val RECOIL_SIZE = 0.16f
+        /** What one batch adds to [activity], and what each quiet tick takes off it. */
+        private const val HEAT_PER_PULSE = 0.34
+        // Slow enough that anything keeping the tear continuously open also keeps it visibly working: the
+        // mouth holds for ~19 ticks after a batch, so cooling that zeroed out in 7 left a steadily-open
+        // tear sitting perfectly still between batches.
+        private const val COOL_PER_TICK = 0.03
     }
 }

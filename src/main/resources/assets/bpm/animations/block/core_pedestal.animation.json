@@ -8,7 +8,7 @@
         "prong_0": {
           "rotation": {
             "vector": [
-              "-(2 + 2 * math.sin(query.life_time * 90 + 0 + variable.phase))",
+              "(-(2 + 2 * math.sin(query.life_time * 90 + 0 + variable.phase))) + variable.has_item * 41.5",
               0,
               0
             ]
@@ -17,7 +17,7 @@
         "prong_1": {
           "rotation": {
             "vector": [
-              "-(2 + 2 * math.sin(query.life_time * 90 + 90 + variable.phase))",
+              "(-(2 + 2 * math.sin(query.life_time * 90 + 90 + variable.phase))) + variable.has_item * 41.5",
               0,
               0
             ]
@@ -26,7 +26,7 @@
         "prong_2": {
           "rotation": {
             "vector": [
-              "-(2 + 2 * math.sin(query.life_time * 90 + 180 + variable.phase))",
+              "(-(2 + 2 * math.sin(query.life_time * 90 + 180 + variable.phase))) + variable.has_item * 41.5",
               0,
               0
             ]
@@ -35,7 +35,7 @@
         "prong_3": {
           "rotation": {
             "vector": [
-              "-(2 + 2 * math.sin(query.life_time * 90 + 270 + variable.phase))",
+              "(-(2 + 2 * math.sin(query.life_time * 90 + 270 + variable.phase))) + variable.has_item * 41.5",
               0,
               0
             ]

@@ -11,7 +11,9 @@ import io.osrsx.vscript.editor.host.IconRef
 import io.osrsx.vscript.editor.host.IconRegion
 import io.osrsx.vscript.editor.host.IconSource
 import net.minecraft.client.Minecraft
+import com.mojang.blaze3d.vertex.ByteBufferBuilder
 import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
@@ -59,6 +61,25 @@ object BlockPreviewRenderer : BlockPreviews, ItemIcons, IconSource {
 
     override fun labelOf(link: LinkView): String? = blockLabel[key(link)]
 
+    // ---- faces of the people tethered to the controller -------------------------------------------------------
+
+    /**
+     * The head off a player's skin: the 8x8 face at (8,8) of the 64x64 sheet, as a region over the skin
+     * texture itself. No off-screen render needed — unlike a block, a face is already a picture.
+     *
+     * The skin comes from the player when the client can see them, and from the uuid's default skin when it
+     * cannot, so a row for someone across the world or logged out still shows a face rather than a hole.
+     */
+    override fun head(playerId: String): IconRegion? {
+        val uuid = runCatching { java.util.UUID.fromString(playerId) }.getOrNull() ?: return null
+        val mc = Minecraft.getInstance()
+        val skin = mc.level?.players()?.firstOrNull { it.uuid == uuid }?.skin
+            ?: net.minecraft.client.resources.DefaultPlayerSkin.get(uuid)
+        val id = mc.textureManager.getTexture(skin.texture()).id
+        // 8/64 .. 16/64 — the face; the hat layer at 40/64 is left off, it reads as noise at this size.
+        return IconRegion(id, 0.125f, 0.125f, 0.25f, 0.25f)
+    }
+
     // ---- items by id -----------------------------------------------------------------------------------------
 
     override fun want(itemId: String) {
@@ -101,7 +122,10 @@ object BlockPreviewRenderer : BlockPreviews, ItemIcons, IconSource {
             slot.label = stack.hoverName.string
             runCatching { render(mc, slot, stack) }
                 .onSuccess { slot.rendered = true }
-                .onFailure { Bpm.LOGGER.warn("item picture failed for {}: {}", id, it.toString()) }
+                .onFailure {
+                    lastFailure = "$id: $it"
+                    Bpm.LOGGER.warn("item picture failed for {}: {}", id, it.toString())
+                }
             budget--
         }
         val gone = slots.entries.iterator()
@@ -114,25 +138,52 @@ object BlockPreviewRenderer : BlockPreviews, ItemIcons, IconSource {
         }
     }
 
+    /**
+     * Our own buffer source rather than the game's shared one.
+     *
+     * `mc.renderBuffers().bufferSource()` may already hold geometry another mod queued this frame; flushing it
+     * here would draw that into this 96x96 texture, and leave ours to be flushed into theirs later.
+     */
+    private val buffers: MultiBufferSource.BufferSource by lazy { MultiBufferSource.immediate(ByteBufferBuilder(1536)) }
+
     private fun render(mc: Minecraft, slot: Slot, stack: ItemStack) {
         val target = slot.target
         target.setClearColor(0f, 0f, 0f, 0f)
         target.clear(Minecraft.ON_OSX)
         target.bindWrite(true)
         RenderSystem.backupProjectionMatrix()
-        // A 16-unit GUI space with the GUI's own depth range: the model-view the game has set for screens
-        // pushes everything back by 11000, so anything nearer than 1000 would be clipped away.
-        RenderSystem.setProjectionMatrix(Matrix4f().setOrtho(0f, 16f, 16f, 0f, 1000f, 21000f), VertexSorting.ORTHOGRAPHIC_Z)
-        val graphics = GuiGraphics(mc, mc.renderBuffers().bufferSource())
+        val modelView = RenderSystem.getModelViewStack()
+        modelView.pushMatrix()
+        modelView.identity()
+        RenderSystem.applyModelViewMatrix()
+        // A 16-unit GUI space against an IDENTITY model-view, both set here.
+        //
+        // This used to set only the projection, with a 1000..21000 depth range chosen to match the -11000 Z
+        // push the vanilla GUI model-view happens to carry — that is, it borrowed whatever model-view the
+        // frame had left lying around. It works in a plain client and fails wherever another mod has set a
+        // different one, because then the item lands outside the depth range and clips away silently.
+        RenderSystem.setProjectionMatrix(Matrix4f().setOrtho(0f, 16f, 16f, 0f, -1000f, 1000f), VertexSorting.ORTHOGRAPHIC_Z)
+        val graphics = GuiGraphics(mc, buffers)
         try {
             graphics.renderItem(stack, 0, 0)
-        } finally {
             graphics.flush()
+        } finally {
+            modelView.popMatrix()
+            RenderSystem.applyModelViewMatrix()
             RenderSystem.restoreProjectionMatrix()
             target.unbindWrite()
             mc.mainRenderTarget.bindWrite(true)
         }
     }
+
+    /** What `/bpm previews` reports — enough to tell "nothing was asked for" from "everything failed". */
+    fun diagnostics(): String {
+        val rendered = slots.values.count { it.rendered }
+        return "previews: ${slots.size} textures, $rendered drawn, ${wanted.size} queued" +
+            (lastFailure?.let { " · last failure: $it" } ?: " · no failures")
+    }
+
+    private var lastFailure: String? = null
 
     fun clear() {
         for (s in slots.values) s.target.destroyBuffers()

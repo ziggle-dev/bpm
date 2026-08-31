@@ -1,0 +1,744 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.quantum_assembler.idle": {
+      "loop": true,
+      "animation_length": 4,
+      "bones": {
+        "focus": {
+          "position": {
+            "vector": [
+              0,
+              "math.sin(query.life_time * 55) * 0.22",
+              0
+            ]
+          },
+          "scale": {
+            "vector": [
+              "1 + math.sin(query.life_time * 90) * 0.05",
+              "1 + math.sin(query.life_time * 90) * 0.05",
+              "1 + math.sin(query.life_time * 90) * 0.05"
+            ]
+          }
+        },
+        "ring_outer": {
+          "rotation": {
+            "vector": [
+              0,
+              "-query.life_time * 26 * variable.spin_speed - variable.phase",
+              0
+            ]
+          }
+        },
+        "ring_inner": {
+          "rotation": {
+            "vector": [
+              0,
+              0,
+              "query.life_time * -33 * variable.spin_speed"
+            ]
+          }
+        },
+        "arms": {
+          "position": {
+            "vector": [
+              0,
+              "math.sin(query.life_time * 40 + 30) * 0.12",
+              0
+            ]
+          }
+        }
+      }
+    },
+    "animation.quantum_assembler.assemble": {
+      "loop": true,
+      "animation_length": 4,
+      "bones": {
+        "focus": {
+          "position": {
+            "vector": [
+              0,
+              "math.sin(query.life_time * 220) * 0.16",
+              0
+            ]
+          },
+          "scale": {
+            "vector": [
+              0.12,
+              0.12,
+              0.12
+            ]
+          }
+        },
+        "ring_outer": {
+          "rotation": {
+            "vector": [
+              0,
+              "-query.life_time * 150 * variable.spin_speed - variable.phase",
+              0
+            ]
+          }
+        },
+        "ring_inner": {
+          "rotation": {
+            "vector": [
+              0,
+              0,
+              "query.life_time * -195 * variable.spin_speed"
+            ]
+          }
+        },
+        "arms": {
+          "position": {
+            "vector": [
+              0,
+              "math.sin(query.life_time * 300) * 0.06",
+              0
+            ]
+          }
+        },
+        "arm_n": {
+          "rotation": {
+            "vector": [
+              -26,
+              0,
+              0
+            ]
+          }
+        },
+        "arm_s": {
+          "rotation": {
+            "vector": [
+              26,
+              0,
+              0
+            ]
+          }
+        },
+        "arm_w": {
+          "rotation": {
+            "vector": [
+              0,
+              0,
+              -26
+            ]
+          }
+        },
+        "arm_e": {
+          "rotation": {
+            "vector": [
+              0,
+              0,
+              26
+            ]
+          }
+        },
+        "vent_n": {
+          "rotation": {
+            "vector": [
+              14,
+              0,
+              0
+            ]
+          }
+        },
+        "vent_s": {
+          "rotation": {
+            "vector": [
+              -14,
+              0,
+              0
+            ]
+          }
+        },
+        "vent_w": {
+          "rotation": {
+            "vector": [
+              0,
+              0,
+              14
+            ]
+          }
+        },
+        "vent_e": {
+          "rotation": {
+            "vector": [
+              0,
+              0,
+              -14
+            ]
+          }
+        }
+      }
+    },
+    "animation.quantum_assembler.decohere": {
+      "animation_length": 1.6,
+      "bones": {
+        "base": {
+          "position": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "0.0833": {
+              "vector": [
+                -0.35,
+                -0.2,
+                -0.3
+              ]
+            },
+            "0.2083": {
+              "vector": [
+                0.3,
+                0.15,
+                0.25
+              ]
+            },
+            "0.3333": {
+              "vector": [
+                -0.15,
+                -0.08,
+                -0.12
+              ]
+            },
+            "0.5833": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "focus": {
+          "scale": {
+            "0.0": {
+              "vector": [
+                0.12,
+                0.12,
+                0.12
+              ]
+            },
+            "0.125": {
+              "vector": [
+                1.5,
+                1.5,
+                1.5
+              ]
+            },
+            "0.4583": {
+              "vector": [
+                0.02,
+                0.02,
+                0.02
+              ]
+            },
+            "1.5833": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            }
+          }
+        },
+        "ring_outer": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "0.2083": {
+              "vector": [
+                -12,
+                -40,
+                -9
+              ]
+            },
+            "0.9167": {
+              "vector": [
+                5,
+                -55,
+                4
+              ]
+            },
+            "1.5833": {
+              "vector": [
+                0,
+                -60,
+                0
+              ]
+            }
+          }
+        },
+        "ring_inner": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "0.2083": {
+              "vector": [
+                14,
+                0,
+                35
+              ]
+            },
+            "1.5833": {
+              "vector": [
+                0,
+                0,
+                48
+              ]
+            }
+          }
+        },
+        "arm_n": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                -26,
+                0,
+                0
+              ]
+            },
+            "0.1667": {
+              "vector": [
+                34,
+                0,
+                0
+              ]
+            },
+            "1.5833": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "arm_s": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                26,
+                0,
+                0
+              ]
+            },
+            "0.1667": {
+              "vector": [
+                -34,
+                0,
+                0
+              ]
+            },
+            "1.5833": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "arm_w": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                -26
+              ]
+            },
+            "0.1667": {
+              "vector": [
+                0,
+                0,
+                34
+              ]
+            },
+            "1.5833": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "arm_e": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                26
+              ]
+            },
+            "0.1667": {
+              "vector": [
+                0,
+                0,
+                -34
+              ]
+            },
+            "1.5833": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "vent_n": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                14,
+                0,
+                0
+              ]
+            },
+            "0.1667": {
+              "vector": [
+                55,
+                0,
+                0
+              ]
+            },
+            "1.5833": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "vent_s": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                -14,
+                0,
+                0
+              ]
+            },
+            "0.1667": {
+              "vector": [
+                -55,
+                0,
+                0
+              ]
+            },
+            "1.5833": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "vent_w": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                14
+              ]
+            },
+            "0.1667": {
+              "vector": [
+                0,
+                0,
+                55
+              ]
+            },
+            "1.5833": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "vent_e": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                -14
+              ]
+            },
+            "0.1667": {
+              "vector": [
+                0,
+                0,
+                -55
+              ]
+            },
+            "1.5833": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        }
+      }
+    },
+    "animation.quantum_assembler.finish": {
+      "animation_length": 1,
+      "bones": {
+        "gantry": {
+          "scale": {
+            "0.0": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            },
+            "0.125": {
+              "vector": [
+                1.06,
+                1.02,
+                1.06
+              ]
+            },
+            "0.5": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            }
+          }
+        },
+        "focus": {
+          "position": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "0.2083": {
+              "vector": [
+                0,
+                0.9,
+                0
+              ]
+            },
+            "1.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            }
+          },
+          "scale": {
+            "0.0": {
+              "vector": [
+                0.12,
+                0.12,
+                0.12
+              ]
+            },
+            "0.125": {
+              "vector": [
+                1.7,
+                1.7,
+                1.7
+              ]
+            },
+            "0.5417": {
+              "vector": [
+                0.9,
+                0.9,
+                0.9
+              ]
+            },
+            "1.0": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            }
+          }
+        },
+        "ring_outer": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "0.1667": {
+              "vector": [
+                0,
+                -26,
+                0
+              ]
+            },
+            "1.0": {
+              "vector": [
+                0,
+                -30,
+                0
+              ]
+            }
+          }
+        },
+        "ring_inner": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "0.1667": {
+              "vector": [
+                0,
+                0,
+                -24
+              ]
+            },
+            "1.0": {
+              "vector": [
+                0,
+                0,
+                -28
+              ]
+            }
+          }
+        },
+        "arm_n": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                -26,
+                0,
+                0
+              ]
+            },
+            "0.2917": {
+              "vector": [
+                12,
+                0,
+                0
+              ]
+            },
+            "1.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "arm_s": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                26,
+                0,
+                0
+              ]
+            },
+            "0.2917": {
+              "vector": [
+                -12,
+                0,
+                0
+              ]
+            },
+            "1.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "arm_w": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                -26
+              ]
+            },
+            "0.2917": {
+              "vector": [
+                0,
+                0,
+                12
+              ]
+            },
+            "1.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "arm_e": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                26
+              ]
+            },
+            "0.2917": {
+              "vector": [
+                0,
+                0,
+                -12
+              ]
+            },
+            "1.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "geckolib_format_version": 2
+}

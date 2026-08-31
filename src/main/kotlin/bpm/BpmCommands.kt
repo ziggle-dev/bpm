@@ -204,6 +204,27 @@ object BpmCommands {
                 ),
             )
             .then(
+                Commands.literal("tether").then(
+                    Commands.argument("pos", BlockPosArgument.blockPos()).then(
+                        Commands.literal("list").executes(::tetherList),
+                    ).then(
+                        Commands.literal("bind").then(
+                            Commands.argument("player", net.minecraft.commands.arguments.EntityArgument.player())
+                                .executes { ctx -> tetherBind(ctx, null) }
+                                .then(
+                                    Commands.argument("grants", StringArgumentType.greedyString()).executes { ctx ->
+                                        tetherBind(ctx, StringArgumentType.getString(ctx, "grants"))
+                                    },
+                                ),
+                        ),
+                    ).then(
+                        Commands.literal("unbind").then(
+                            Commands.argument("player", net.minecraft.commands.arguments.EntityArgument.player()).executes(::tetherUnbind),
+                        ),
+                    ),
+                ),
+            )
+            .then(
                 Commands.literal("link").then(
                     Commands.argument("pos", BlockPosArgument.blockPos()).then(
                         Commands.argument("name", StringArgumentType.word()).then(
@@ -289,6 +310,7 @@ object BpmCommands {
         val name = StringArgumentType.getString(ctx, "name")
         val target = BlockPosArgument.getBlockPos(ctx, "target")
         val link = be.links.add(Link(name, target, side, ctx.source.level.dimension()))
+            ?: return fail(ctx, "the controller is full at ${be.links.capacity} links (${be.coreTier.label} core)")
         be.setChanged()
         reply(ctx, "linked '${link.name}' → ${target.toShortString()} ${side?.name?.lowercase() ?: "(any side)"}")
         return 1
@@ -328,6 +350,62 @@ object BpmCommands {
     private fun graphFile(name: String): Path {
         val safe = name.replace(Regex("[^A-Za-z0-9._-]"), "_").removeSuffix(".json")
         return FMLPaths.GAMEDIR.get().resolve("bpm").resolve("graphs").resolve("$safe.json")
+    }
+
+    /**
+     * `/bpm tether bind <pos> <player> [grants]`: make <player> a presence link of the controller, and stamp
+     * the credential onto whatever they are holding.
+     *
+     * The credential is two data components, not an item class (see `bpm.world.Tethers`), so this exercises
+     * exactly the path the Quantum Tether will — it is a debug affordance, not a bypass around the checks.
+     */
+    private fun tetherBind(ctx: CommandContext<CommandSourceStack>, grantText: String?): Int {
+        val be = controller(ctx) ?: return 0
+        val player = net.minecraft.commands.arguments.EntityArgument.getPlayer(ctx, "player")
+        val grants = if (grantText == null) bpm.world.Grants.DELIVERY else bpm.world.Grants.parse(grantText)
+        if (grants.isEmpty()) return fail(ctx, "no grants understood in '$grantText' — try: ${bpm.world.Grant.entries.joinToString(",") { it.key }}")
+
+        val held = player.mainHandItem
+        if (held.isEmpty) return fail(ctx, "${player.name.string} is holding nothing to bind — a tether has to live on a stack")
+
+        val existing = be.links.byPlayer(player.uuid)
+        val link = existing ?: be.links.add(
+            bpm.world.Link(be.links.presenceName(player.name.string), player.blockPosition(), null, player.level().dimension(), player.uuid),
+        ) ?: return fail(ctx, "this controller already holds ${be.links.presenceCapacity} presence links (${be.coreTier.label} core)")
+
+        bpm.world.Tethers.bind(held, net.minecraft.core.GlobalPos.of(ctx.source.level.dimension(), be.blockPos), grants)
+        be.setChanged()
+        reply(ctx, "'${link.name}' → ${player.name.string} · ${bpm.world.Grants.label(grants)} (${bpm.world.Grants.format(grants)}) · on ${held.hoverName.string}")
+        return 1
+    }
+
+    private fun tetherUnbind(ctx: CommandContext<CommandSourceStack>): Int {
+        val be = controller(ctx) ?: return 0
+        val player = net.minecraft.commands.arguments.EntityArgument.getPlayer(ctx, "player")
+        val here = net.minecraft.core.GlobalPos.of(ctx.source.level.dimension(), be.blockPos)
+        bpm.world.Tethers.stack(player, here)?.let { bpm.world.Tethers.unbind(it) }
+        if (!be.links.removePlayer(player.uuid)) return fail(ctx, "${player.name.string} is not a presence link of this controller")
+        be.setChanged()
+        reply(ctx, "${player.name.string} is no longer linked to ${be.blockPos.toShortString()}")
+        return 1
+    }
+
+    private fun tetherList(ctx: CommandContext<CommandSourceStack>): Int {
+        val be = controller(ctx) ?: return 0
+        val links = be.links.presence
+        if (links.isEmpty()) {
+            reply(ctx, "no presence links (room for ${be.links.presenceCapacity})")
+            return 1
+        }
+        reply(ctx, "${links.size}/${be.links.presenceCapacity} presence links:")
+        val level = ctx.source.level
+        for (l in links) {
+            val resolved = bpm.world.PresenceLink(l, level, be)
+            val who = resolved.player?.name?.string ?: l.player.toString()
+            val why = resolved.reason()
+            reply(ctx, "  ${l.name} → $who · " + (why ?: "reachable · ${bpm.world.Grants.format(resolved.grants)}"))
+        }
+        return 1
     }
 
     private fun controller(ctx: CommandContext<CommandSourceStack>): ControllerBlockEntity? {

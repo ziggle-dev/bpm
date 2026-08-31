@@ -33,6 +33,7 @@ object XpNodes {
             )
             val link = param("Link", McVs.link, "around which block", default = "self")
             val radius = param("Radius", McVs.float, "how far, in blocks", default = 1.5)
+            val fx = param("Effects", McVs.bool, "draw the rift and what travels through it", default = true)
             result("Points", McVs.int)
             command {
                 val center = centerOf(host, link()) ?: return@command 0L
@@ -47,7 +48,7 @@ object XpNodes {
                     orb.discard()
                     points += value
                 }
-                if (points > 0) host.transferred(link(), ControllerHost.SELF, points, bpm.net.EffectKind.XP)
+                if (points > 0 && fx()) host.transferred(link(), ControllerHost.SELF, points, bpm.net.EffectKind.XP)
                 points.toLong()
             }
         }
@@ -56,6 +57,7 @@ object XpNodes {
             doc("Pour experience out of the controller's tanks as orbs at a link (or at the controller, with `self`). Answers how many points came out — fewer than asked when the tanks run dry.")
             val link = param("Link", McVs.link, "where the orbs appear", default = "self")
             val points = param("Points", McVs.int, "how many points", default = 1L)
+            val fx = param("Effects", McVs.bool, "draw the rift and what travels through it", default = true)
             result("Dropped", McVs.int)
             command {
                 val center = centerOf(host, link()) ?: return@command 0L
@@ -65,7 +67,7 @@ object XpNodes {
                 if (have <= 0) return@command 0L
                 host.selfTanks.drain(liquid(have), IFluidHandler.FluidAction.EXECUTE)
                 ExperienceOrb.award(host.level, center, have)
-                host.transferred(ControllerHost.SELF, link(), have, bpm.net.EffectKind.XP)
+                if (fx()) host.transferred(ControllerHost.SELF, link(), have, bpm.net.EffectKind.XP)
                 have.toLong()
             }
         }

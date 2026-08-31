@@ -24,31 +24,55 @@ object Transfer {
     fun stacks(h: IItemHandler, matcher: FilterValue.Matcher): List<ItemStack> =
         (0 until h.slots).map { h.getStackInSlot(it) }.filter { matcher.matches(it) }
 
-    /** Move up to [max] matching items from [from] to [to]. Answers how many moved. */
-    fun items(from: IItemHandler, to: IItemHandler, matcher: FilterValue.Matcher, max: Int): Int {
+    /**
+     * What a move actually did: how many items, and one of the stacks that really went.
+     *
+     * The count alone used to be the whole answer, so the effect had to guess what to draw and guessed from
+     * the first stack that *matched* — which is not the same thing as the first that moved. On a player whose
+     * tether sits in an early slot, an unfiltered move drew the tether streaming into a chest while the tether
+     * stayed exactly where it was. Report what happened instead of predicting it.
+     */
+    data class Moved(val count: Int, val sample: ItemStack = ItemStack.EMPTY) {
+
+        /** The registry id to show for this move, or empty when nothing moved. */
+        val name: String get() = if (sample.isEmpty) "" else RegistryIds.of(sample.item)
+
+        companion object {
+            val NOTHING = Moved(0)
+        }
+    }
+
+    /** Move up to [max] matching items from [from] to [to]. */
+    fun items(from: IItemHandler, to: IItemHandler, matcher: FilterValue.Matcher, max: Int): Moved {
         var moved = 0
+        var sample = ItemStack.EMPTY
         for (slot in 0 until from.slots) {
             if (moved >= max) break
             val peek = from.getStackInSlot(slot)
             if (!matcher.matches(peek)) continue
-            moved += moveSlot(from, slot, to, max - moved)
+            val step = moveSlot(from, slot, to, max - moved)
+            moved += step.count
+            if (sample.isEmpty) sample = step.sample
         }
-        return moved
+        return Moved(moved, sample)
     }
 
     /** Move up to [max] items out of one slot of [from] into [to]. Answers how many moved. */
-    fun moveSlot(from: IItemHandler, slot: Int, to: IItemHandler, max: Int): Int {
-        if (slot < 0 || slot >= from.slots || max <= 0) return 0
+    fun moveSlot(from: IItemHandler, slot: Int, to: IItemHandler, max: Int): Moved {
+        if (slot < 0 || slot >= from.slots || max <= 0) return Moved.NOTHING
         val offered = from.extractItem(slot, max, true)
-        if (offered.isEmpty) return 0
+        if (offered.isEmpty) return Moved.NOTHING
         val accepted = offered.count - ItemHandlerHelper.insertItemStacked(to, offered, true).count
-        if (accepted <= 0) return 0
+        if (accepted <= 0) return Moved.NOTHING
         val taken = from.extractItem(slot, accepted, false)
-        if (taken.isEmpty) return 0
+        if (taken.isEmpty) return Moved.NOTHING
+        // What it is, before insertion is allowed to touch the stack.
+        val what = taken.copy()
         val left = ItemHandlerHelper.insertItemStacked(to, taken, false)
         // The simulation said it would fit; if a handler changed its mind, the items go back.
         if (!left.isEmpty) ItemHandlerHelper.insertItemStacked(from, left, false)
-        return taken.count - left.count
+        val count = what.count - left.count
+        return if (count <= 0) Moved.NOTHING else Moved(count, what)
     }
 
     /** Take up to [max] matching items out of [from] as one stack (one slot's worth). */

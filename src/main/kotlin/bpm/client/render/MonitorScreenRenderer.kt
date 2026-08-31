@@ -37,24 +37,36 @@ object MonitorScreenRenderer {
     private const val BAR_TEXT = 0.7f
     private const val MIN_LABEL = 0.6f
 
-    private const val MINT = 0xFFB8FFF0.toInt()
-    private const val TEAL = 0xFF4DFFD8.toInt()
-    private const val DIM = 0xFF9AA3B5.toInt()
-    private const val TRACK = 0x66102030
-    private const val FRAME = 0x334DFFD8
+    /**
+     * Where the stack count sits, in screen units toward the viewer.
+     *
+     * Past the item's near face (about -0.82 for a model 0.64 deep drawn at -0.5), with the white glyph a
+     * further 0.1 in front of its shadow. At 1/32 of a block per unit that separation is a tenth of a
+     * millimetre — enough to order them, far too little to look detached.
+     */
+    private const val COUNT_Z = -1.0f
 
-    private val NAMED = mapOf(
-        "white" to 0xFFFFFFFF.toInt(), "mint" to MINT, "teal" to TEAL, "green" to 0xFFA8F04A.toInt(), "amber" to 0xFFFFB84D.toInt(),
-        "red" to 0xFFF26D6D.toInt(), "grey" to DIM, "gray" to DIM, "blue" to 0xFF8AB4F8.toInt(), "orchid" to 0xFFF0A3D6.toInt(),
-    )
+    private const val MINT = ScreenColours.MINT
+    private const val TEAL = ScreenColours.TEAL
+    private const val DIM = ScreenColours.DIM
+    private const val TRACK = ScreenColours.TRACK
+    private const val FRAME = ScreenColours.FRAME
 
-    fun draw(be: MonitorBlockEntity, pose: PoseStack, buffers: MultiBufferSource, packedLight: Int) {
+    /** Behind a button, and the nub of a toggle: dark enough to read as a control on lit glass. */
+    private const val PRESS_BG = 0xCC0B1A22.toInt()
+
+    fun draw(be: MonitorBlockEntity, pose: PoseStack, buffers: MultiBufferSource) {
         val level = be.level ?: return
-        if (be.widgets.isEmpty() || !MonitorWall.isOrigin(level, be.blockPos)) return
+        // A screen that is off shows nothing. `on` used only to pick the light level, so a monitor switched
+        // off still drew its whole contents, merely dimmer — which is not what "off" means to anyone looking
+        // at it, and left stale numbers legible on a wall someone had deliberately darkened.
+        if (!be.on || be.widgets.isEmpty() || !MonitorWall.isOrigin(level, be.blockPos)) return
         val (w, h) = MonitorWall.sizeOf(level, be.blockPos)
         val width = TILE * w - 2 * BEZEL
         val height = TILE * h - 2 * BEZEL
-        val light = if (be.on) LightTexture.FULL_BRIGHT else packedLight
+        // Always lit: nothing draws at all unless the screen is on, so there is no dim case left to carry
+        // a block light through for.
+        val light = LightTexture.FULL_BRIGHT
         val mc = Minecraft.getInstance()
 
         pose.pushPose()
@@ -71,11 +83,7 @@ object MonitorScreenRenderer {
         pose.popPose()
     }
 
-    private fun heightOf(w: Widget): Int = when (w.kind) {
-        Widget.TEXT -> LINE * w.size
-        Widget.ITEM -> ICON
-        else -> GAUGE
-    }
+    private fun heightOf(w: Widget): Int = Widget.heightOf(w)
 
     private fun drawWidget(mc: Minecraft, w: Widget, x: Float, y: Float, width: Float, pose: PoseStack, buffers: MultiBufferSource, light: Int) {
         val font = mc.font
@@ -110,15 +118,71 @@ object MonitorScreenRenderer {
                     if (shown != 1.0) {
                         val n = MonitorFormat.short(shown)
                         val s = if (n.length > 3) 0.6f else 0.75f
-                        pose.pushPose()
-                        pose.translate(x + ICON - font.width(n) * s, y + ICON - LINE * s + 1f, -0.6f)
-                        pose.scale(s, s, 1f)
-                        font.drawInBatch(n, 0f, 0f, 0xFFFFFFFF.toInt(), true, pose.last().pose(), buffers, Font.DisplayMode.NORMAL, 0, light)
-                        pose.popPose()
+                        val tx = x + ICON - font.width(n) * s
+                        val ty = y + ICON - LINE * s + 1f
+                        // In FRONT of the whole item, not just its centre. An item is a model with depth: it
+                        // is drawn at z -0.5 and scaled 0.64 deep, so its near face reaches about -0.82 and
+                        // the count at -0.6 sat inside it and was partly swallowed.
+                        //
+                        // The shadow is also drawn by hand rather than by the font. `drawInBatch`'s own
+                        // shadow is COPLANAR with the glyph and separated only by draw order, which under
+                        // this screen's mirrored transform put the dark copy in front of the white one.
+                        // Two draws at two depths cannot get that wrong.
+                        layer(font, n, tx + s, ty + s, s, shadowOf(0xFFFFFFFF.toInt()), COUNT_Z, pose, buffers, light)
+                        layer(font, n, tx, ty, s, 0xFFFFFFFF.toInt(), COUNT_Z - 0.1f, pose, buffers, light)
                     }
                 }
                 val label = w.label.ifEmpty { if (w.item.isEmpty) "—" else w.item.hoverName.string }
                 fitted(font, label, width - ICON - 3, x + ICON + 3, y + (ICON - LINE) / 2f + 1, MINT, pose, buffers, light)
+            }
+            Widget.BUTTON, Widget.TOGGLE -> {
+                // These used to fall through the `when` and draw nothing at all, leaving a gap where a
+                // control should be. A wall can now carry them, and `MonitorHit` answers clicks on them.
+                val h = Widget.PRESSABLE.toFloat()
+                val tint = colourOf(w.colour, TEAL)
+                if (w.kind == Widget.BUTTON) {
+                    quad(pose, buffers, x, y, x + width, y + h, PRESS_BG)
+                    frame(pose, buffers, x, y, x + width, y + h, tint)
+                    val label = clip(font, w.label, width - 4)
+                    text(font, label, x + (width - font.width(label)) / 2f, y + (h - LINE) / 2f + 1f, MINT, pose, buffers, light)
+                } else {
+                    val on = w.value >= 0.5
+                    val knobW = 18f
+                    fitted(font, w.label, width - knobW - 4, x, y + (h - LINE) / 2f + 1f, MINT, pose, buffers, light)
+                    val kx = x + width - knobW
+                    quad(pose, buffers, kx, y + 1f, kx + knobW, y + h - 1f, if (on) tint else TRACK)
+                    frame(pose, buffers, kx, y + 1f, kx + knobW, y + h - 1f, FRAME)
+                    // The nub sits at whichever end the switch is thrown to.
+                    val nub = h - 4f
+                    val nx = if (on) kx + knobW - nub - 1f else kx + 1f
+                    quad(pose, buffers, nx, y + 2f, nx + nub, y + h - 2f, PRESS_BG)
+                }
+            }
+            Widget.SLIDER -> {
+                // A gauge you can move: the same bar the readouts use, plus a nub to say so.
+                val h = Widget.GAUGE.toFloat()
+                val tint = colourOf(w.colour, TEAL)
+                val frac = if (w.max > 0.0) (w.value / w.max).coerceIn(0.0, 1.0).toFloat() else 0f
+                val label = w.label
+                val shown = MonitorFormat.full(w.value) + if (w.unit.isNotEmpty()) " " + w.unit else ""
+                val sw = font.width(shown)
+                text(font, clip(font, label, width - sw - 4), x, y, MINT, pose, buffers, light)
+                text(font, shown, x + width - sw, y, DIM, pose, buffers, light)
+                val by = y + LINE + 1f
+                val bh = h - LINE - 2f
+                quad(pose, buffers, x, by, x + width, by + bh, TRACK)
+                if (frac > 0f) quad(pose, buffers, x, by, x + width * frac, by + bh, tint)
+                val nub = 3f
+                val nx = (x + width * frac).coerceIn(x, x + width - nub)
+                quad(pose, buffers, nx, by - 1f, nx + nub, by + bh + 1f, MINT)
+            }
+            Widget.FIELD -> {
+                val h = Widget.PRESSABLE.toFloat()
+                quad(pose, buffers, x, y, x + width, y + h, PRESS_BG)
+                frame(pose, buffers, x, y, x + width, y + h, FRAME)
+                val shown = w.text.ifEmpty { w.label.ifEmpty { "…" } }
+                val colour = if (w.text.isEmpty()) DIM else MINT
+                text(font, clip(font, shown, width - 4), x + 2f, y + (h - LINE) / 2f + 1f, colour, pose, buffers, light)
             }
             Widget.FLUID, Widget.ENERGY, Widget.BAR -> {
                 val fluid = if (w.kind == Widget.FLUID) ResourceLocation.tryParse(w.fluid)?.let { BuiltInRegistries.FLUID.getOptional(it).orElse(null) } else null
@@ -147,15 +211,39 @@ object MonitorScreenRenderer {
                 val inBar = if (header === full) percent else if (header === short) percent else short
                 val iw = font.width(inBar) * BAR_TEXT
                 if (iw <= width - 4) {
-                    pose.pushPose()
-                    pose.translate(x + (width - iw) / 2f, by + (bh - LINE * BAR_TEXT) / 2f + 0.5f, -0.6f)
-                    pose.scale(BAR_TEXT, BAR_TEXT, 1f)
-                    font.drawInBatch(inBar, 0f, 0f, 0xFFFFFFFF.toInt(), true, pose.last().pose(), buffers, Font.DisplayMode.NORMAL, 0, light)
-                    pose.popPose()
+                    // Two draws at two depths, for the reason the stack count gives: the font's own shadow is
+                    // coplanar with its glyph, and this screen's mirrored transform is enough to invert them.
+                    val bx = x + (width - iw) / 2f
+                    val byy = by + (bh - LINE * BAR_TEXT) / 2f + 0.5f
+                    layer(font, inBar, bx + BAR_TEXT, byy + BAR_TEXT, BAR_TEXT, shadowOf(0xFFFFFFFF.toInt()), -0.6f, pose, buffers, light)
+                    layer(font, inBar, bx, byy, BAR_TEXT, 0xFFFFFFFF.toInt(), -0.7f, pose, buffers, light)
                 }
             }
         }
     }
+
+    /** One layer of scaled text at its own depth, so a shadow can never climb over its glyph. */
+    private fun layer(
+        font: Font,
+        n: String,
+        x: Float,
+        y: Float,
+        scale: Float,
+        colour: Int,
+        z: Float,
+        pose: PoseStack,
+        buffers: MultiBufferSource,
+        light: Int,
+    ) {
+        pose.pushPose()
+        pose.translate(x, y, z)
+        pose.scale(scale, scale, 1f)
+        font.drawInBatch(n, 0f, 0f, colour, false, pose.last().pose(), buffers, Font.DisplayMode.NORMAL, 0, light)
+        pose.popPose()
+    }
+
+    /** A quarter-brightness copy, which is what the game's own text shadow is. */
+    private fun shadowOf(argb: Int): Int = (argb and 0xFF000000.toInt()) or ((argb and 0xFCFCFC) shr 2)
 
     private fun text(font: Font, s: String, x: Float, y: Float, colour: Int, pose: PoseStack, buffers: MultiBufferSource, light: Int) {
         font.drawInBatch(s, x, y, colour, false, pose.last().pose(), buffers, Font.DisplayMode.NORMAL, 0, light)
@@ -218,21 +306,9 @@ object MonitorScreenRenderer {
 
     private fun fluidTint(fluid: net.minecraft.world.level.material.Fluid): Int = IClientFluidTypeExtensions.of(fluid).tintColor and 0xFFFFFF
 
-    private fun lighten(argb: Int): Int {
-        val r = (argb shr 16 and 0xFF)
-        val g = (argb shr 8 and 0xFF)
-        val b = argb and 0xFF
-        return (0xFF shl 24) or ((r + (255 - r) * 2 / 5) shl 16) or ((g + (255 - g) * 2 / 5) shl 8) or (b + (255 - b) * 2 / 5)
-    }
+    private fun lighten(argb: Int): Int = ScreenColours.lighten(argb)
 
-    /** `#rrggbb`, a palette name, or [fallback]. */
-    private fun colourOf(spec: String, fallback: Int): Int {
-        val s = spec.trim().lowercase()
-        if (s.isEmpty()) return fallback
-        NAMED[s]?.let { return it }
-        val hex = s.removePrefix("#")
-        return hex.toLongOrNull(16)?.let { (0xFF000000L or (it and 0xFFFFFF)).toInt() } ?: fallback
-    }
+    private fun colourOf(spec: String, fallback: Int): Int = ScreenColours.colourOf(spec, fallback)
 
     /** The yaw that turns the model's -Z onto [facing]. */
     private fun yawOf(facing: Direction): Float {

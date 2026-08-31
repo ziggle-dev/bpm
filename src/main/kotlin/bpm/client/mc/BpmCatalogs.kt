@@ -11,6 +11,7 @@ import io.osrsx.vscript.editor.host.TypeStyles
 import io.osrsx.vscript.editor.host.ValueCatalog
 import io.osrsx.vscript.editor.host.ValueCatalogs
 import io.osrsx.vscript.model.TypeRef
+import com.mojang.blaze3d.platform.InputConstants
 import net.minecraft.core.Registry
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.item.Item
@@ -27,6 +28,7 @@ object BpmCatalogs : ValueCatalogs {
     private val fluids = RegistryCatalog(BuiltInRegistries.FLUID) { null }
     private val tags = TagCatalog()
     private val links = LinkCatalog()
+    private val keys = KeyCatalog()
 
     private val enums = HashMap<String, bpm.client.editor.EnumCatalog>()
 
@@ -37,6 +39,7 @@ object BpmCatalogs : ValueCatalogs {
         McTypes.FLUID.type.name -> fluids
         McTypes.TAG.type.name -> tags
         McTypes.LINK.name -> links
+        McTypes.KEY.type.name -> keys
         else -> io.osrsx.vscript.model.HostEnums.of(name)?.let { e -> enums.getOrPut(e.name) { bpm.client.editor.EnumCatalog(e) } }
     }
 
@@ -88,6 +91,53 @@ private class RegistryCatalog(private val registry: Registry<*>, private val dis
     override fun icon(value: Any?): IconRef? = value?.toString()?.takeIf { it.isNotEmpty() }?.let { RegistryIcon(it) }
 
     private fun toEntry(e: Entry) = ValueCatalog.Entry(e.id, e.label, e.id, RegistryIcon(e.id))
+}
+
+/**
+ * Every key on the keyboard, so a `Key` pin gets a searchable list instead of a text field nobody can guess
+ * the spelling for.
+ *
+ * Enumerated by asking `InputConstants` for each GLFW code rather than from a hand-written table: the names
+ * are then exactly the ones the client will match a keypress against, and a name that does not exist on this
+ * build simply never appears. Stored values are the canonical bare names [KeyNames] uses (`g`, `left_shift`),
+ * shown as the game shows them.
+ */
+private class KeyCatalog : ValueCatalog {
+    private var entries: List<Entry>? = null
+
+    private fun entries(): List<Entry> = entries ?: buildList {
+        for (code in 32..GLFW_LAST) {
+            val key = runCatching { InputConstants.Type.KEYSYM.getOrCreate(code) }.getOrNull() ?: continue
+            if (key == InputConstants.UNKNOWN) continue
+            val name = bpm.world.KeyNames.normalise(key.name)
+            if (name.isEmpty() || name == "unknown") continue
+            add(Entry(name, bpm.world.KeyNames.label(name)))
+        }
+    }.distinctBy { it.id }.sortedBy { it.label.lowercase() }.also { entries = it }
+
+    override fun search(query: String, limit: Int): List<ValueCatalog.Entry> {
+        val q = query.trim()
+        if (q.isEmpty()) return browse(limit)
+        return entries().asSequence()
+            .mapNotNull { e -> (FuzzySearch.score(e.label, q) ?: FuzzySearch.score(e.id, q))?.let { it to e } }
+            .sortedByDescending { it.first }
+            .take(limit)
+            .map { (_, e) -> ValueCatalog.Entry(e.id, e.label) }
+            .toList()
+    }
+
+    override fun browse(limit: Int): List<ValueCatalog.Entry> = entries().take(limit).map { ValueCatalog.Entry(it.id, it.label) }
+
+    override fun labelOf(value: Any?): String? =
+        value?.toString()?.takeIf { it.isNotEmpty() }?.let { bpm.world.KeyNames.label(bpm.world.KeyNames.normalise(it)) }
+
+    /** A key has no picture; the name is the whole of it. */
+    override fun icon(value: Any?): IconRef? = null
+
+    private companion object {
+        /** GLFW's highest key code (MENU); above it there is nothing to name. */
+        const val GLFW_LAST = 348
+    }
 }
 
 /** Item tags known to the client's registry; ids are the stored values (`namespace:path`, no `#`). */

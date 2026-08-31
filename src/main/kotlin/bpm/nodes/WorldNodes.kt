@@ -423,19 +423,26 @@ object WorldNodes {
             title("Vacuum")
             doc(
                 """
-                Pick up the items lying around a link (or around the controller, with `self`) into the
-                controller's own buffer — what a player walking over them would collect. Answers how many
-                items were taken; what does not fit stays on the ground.
+                Pick up the items lying around a link — what a player walking over them would collect.
+                Answers how many items were taken; what does not fit stays on the ground.
+
+                Link is where to sweep and Into is where they go, both defaulting to `self`: around the
+                controller, into its own buffer. Either end can be any link, so a graph can sweep a floor
+                straight into a chest — or into a person's pack — without the buffer in the middle.
                 """,
             )
-            val link = param("Link", McVs.link, "around which block", default = "self")
+            val link = param("Link", McVs.link, "around which block", default = ControllerHost.SELF)
             val radius = param("Radius", McVs.float, "how far, in blocks", default = 1.5)
             val filter = param("Filter", McVs.filter.orNull(), "only these; empty for anything")
+            val into = param("Into", McVs.link, "where they go", default = ControllerHost.SELF)
+            val fx = param("Effects", McVs.bool, "draw the rift and what travels through it", default = true)
             result("Collected", McVs.int)
             command {
                 val center = centerOf(host, link()) ?: return@command 0L
                 val matcher = host.matcher(filter())
                 val r = radius().coerceIn(0.5, 8.0)
+                // Resolved once, not per orb: for a presence link this builds a fresh gated view each call.
+                val inv = host.items(into()) ?: return@command 0L
                 var collected = 0L
                 var first = ""
                 val box = net.minecraft.world.phys.AABB(center, center).inflate(r)
@@ -444,14 +451,14 @@ object WorldNodes {
                     if (stack.isEmpty || !matcher.matches(stack)) continue
                     // Taken from the entity and given to the buffer within the one tick: there is never a
                     // moment where both hold it, which is the only reason this cannot duplicate.
-                    val left = ItemHandlerHelper.insertItemStacked(host.selfInventory, stack.copy(), false)
+                    val left = ItemHandlerHelper.insertItemStacked(inv, stack.copy(), false)
                     val taken = stack.count - left.count
                     if (taken <= 0) continue
                     collected += taken
                     if (first.isEmpty()) first = BuiltInRegistries.ITEM.getKey(stack.item).toString()
                     if (left.isEmpty) entity.discard() else entity.item = left
                 }
-                if (collected > 0) host.transferred(link(), ControllerHost.SELF, collected.toInt(), item = first)
+                if (collected > 0 && fx()) host.transferred(link(), into(), collected.toInt(), item = first)
                 collected
             }
         }

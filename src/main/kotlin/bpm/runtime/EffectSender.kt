@@ -22,10 +22,28 @@ class EffectSender(
     private val endpoint: (String) -> Endpoint?,
     private val send: (EffectPayload) -> Unit,
 ) {
-    /** Where an effect hangs: a block, and the face that was linked (−1 for none, or for the controller itself). */
-    class Endpoint(val pos: BlockPos, val face: Int)
+    /**
+     * Where an effect hangs: a block, and the face that was linked (−1 for none, or for the controller itself).
+     *
+     * [entity] is set when the end is a person rather than a place. The position still travels — a client that
+     * cannot see the entity has to put the rift somewhere, and it decides who is close enough to be told at
+     * all — but a client that can see them follows the entity instead.
+     */
+    class Endpoint(val pos: BlockPos, val face: Int, val entity: Int = 0)
 
-    private class Stream(val id: Int, val kind: EffectKind, val from: Endpoint, val to: Endpoint) {
+    /**
+     * [fromName] and [toName] are kept, not just the [from] and [to] they resolved to, because a presence
+     * link moves: an endpoint resolved once when the stream opened left the rift hanging where the player
+     * happened to be standing for the first item, for as long as the stream ran.
+     */
+    private class Stream(
+        val id: Int,
+        val kind: EffectKind,
+        val fromName: String,
+        val toName: String,
+        var from: Endpoint,
+        var to: Endpoint,
+    ) {
         var item = ""
         var pending = 0
         var idle = 0
@@ -48,7 +66,7 @@ class EffectSender(
             if (streams.size >= MAX_STREAMS) return
             val a = endpoint(from) ?: return
             val b = endpoint(to) ?: return
-            Stream(nextId++, kind, a, b).also { streams[key] = it }
+            Stream(nextId++, kind, from, to, a, b).also { streams[key] = it }
         }
         if (item.isNotEmpty()) stream.item = item
         stream.pending += amount
@@ -82,8 +100,16 @@ class EffectSender(
         streams.clear()
     }
 
-    private fun payload(s: Stream, op: EffectOp, amount: Int) =
-        EffectPayload(controller(), s.id, op, s.kind, s.from.pos, s.from.face, s.to.pos, s.to.face, amount, s.item)
+    private fun payload(s: Stream, op: EffectOp, amount: Int): EffectPayload {
+        // Where the ends are NOW. A link that has stopped resolving keeps its last known spot: the stream is
+        // about to be closed anyway, and a rift that pops to the origin on its final packet looks like a bug.
+        endpoint(s.fromName)?.let { s.from = it }
+        endpoint(s.toName)?.let { s.to = it }
+        return EffectPayload(
+            controller(), s.id, op, s.kind, s.from.pos, s.from.face, s.to.pos, s.to.face, amount, s.item,
+            s.from.entity, s.to.entity,
+        )
+    }
 
     companion object {
         const val IDLE_TICKS = 20

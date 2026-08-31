@@ -52,6 +52,9 @@ object LinkerHud {
     private val GREEN = floatArrayOf(0.35f, 0.95f, 0.45f)
     private val RED = floatArrayOf(0.95f, 0.35f, 0.35f)
     private val AMBER = floatArrayOf(1.00f, 0.72f, 0.30f)
+
+    /** Presence links are orchid, as they are in the panel — a person reads apart from a chest at a glance. */
+    private val ORCHID = floatArrayOf(0.79f, 0.37f, 0.65f)
     private const val LABEL_RANGE = 48.0
 
     fun install(modBus: IEventBus) {
@@ -120,6 +123,9 @@ object LinkerHud {
         val pose = event.poseStack
         val throughWalls = WardenVisorItem.worn(player)
         val range = LinkerItem.reach(be, player)
+        // Where things are THIS FRAME, not this tick. A player's model is drawn interpolated, so anything
+        // hung on them has to be too or it judders a tick behind the head it belongs to.
+        val partial = event.partialTick.getGameTimeDeltaPartialTick(true)
 
         RenderSystem.setShader(GameRenderer::getRendertypeLinesShader)
         RenderSystem.enableBlend()
@@ -132,7 +138,18 @@ object LinkerHud {
         pose.translate(-cam.x, -cam.y, -cam.z)
 
         val centre = Vec3.atCenterOf(be.blockPos)
-        for (link in be.links.all) {
+        // A presence link has no block to outline: it follows the person, so draw the thread to where they
+        // actually are and box them, not the patch of ground they were last seen on.
+        for (link in be.links.presence) {
+            val who = tethered(player, link) ?: continue
+            // The interpolated position, for the same reason the label uses it: the outline has to sit on
+            // the body being drawn, not the one the last tick left behind.
+            val at = who.getPosition(partial)
+            val bounds = who.boundingBox.move(at.x - who.x, at.y - who.y, at.z - who.z)
+            box(pose, builder, bounds.inflate(0.08), ORCHID, 0.9f)
+            line(pose, builder, centre, at.add(0.0, who.bbHeight * 0.5, 0.0), ORCHID, 0.6f)
+        }
+        for (link in be.links.blocks) {
             // A link whose block is gone is drawn amber: aim at it and sneak-use to unlink.
             val colour = if (player.level().getBlockState(link.pos).isAir) AMBER else TEAL
             box(pose, builder, AABB(link.pos).inflate(0.02), colour, 0.9f)
@@ -159,16 +176,30 @@ object LinkerHud {
         RenderSystem.enableCull()
         RenderSystem.enableDepthTest()
         RenderSystem.lineWidth(1f)
-        labels(mc, player, be, cam, pose)
+        labels(mc, player, be, cam, pose, partial)
     }
 
     /** Each link's name (and face) as a sign over its block — amber when the block is gone. */
-    private fun labels(mc: Minecraft, player: Player, be: ControllerBlockEntity, cam: Vec3, pose: PoseStack) {
+    private fun labels(mc: Minecraft, player: Player, be: ControllerBlockEntity, cam: Vec3, pose: PoseStack, partial: Float) {
         val buffers = mc.renderBuffers().bufferSource()
         val font = mc.font
         val orientation = mc.entityRenderDispatcher.cameraOrientation()
         val bg = (mc.options.getBackgroundOpacity(0.25f) * 255).toInt() shl 24
-        for (link in be.links.all) {
+        for (link in be.links.presence) {
+            val who = tethered(player, link) ?: continue
+            val at = who.getPosition(partial)
+            if (at.distanceToSqr(cam) > LABEL_RANGE * LABEL_RANGE) continue
+            pose.pushPose()
+            pose.translate(at.x - cam.x, at.y + who.bbHeight + 0.5 - cam.y, at.z - cam.z)
+            pose.mulPose(orientation)
+            pose.scale(-0.025f, -0.025f, 0.025f)
+            val m = pose.last().pose()
+            val x = -font.width(link.name) / 2f
+            font.drawInBatch(link.name, x, 0f, 0x20FFFFFF, false, m, buffers, Font.DisplayMode.SEE_THROUGH, bg, LightTexture.FULL_BRIGHT)
+            font.drawInBatch(link.name, x, 0f, 0xFFF0A3D6.toInt(), false, m, buffers, Font.DisplayMode.NORMAL, 0, LightTexture.FULL_BRIGHT)
+            pose.popPose()
+        }
+        for (link in be.links.blocks) {
             val p = link.pos
             if (p.distToCenterSqr(cam) > LABEL_RANGE * LABEL_RANGE) continue
             val gone = player.level().getBlockState(p).isAir
@@ -184,6 +215,12 @@ object LinkerHud {
             pose.popPose()
         }
         buffers.endBatch()
+    }
+
+    /** The player a presence link points at, when this client can see them. */
+    private fun tethered(viewer: Player, link: bpm.world.Link): Player? {
+        val uuid = link.player ?: return null
+        return viewer.level().players().firstOrNull { it.uuid == uuid }
     }
 
     private fun faceBox(b: AABB, face: net.minecraft.core.Direction): AABB = when (face) {
@@ -235,7 +272,7 @@ object LinkerHud {
             return
         }
         val range = LinkerItem.reach(be, player)
-        g.drawString(font, "controller ${be.blockPos.toShortString()} · ${be.links.all.size} links · reach ${range.toInt()}", x, y1, 0x4DFFD8, true)
+        g.drawString(font, "controller ${be.blockPos.toShortString()} · ${be.links.all.size}/${be.links.capacity} links · reach ${bpm.world.CoreTier.rangeText(range)}", x, y1, 0x4DFFD8, true)
         val hit = mc.hitResult as? BlockHitResult
         if (hit == null || hit.type != HitResult.Type.BLOCK) {
             val ahead = LinkerItem.linkAhead(player.level(), player, be) ?: return
