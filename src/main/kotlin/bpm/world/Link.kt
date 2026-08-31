@@ -1,6 +1,7 @@
 package bpm.world
 
 import net.minecraft.core.BlockPos
+import java.util.UUID
 import net.minecraft.world.phys.Vec3
 import net.minecraft.core.Direction
 import net.minecraft.nbt.CompoundTag
@@ -17,18 +18,32 @@ import net.neoforged.neoforge.fluids.capability.IFluidHandler
 import net.neoforged.neoforge.items.IItemHandler
 
 /**
- * One face in the world a controller may talk to, by name.
+ * One face in the world a controller may talk to, by name — or one person, when [player] is set.
  *
  * The ONE binding model — replacing the old mod's pipe-network proxies and projectile links both. A link is
  * a position, an optional face (capabilities are sided: a furnace's top is its input) and a name a script
  * writes. Direction of transfer lives in the verb (`items.move(from, to)`), not on the link.
+ *
+ * A **presence link** ([player] set) is the same thing pointed at a person: [pos] and [dimension] are then
+ * only where they were last seen — a cache for the HUD and for saying something useful while they are
+ * offline — and [side] is always null, because a person has no faces. What it actually resolves to is live;
+ * see [PresenceLink] and `docs/DESIGN_PLAYER_LINK.md`.
  */
-data class Link(val name: String, val pos: BlockPos, val side: Direction?, val dimension: ResourceKey<Level>) {
+data class Link(
+    val name: String,
+    val pos: BlockPos,
+    val side: Direction?,
+    val dimension: ResourceKey<Level>,
+    val player: UUID? = null,
+) {
+    val isPresence: Boolean get() = player != null
+
     fun save(): CompoundTag = CompoundTag().also { t ->
         t.putString("name", name)
         t.putInt("x", pos.x); t.putInt("y", pos.y); t.putInt("z", pos.z)
         side?.let { t.putString("side", it.name.lowercase()) }
         t.putString("dim", dimension.location().toString())
+        player?.let { t.putUUID("player", it) }
     }
 
     companion object {
@@ -36,7 +51,11 @@ data class Link(val name: String, val pos: BlockPos, val side: Direction?, val d
             val name = t.getString("name").ifBlank { return null }
             val dim = ResourceLocation.tryParse(t.getString("dim")) ?: return null
             val side = t.getString("side").takeIf { it.isNotBlank() }?.let { s -> Direction.entries.firstOrNull { it.name.equals(s, true) } }
-            return Link(name, BlockPos(t.getInt("x"), t.getInt("y"), t.getInt("z")), side, ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION, dim))
+            val player = if (t.hasUUID("player")) t.getUUID("player") else null
+            return Link(
+                name, BlockPos(t.getInt("x"), t.getInt("y"), t.getInt("z")), side,
+                ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION, dim), player,
+            )
         }
     }
 }
@@ -68,7 +87,27 @@ object AdHocLink {
     }
 }
 
-class LinkTable {
+/**
+ * How many links of each kind a table may hold.
+ *
+ * One value rather than two lambdas on purpose: two `() -> Int` parameters with defaults let a trailing
+ * lambda bind silently to the wrong one, and `LinkTable { 8 }` reading as "eight *people*, unlimited chests"
+ * is the kind of mistake that compiles and then lies.
+ */
+data class LinkCaps(val links: Int, val presence: Int) {
+    companion object {
+        val UNLIMITED = LinkCaps(Int.MAX_VALUE, Int.MAX_VALUE)
+    }
+}
+
+/**
+ * A controller's links, by name — blocks and people in one table, since a script names them the same way.
+ *
+ * The two kinds are capped separately ([capacity] and [presenceCapacity]) because a person is a scarcer thing
+ * than a chest: the core tier decides both, and a tier can change under a table that is already full (a config
+ * edit, a datapack), so each is asked afresh each time.
+ */
+class LinkTable(private val capsOf: () -> LinkCaps = { LinkCaps.UNLIMITED }) {
     private val byName = LinkedHashMap<String, Link>()
 
     /** A change counter, so a cache can tell a renamed or removed link from a stale one. */
@@ -78,9 +117,53 @@ class LinkTable {
     val all: List<Link> get() = byName.values.toList()
     val names: Set<String> get() = byName.keys
 
+    /** The block links, and the people, in the order they were made. */
+    val blocks: List<Link> get() = byName.values.filter { !it.isPresence }
+    val presence: List<Link> get() = byName.values.filter { it.isPresence }
+
+    /** How many of each this table may hold, and whether it is there already. */
+    val capacity: Int get() = capsOf().links
+    val presenceCapacity: Int get() = capsOf().presence
+    val full: Boolean get() = blocks.size >= capacity
+    val presenceFull: Boolean get() = presence.size >= presenceCapacity
+
+    /** The presence link for [player], if this controller has one. */
+    fun byPlayer(player: UUID): Link? = byName.values.firstOrNull { it.player == player }
+
+    /** Forget [player] entirely — what unbinding a tether does from the controller's side. */
+    fun removePlayer(player: UUID): Boolean = byPlayer(player)?.let { remove(it.name) } ?: false
+
+    /**
+     * Remember where [player] was last seen, for the offline row in the links panel. Answers whether anything
+     * moved. Deliberately does NOT bump [version]: a position is not a change of shape, and invalidating every
+     * runtime's resolved-link cache five times a minute per tethered player would be pure churn.
+     */
+    fun seen(player: UUID, pos: BlockPos, dimension: ResourceKey<Level>): Boolean {
+        val link = byPlayer(player) ?: return false
+        if (link.pos == pos && link.dimension == dimension) return false
+        byName[link.name] = link.copy(pos = pos, dimension = dimension)
+        return true
+    }
+
+    /** The name a presence link for [playerName] gets: their name, lowercased, numbered if it is taken. */
+    fun presenceName(playerName: String): String = previewName(playerName.lowercase())
+
+    /**
+     * The names past the capacity: the oldest links keep working and the tail goes quiet. A table filled under a
+     * bigger core, or under a config since lowered, keeps every link it has — losing a build to an edited config
+     * is not acceptable, going quiet with a warning is.
+     */
+    val overCapacity: List<String>
+        get() = blocks.drop(capacity).map { it.name } + presence.drop(presenceCapacity).map { it.name }
+
+    /** Whether [name] is one of those — [ResolvedLink.capped] is how a script sees it. Each kind counts its own. */
+    fun isOverCapacity(name: String): Boolean {
+        val link = byName[name] ?: return false
+        return if (link.isPresence) presence.indexOf(link) >= presenceCapacity else blocks.indexOf(link) >= capacity
+    }
+
     operator fun get(name: String): Link? = byName[name]
 
-    /** Add [link], renaming it if its name is taken. Returns the link as stored. */
     /** The name [add] would give a block of [blockPath] right now — for the HUD's "use to link 'chest-2'". */
     fun previewName(blockPath: String): String {
         val base = blockPath.substringAfterLast('/').substringAfterLast(':')
@@ -90,7 +173,14 @@ class LinkTable {
         return "$base-$n"
     }
 
-    fun add(link: Link): Link {
+    /**
+     * Add [link], renaming it if its name is taken. Null when the table is full — the caller says so.
+     *
+     * Every add is a new entry: a taken name is numbered rather than replaced, so a full table refuses even
+     * a link whose name it already holds.
+     */
+    fun add(link: Link): Link? {
+        if (if (link.isPresence) presenceFull else full) return null
         val stored = if (link.name !in byName) link else link.copy(name = uniqueName(link.name))
         byName[stored.name] = stored
         version++
@@ -172,14 +262,14 @@ class LinkTable {
  * answers null and the node says so once. The caches are created lazily on the server thread and are only
  * valid for the level they were made against — [LinkTable.version] tells the owner when to drop one.
  */
-class ResolvedLink(val link: Link, val level: ServerLevel) {
-    val loaded: Boolean get() = level.hasChunkAt(link.pos)
+open class ResolvedLink(open val link: Link, val level: ServerLevel, val capped: Boolean = false) {
+    open val loaded: Boolean get() = !capped && level.hasChunkAt(link.pos)
 
     private val itemCache by lazy { BlockCapabilityCache.create(Capabilities.ItemHandler.BLOCK, level, link.pos, link.side) }
     private val fluidCache by lazy { BlockCapabilityCache.create(Capabilities.FluidHandler.BLOCK, level, link.pos, link.side) }
     private val energyCache by lazy { BlockCapabilityCache.create(Capabilities.EnergyStorage.BLOCK, level, link.pos, link.side) }
 
-    fun items(): IItemHandler? = if (loaded) itemCache.capability else null
-    fun fluids(): IFluidHandler? = if (loaded) fluidCache.capability else null
-    fun energy(): IEnergyStorage? = if (loaded) energyCache.capability else null
+    open fun items(): IItemHandler? = if (loaded) itemCache.capability else null
+    open fun fluids(): IFluidHandler? = if (loaded) fluidCache.capability else null
+    open fun energy(): IEnergyStorage? = if (loaded) energyCache.capability else null
 }

@@ -101,9 +101,9 @@ object RuntimeManager {
                     skipped++
                     continue
                 }
-                val tier = be.coreTier
-                val own = if (tier.neverThrottled) maxOf((share * tier.budgetMultiplier).toLong(), (maxShareMs * 1_000_000.0 * 0.5).toLong()) else (share * tier.budgetMultiplier).toLong()
-                be.tickRuntime(own, (hardLimitMs * 1_000_000.0).toLong())
+                // Every controller gets the same share, whatever core it was built around: a tier buys reach
+                // and breadth, never tick time (docs/DESIGN_TIERS_AND_FABRICATION.md §2.2).
+                be.tickRuntime(share, (hardLimitMs * 1_000_000.0).toLong())
             }
         }
         lastTickNanos = System.nanoTime() - t0

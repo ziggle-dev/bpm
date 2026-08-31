@@ -13,6 +13,12 @@ object BpmConfig {
 
     val LINK_RANGE: ModConfigSpec.IntValue
     val RELAY_RANGE: ModConfigSpec.IntValue
+
+    /** Per-tier reach and breadth, by [bpm.world.CoreTier.key] — see docs/DESIGN_TIERS_AND_FABRICATION.md §2. */
+    val TIER_RANGE_FACTOR: Map<String, ModConfigSpec.DoubleValue>
+    val TIER_UNLIMITED: Map<String, ModConfigSpec.BooleanValue>
+    val TIER_MAX_LINKS: Map<String, ModConfigSpec.IntValue>
+    val TIER_MAX_PLAYER_LINKS: Map<String, ModConfigSpec.IntValue>
     val GATE_OPEN_MINUTES: ModConfigSpec.IntValue
     val GATE_REQUIRE_CORNERS: ModConfigSpec.BooleanValue
     val CHAMBER_RESET_MINUTES: ModConfigSpec.IntValue
@@ -37,7 +43,25 @@ object BpmConfig {
 
     init {
         B.push("link")
-        LINK_RANGE = B.comment("How far from a controller the linker (and controller.linkAt) may reach, in blocks").defineInRange("range", 32, 4, 256)
+        LINK_RANGE = B.comment("The base reach of a controller, in blocks; each core tier multiplies it (see [tier])").defineInRange("range", 16, 4, 256)
+        B.pop()
+        B.push("tier")
+        val factors = LinkedHashMap<String, ModConfigSpec.DoubleValue>()
+        val unlimited = LinkedHashMap<String, ModConfigSpec.BooleanValue>()
+        val maxLinks = LinkedHashMap<String, ModConfigSpec.IntValue>()
+        val maxPlayerLinks = LinkedHashMap<String, ModConfigSpec.IntValue>()
+        for (tier in bpm.world.CoreTier.entries) {
+            B.push(tier.key)
+            factors[tier.key] = B.comment("Multiplies link.range for a ${tier.label} core").defineInRange("rangeFactor", tier.defaultRangeFactor, 0.1, 1024.0)
+            unlimited[tier.key] = B.comment("Reach every block in every dimension, whatever link.range says").define("unlimitedRange", tier.defaultUnlimited)
+            maxLinks[tier.key] = B.comment("How many links this tier may hold; links past it stop resolving, they are never deleted").defineInRange("maxLinks", tier.defaultMaxLinks, 1, 512)
+            maxPlayerLinks[tier.key] = B.comment("How many of those links may be people").defineInRange("maxPlayerLinks", tier.defaultMaxPlayerLinks, 0, 64)
+            B.pop()
+        }
+        TIER_RANGE_FACTOR = factors
+        TIER_UNLIMITED = unlimited
+        TIER_MAX_LINKS = maxLinks
+        TIER_MAX_PLAYER_LINKS = maxPlayerLinks
         B.pop()
         B.push("relay")
         RELAY_RANGE = B.defineInRange("range", 32, 4, 256)
@@ -86,4 +110,13 @@ object BpmConfig {
 
     /** A value, or its default before the config has loaded (registration time, unit tests). */
     fun <T : Any> ModConfigSpec.ConfigValue<T>.orDefault(): T = if (SPEC.isLoaded) get() else default
+
+    /** How far [tier] reaches, in blocks — [Double.POSITIVE_INFINITY] when the server lets it off the leash. */
+    fun rangeOf(tier: bpm.world.CoreTier): Double =
+        if (TIER_UNLIMITED[tier.key]?.orDefault() == true) Double.POSITIVE_INFINITY
+        else LINK_RANGE.orDefault() * (TIER_RANGE_FACTOR[tier.key]?.orDefault() ?: tier.defaultRangeFactor)
+
+    fun maxLinksOf(tier: bpm.world.CoreTier): Int = TIER_MAX_LINKS[tier.key]?.orDefault() ?: tier.defaultMaxLinks
+
+    fun maxPlayerLinksOf(tier: bpm.world.CoreTier): Int = TIER_MAX_PLAYER_LINKS[tier.key]?.orDefault() ?: tier.defaultMaxPlayerLinks
 }

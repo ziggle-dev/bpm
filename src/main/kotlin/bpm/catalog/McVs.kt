@@ -23,6 +23,11 @@ object McVs {
     val notify: VsType<String> = Vs.enum(McTypes.NOTIFY)
     val click: VsType<String> = Vs.enum(McTypes.CLICK)
     val aim: VsType<String> = Vs.enum(McTypes.AIM)
+    val hand: VsType<String> = Vs.enum(McTypes.HAND)
+    val equip: VsType<String> = Vs.enum(McTypes.EQUIP)
+    /** A key by name; the host normalises whatever was typed. */
+    val key: VsType<String> = VsType.of(McTypes.KEY.type) { _, v -> bpm.world.KeyNames.normalise(v?.toString()) }
+    val anchor: VsType<String> = Vs.enum(McTypes.ANCHOR)
 
     /** An item by registry id; the picker stores the id and a typed literal is the id. */
     val item: VsType<String> = VsType.of(McTypes.ITEM.type) { _, v -> v?.toString().orEmpty() }

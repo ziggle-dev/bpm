@@ -110,7 +110,10 @@ class LinkerItem(properties: Properties) : Item(properties), GeoItem {
             return InteractionResult.CONSUME
         }
         val blockId = BuiltInRegistries.BLOCK.getKey(level.getBlockState(pos).block)
-        val link = controller.links.add(Link(LinkTable.autoName(blockId), pos, face, level.dimension()))
+        val link = controller.links.add(Link(LinkTable.autoName(blockId), pos, face, level.dimension())) ?: run {
+            say(player, "this controller holds ${controller.links.capacity} of ${controller.links.capacity} links — a bigger core holds more")
+            return InteractionResult.CONSUME
+        }
         changed(level, controller)
         say(player, "linked '${link.name}' (${face.name.lowercase()} face of ${pos.toShortString()})")
         animate(level, player, stack, "link")

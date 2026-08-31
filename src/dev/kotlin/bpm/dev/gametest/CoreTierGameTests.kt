@@ -26,7 +26,8 @@ class CoreTierGameTests {
         val be = helper.getBlockEntity<ControllerBlockEntity>(pos)
         be.coreTier = CoreTier.PRISTINE
         be.setChanged()
-        helper.assertTrue(be.linkRange == 48.0, "a pristine controller reaches ${be.linkRange}, wanted 48")
+        helper.assertTrue(be.linkRange == 64.0, "a pristine controller reaches ${be.linkRange}, wanted 64")
+        helper.assertTrue(be.maxLinks == 32, "a pristine controller holds ${be.maxLinks} links, wanted 32")
         // The item form carries the tier back through the block entity's components.
         val stack = be.collectComponents().get(ModComponents.CORE_TIER.get())
         helper.assertTrue(stack == "pristine", "the block entity's components say '$stack'")

@@ -9,7 +9,9 @@ import bpm.nodes.XpNodes
 import bpm.nodes.DeviceNodes
 import bpm.nodes.MonitorNodes
 import bpm.nodes.FluidNodes
+import bpm.nodes.HudNodes
 import bpm.nodes.ItemNodes
+import bpm.nodes.PlayerNodes
 import bpm.nodes.RedstoneNodes
 import bpm.nodes.WorldNodes
 import io.osrsx.vscript.manifest.CatalogManifest
@@ -83,6 +85,8 @@ object BpmCatalog {
                 RedstoneNodes.contribution(host),
                 WorldNodes.contribution(host),
                 ChatNodes.contribution(host),
+                PlayerNodes.contribution(host),
+                HudNodes.contribution(host),
             ) + packs.map { it(host) },
         ) + Contribution(enums = McTypes.enums, records = McTypes.records(host))
 

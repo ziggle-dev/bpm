@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "SLS",
+    "CEC",
+    "S S"
+  ],
+  "key": {
+    "S": {
+      "item": "bpm:entanglium_shard"
+    },
+    "L": {
+      "item": "bpm:coherence_lens"
+    },
+    "C": {
+      "item": "bpm:phase_conduit"
+    },
+    "E": {
+      "item": "bpm:entangled_circuit"
+    }
+  },
+  "result": {
+    "id": "bpm:quantum_tether",
+    "count": 1
+  }
+}

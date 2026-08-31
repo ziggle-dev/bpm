@@ -53,13 +53,17 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
     var lastError: String? = null
         private set
 
-    /** The core it was built around: how far it links, how much of the tick it may take. */
+    /** The core it was built around: how far it links, and how many links it may hold. */
     var coreTier: CoreTier = CoreTier.STABLE
 
-    /** How far this controller's links may reach, in blocks — the core decides. */
+    /** How far this controller's links may reach, in blocks — the core decides; infinite for a Coherent one. */
     val linkRange: Double get() = coreTier.linkRange
 
-    val links = LinkTable()
+    /** How many links it may hold, and how many of those may be people. */
+    val maxLinks: Int get() = coreTier.maxLinks
+    val maxPlayerLinks: Int get() = coreTier.maxPlayerLinks
+
+    val links = LinkTable { LinkCaps(coreTier.maxLinks, coreTier.maxPlayerLinks) }
     var scriptData: CompoundTag = CompoundTag()
         private set
     private val signals = IntArray(6)
@@ -77,6 +81,9 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
         private set
     private var faulted = false
     private var overBudgetTicks = 0
+
+    /** The last fiber error already acted on, so a sticky one is not re-judged every tick. */
+    private var handledError: String? = null
 
     private val animCache: AnimatableInstanceCache = GeckoLibUtil.createInstanceCache(this)
 
@@ -234,6 +241,7 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
         lastError = null
         faulted = false
         overBudgetTicks = 0
+        handledError = null
         setChanged()
         updateStatus()
         return true
@@ -241,6 +249,9 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
 
     fun stopRuntime() {
         runtime?.let { rt ->
+            // A graph that is not running has no business still being on someone's screen.
+            runCatching { rt.clearAllPanels() }.onFailure { Bpm.LOGGER.warn("controller {}: panels not cleared: {}", worldPosition.toShortString(), it.toString()) }
+            runCatching { rt.clearKeyWatch() }.onFailure { Bpm.LOGGER.warn("controller {}: key watch not cleared: {}", worldPosition.toShortString(), it.toString()) }
             runCatching { rt.stop() }.onFailure { Bpm.LOGGER.warn("controller {}: stop failed: {}", worldPosition.toShortString(), it.toString()) }
             runtime = null
             clearSignals()
@@ -275,9 +286,24 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
             Bpm.LOGGER.error("controller {} crashed", worldPosition.toShortString(), t)
             return
         }
-        rt.lastError?.let {
-            fault(it)
-            return
+        rt.lastError?.takeIf { it != handledError }?.let { err ->
+            // Handle each error ONCE. `ScriptRuntime.lastError` is sticky for the life of a run — it is
+            // cleared only when a run starts, and its setter is private — so reading it every tick meant one
+            // error, ever, faulted the controller on that tick and on every tick after it. That is why a
+            // graph that hiccuped once stayed dead until the world was reloaded, which is the only thing
+            // that starts a fresh run.
+            handledError = err
+            // And fault only when the program actually cannot go on. A fiber that died is not the same as a
+            // program that stopped: `on start` failing, or one branch throwing, leaves the tick loop running,
+            // and killing the whole controller for it loses every other thing the graph was doing.
+            if (!rt.isRunning && !rt.isAsleep) {
+                fault(err)
+                return
+            }
+            // Still running: say so where the player will see it, and let it carry on.
+            lastError = err
+            Bpm.LOGGER.warn("controller {}: {} (still running)", worldPosition.toShortString(), err)
+            sync()
         }
         if (rt.lastTickNanos > hardLimitNanos) {
             if (++overBudgetTicks >= 3) {
@@ -288,7 +314,10 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
             overBudgetTicks = 0
         }
         if (!rt.isRunning && !rt.isAsleep) {
-            // Nothing left to run: no tick handlers and every start fiber finished. Done, not failed.
+            // Nothing left to run: no tick handlers and every start fiber finished. Done, not failed — but
+            // say so. A controller that simply goes quiet, with its monitors frozen on whatever they last
+            // showed, is indistinguishable from a broken one until someone reads a log.
+            Bpm.LOGGER.info("controller {}: nothing left to run, stopping", worldPosition.toShortString())
             runCatching { rt.stop() }
             runtime = null
             setChanged()

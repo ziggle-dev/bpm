@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "SSS",
+    "SCS",
+    "SSS"
+  ],
+  "key": {
+    "S": {
+      "item": "bpm:entanglium_shard"
+    },
+    "C": {
+      "item": "bpm:pristine_quantum_core"
+    }
+  },
+  "result": {
+    "id": "bpm:entangled_quantum_core",
+    "count": 1
+  }
+}

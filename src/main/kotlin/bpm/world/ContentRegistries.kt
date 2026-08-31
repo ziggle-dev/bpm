@@ -90,17 +90,21 @@ object ContentItems {
     val QUANTUM_CORE = tip("quantum_core", Item.Properties().stacksTo(16))
     val REFINED_QUANTUM_CORE = tip("refined_quantum_core", Item.Properties().stacksTo(16))
     val PRISTINE_QUANTUM_CORE = tip("pristine_quantum_core", Item.Properties().stacksTo(16))
+    val ENTANGLED_QUANTUM_CORE = tip("entangled_quantum_core", Item.Properties().stacksTo(16))
+    val COHERENT_QUANTUM_CORE = tip("coherent_quantum_core", Item.Properties().stacksTo(16))
     val WARDEN_PLATING = plain("warden_plating")
     val WARDEN_VISOR: DeferredItem<bpm.world.items.WardenVisorItem> = REG.registerItem("warden_visor", { p -> bpm.world.items.WardenVisorItem(p) }, Item.Properties().stacksTo(1).durability(0))
     val PHASE_GAUNTLET: DeferredItem<bpm.world.items.PhaseGauntletItem> = REG.registerItem("phase_gauntlet", { p -> bpm.world.items.PhaseGauntletItem(p) }, Item.Properties().stacksTo(1))
     val ENTANGLED_COMPASS: DeferredItem<bpm.world.items.EntangledCompassItem> = REG.registerItem("entangled_compass", { p -> bpm.world.items.EntangledCompassItem(p) }, Item.Properties().stacksTo(1))
     val WARDEN_PROGRAM: DeferredItem<bpm.world.items.WardenProgramItem> = REG.registerItem("warden_program", { p -> bpm.world.items.WardenProgramItem(p) }, Item.Properties().stacksTo(1))
+    val QUANTUM_TETHER: DeferredItem<bpm.world.items.QuantumTetherItem> = REG.registerItem("quantum_tether", { p -> bpm.world.items.QuantumTetherItem(p) }, Item.Properties().stacksTo(1))
 
     val blockItems: List<DeferredItem<out Item>> = ContentBlocks.all.map { block -> REG.registerSimpleBlockItem(block) }
 
     val all: List<DeferredItem<out Item>>
         get() = listOf(
             ENTANGLIUM_SHARD, QUANTUM_ALLOY_BLEND, QUANTUM_ALLOY_INGOT, COHERENCE_LENS, ENTANGLED_CIRCUIT, PHASE_CONDUIT,
-            QUANTUM_CORE, REFINED_QUANTUM_CORE, PRISTINE_QUANTUM_CORE, WARDEN_PLATING, WARDEN_VISOR, PHASE_GAUNTLET, ENTANGLED_COMPASS, WARDEN_PROGRAM,
+            QUANTUM_CORE, REFINED_QUANTUM_CORE, PRISTINE_QUANTUM_CORE, ENTANGLED_QUANTUM_CORE, COHERENT_QUANTUM_CORE, WARDEN_PLATING, WARDEN_VISOR, PHASE_GAUNTLET, ENTANGLED_COMPASS, WARDEN_PROGRAM,
+            QUANTUM_TETHER,
         ) + blockItems
 }

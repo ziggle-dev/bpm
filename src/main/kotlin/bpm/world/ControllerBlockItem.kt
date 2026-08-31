@@ -23,7 +23,7 @@ class ControllerBlockItem(block: Block, properties: Properties) : BlockItem(bloc
 
     override fun appendHoverText(stack: net.minecraft.world.item.ItemStack, context: TooltipContext, tooltip: MutableList<net.minecraft.network.chat.Component>, flag: net.minecraft.world.item.TooltipFlag) {
         val tier = CoreTier.of(stack)
-        tooltip.add(net.minecraft.network.chat.Component.literal("${tier.label} core · reach ${tier.linkRange.toInt()} · budget ×${tier.budgetMultiplier}"))
+        tooltip.add(net.minecraft.network.chat.Component.literal("${tier.label} core · reach ${tier.rangeText} · ${tier.maxLinks} links · ${tier.maxPlayerLinks} presence"))
     }
 
     override fun initializeClient(consumer: Consumer<IClientItemExtensions>) {

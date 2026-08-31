@@ -38,12 +38,17 @@ data class Widget(
     val align: String = "Left",
     val unit: String = "",
     val span: Int = 1,
+    /**
+     * A name for the ones a person can press — how `hud.clicked` and `hud.value` find them again. Empty for
+     * everything a monitor shows, because a wall of blocks has nothing to press.
+     */
+    val id: String = "",
 ) {
     /** Whether [other] shows exactly this — [ItemStack] compares by identity, so this is spelled out. */
     fun sameAs(other: Widget): Boolean =
         kind == other.kind && text == other.text && label == other.label && value == other.value && max == other.max &&
             fluid == other.fluid && colour == other.colour && size == other.size && align == other.align && unit == other.unit && span == other.span &&
-            ItemStack.matches(item, other.item)
+            id == other.id && ItemStack.matches(item, other.item)
 
     fun save(registries: HolderLookup.Provider): CompoundTag = CompoundTag().also { t ->
         t.putString("kind", kind)
@@ -58,6 +63,7 @@ data class Widget(
         if (align != "Left") t.putString("align", align)
         if (unit.isNotEmpty()) t.putString("unit", unit)
         if (span != 1) t.putInt("span", span)
+        if (id.isNotEmpty()) t.putString("id", id)
     }
 
     companion object {
@@ -66,10 +72,48 @@ data class Widget(
         const val FLUID = "Fluid"
         const val ENERGY = "Energy"
         const val BAR = "Bar"
-        val KINDS = listOf(TEXT, ITEM, FLUID, ENERGY, BAR)
+
+        /**
+         * The ones a person can work, on a wall or on their own screen.
+         *
+         * [SLIDER] runs 0 to [Widget.max] and is set by clicking or dragging along it; [FIELD] holds text and
+         * opens a box to type in, because the world has no other way to enter a string.
+         */
+        const val BUTTON = "Button"
+        const val TOGGLE = "Toggle"
+        const val SLIDER = "Slider"
+        const val FIELD = "Field"
+        val KINDS = listOf(TEXT, ITEM, FLUID, ENERGY, BAR, BUTTON, TOGGLE, SLIDER, FIELD)
 
         /** At most this many on one screen: a wall is finite, and a runaway list must not be a packet. */
         const val MAX_WIDGETS = 64
+
+        /** One text line, an item slot, and a gauge, in screen pixels — the metrics the layout is built on. */
+        const val LINE = 9
+        const val ICON = 16
+        const val GAUGE = 20
+        const val PRESSABLE = 14
+
+        /**
+         * How tall a widget is, in screen pixels.
+         *
+         * Shared deliberately: the renderer lays the wall out with this and the block hit-test re-runs the
+         * same layout to work out what was clicked. Two copies would drift, and a wall would start answering
+         * clicks for a layout it was not drawing.
+         */
+        fun heightOf(w: Widget): Int = when (w.kind) {
+            TEXT -> LINE * w.size
+            ITEM -> ICON
+            BUTTON, TOGGLE, FIELD -> PRESSABLE
+            SLIDER -> GAUGE
+            else -> GAUGE
+        }
+
+        /** Whether a person can work it — what the hit-test looks for and the renderer draws a frame round. */
+        fun isPressable(kind: String): Boolean = kind == BUTTON || kind == TOGGLE || kind == SLIDER || kind == FIELD
+
+        /** Whether holding the mouse on it keeps changing it — only a slider tracks a drag. */
+        fun isDraggable(kind: String): Boolean = kind == SLIDER
 
         fun load(t: CompoundTag, registries: HolderLookup.Provider): Widget = Widget(
             kind = t.getString("kind").ifEmpty { TEXT },
@@ -84,6 +128,7 @@ data class Widget(
             align = t.getString("align").ifEmpty { "Left" },
             unit = t.getString("unit"),
             span = if (t.contains("span")) t.getInt("span").coerceIn(0, 8) else 1,
+            id = t.getString("id"),
         )
 
         fun saveAll(list: List<Widget>, registries: HolderLookup.Provider): ListTag = ListTag().also { l -> list.forEach { l.add(it.save(registries)) } }

@@ -47,6 +47,17 @@ object McTypes {
     val CLICK = HostEnum("Click", listOf("Left", "Right"), "a mouse button: Left hits, Right uses")
     val AIM = HostEnum("Aim", listOf("Auto", "Block", "Entity"), "what a click lands on: the block, whatever stands in it, or whichever is there")
 
+    /** Which hand a stack is in, and which worn slot — what `player.held` and `player.armour` read. */
+    val HAND = HostEnum("Hand", listOf("Main", "Off"), "a hand: the one they swing with, or the other")
+    val EQUIP = HostEnum("Equip", listOf("Head", "Chest", "Legs", "Feet", "Offhand"), "a slot something is worn in")
+
+    /** Which corner an on-screen panel hangs from. */
+    val ANCHOR = HostEnum(
+        "Anchor",
+        listOf("TopLeft", "Top", "TopRight", "Left", "Center", "Right", "BottomLeft", "Bottom", "BottomRight"),
+        "which corner of the screen a panel hangs from",
+    )
+
     fun directionName(d: Direction): String = d.name.lowercase().replaceFirstChar { it.uppercase() }
 
     fun direction(value: Any?): Direction? = value?.toString()?.trim()?.let { n -> Direction.entries.firstOrNull { it.name.equals(n, ignoreCase = true) } }
@@ -128,8 +139,9 @@ object McTypes {
             HostField("align", STRING, "Left, Center or Right"),
             HostField("unit", STRING, "after a gauge's numbers"),
             HostField("span", INT, "columns it takes on the screen; 0 for the whole row"),
+            HostField("id", STRING, "a name for a Button or a Toggle, so `hud.clicked` can find it again"),
         ),
-        "one thing on a monitor's screen",
+        "one thing on a monitor's screen, or on a player's",
         isData = true,
     )
 
@@ -164,6 +176,22 @@ object McTypes {
             HostField("name", STRING, "the display name") { RegistryIds.fluid(it?.toString().orEmpty())?.fluidType?.description?.string.orEmpty() },
         ),
         "a kind of fluid, by registry id",
+        over = STRING,
+    )
+
+    /**
+     * A key on the keyboard, by name: `g`, `f7`, `left_shift`.
+     *
+     * A name rather than one of a fixed set of slots, so a graph binds the key it wants and the player never
+     * has to map a bpm hotkey onto it first. Only the panel key lives in the vanilla controls screen.
+     */
+    val KEY = HostRecord(
+        "Key",
+        listOf(
+            HostField("id", STRING, "the key's name") { bpm.world.KeyNames.normalise(it?.toString()) },
+            HostField("name", STRING, "how it reads") { bpm.world.KeyNames.label(bpm.world.KeyNames.normalise(it?.toString())) },
+        ),
+        "a key on the keyboard, by name: g, f7, left_shift",
         over = STRING,
     )
 
@@ -231,9 +259,9 @@ object McTypes {
 
     /** Every record this domain declares, with accessors bound to [host]. */
     fun records(host: ControllerHost): List<HostRecord> =
-        listOf(BLOCK_POS, ITEM_STACK, FLUID_STACK, FILTER, SLOT, WIDGET, ITEM, BLOCK, FLUID, TAG, BLOCK_STATE) + entityRecords(host) + linkRecord(host)
+        listOf(BLOCK_POS, ITEM_STACK, FLUID_STACK, FILTER, SLOT, WIDGET, ITEM, BLOCK, FLUID, TAG, KEY, BLOCK_STATE) + entityRecords(host) + linkRecord(host)
 
-    val enums: List<HostEnum> get() = listOf(DIRECTION, NOTIFY, CLICK, AIM)
+    val enums: List<HostEnum> get() = listOf(DIRECTION, NOTIFY, CLICK, AIM, HAND, EQUIP, ANCHOR)
 
     /**
      * Register the SHAPES once, on both sides, before any catalogue is built.
@@ -266,6 +294,10 @@ object McTypes {
         Types.register(TypeInfo("Notify", NOTIFY.type, "a notification level", authorable = true))
         Types.register(TypeInfo("Click", CLICK.type, "a mouse button: Left hits, Right uses", authorable = true))
         Types.register(TypeInfo("Aim", AIM.type, "what a click lands on", authorable = true))
+        Types.register(TypeInfo("Hand", HAND.type, "a hand", authorable = true))
+        Types.register(TypeInfo("Equip", EQUIP.type, "a worn slot", authorable = true))
+        Types.register(TypeInfo("Key", KEY.type, "a key on the keyboard", authorable = true))
+        Types.register(TypeInfo("Anchor", ANCHOR.type, "a corner of the screen", authorable = true))
     }
 
     @Suppress("UNCHECKED_CAST")

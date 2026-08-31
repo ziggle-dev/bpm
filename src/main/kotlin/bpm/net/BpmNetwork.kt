@@ -2,6 +2,7 @@ package bpm.net
 
 import bpm.Bpm
 import bpm.catalog.BpmCatalog
+import bpm.client.mc.HudOverlay
 import bpm.client.net.ClientNet
 import net.minecraft.network.protocol.PacketFlow
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
@@ -63,6 +64,10 @@ object BpmNetwork {
         r.playToServer(BreakpointSetPayload.TYPE, BreakpointSetPayload.CODEC) { p, ctx -> ServerNet.onBreakpointSet(p, ctx) }
         r.playToServer(SetVariablePayload.TYPE, SetVariablePayload.CODEC) { p, ctx -> ServerNet.onSetVariable(p, ctx) }
         r.playToServer(SetLiteralPayload.TYPE, SetLiteralPayload.CODEC) { p, ctx -> ServerNet.onSetLiteral(p, ctx) }
+        r.playToServer(KeyEdgePayload.TYPE, KeyEdgePayload.CODEC) { p, ctx -> ServerNet.onKeyEdge(p, ctx) }
+        r.playToServer(MonitorDragPayload.TYPE, MonitorDragPayload.CODEC) { p, ctx -> ServerNet.onMonitorDrag(p, ctx) }
+        r.playToServer(MonitorTextPayload.TYPE, MonitorTextPayload.CODEC) { p, ctx -> ServerNet.onMonitorText(p, ctx) }
+        r.playToServer(HudInputPayload.TYPE, HudInputPayload.CODEC) { p, ctx -> ServerNet.onHudInput(p, ctx) }
 
         // Server → client.
         r.playToClient(LibraryChangedPayload.TYPE, LibraryChangedPayload.CODEC) { p, _ -> ClientNet.onLibraryChanged(p) }
@@ -72,6 +77,8 @@ object BpmNetwork {
         r.playToClient(LinkTableSyncPayload.TYPE, LinkTableSyncPayload.CODEC) { p, _ -> ClientNet.onLinkTable(p) }
         r.playToClient(LinkRenamedPayload.TYPE, LinkRenamedPayload.CODEC) { p, _ -> ClientNet.onLinkRenamed(p) }
         r.playToClient(EffectPayload.TYPE, EffectPayload.CODEC) { p, _ -> ClientNet.onEffect(p) }
+        r.playToClient(HudPanelPayload.TYPE, HudPanelPayload.CODEC) { p, _ -> HudOverlay.onPanel(p) }
+        r.playToClient(KeyWatchPayload.TYPE, KeyWatchPayload.CODEC) { p, _ -> bpm.client.Keys.onWatch(p) }
         r.playToClient(RunFramePayload.TYPE, RunFramePayload.CODEC) { p, _ -> ClientNet.onRunFrame(p) }
         r.playToClient(RunLogPayload.TYPE, RunLogPayload.CODEC) { p, _ -> ClientNet.onRunLog(p) }
         r.playToClient(RunScopesPayload.TYPE, RunScopesPayload.CODEC) { p, _ -> ClientNet.onRunScopes(p) }

@@ -49,6 +49,12 @@ class LinkerModel : PathGeoModel<LinkerItem>(
     rl("textures/item/quantum_linker.png"),
 )
 
+class TetherModel : PathGeoModel<bpm.world.items.QuantumTetherItem>(
+    rl("geo/item/quantum_tether.geo.json"),
+    rl("animations/item/quantum_tether.animation.json"),
+    rl("textures/item/quantum_tether.png"),
+)
+
 /** The controller block. Beams carry alpha, so the whole model draws translucent; the glow mask rides on top. */
 class ControllerRenderer : GeoBlockRenderer<ControllerBlockEntity>(ControllerModel()) {
     init {
@@ -114,6 +120,13 @@ object LinkerItemExtensions : IClientItemExtensions {
     override fun getCustomRenderer(): BlockEntityWithoutLevelRenderer = renderer
 }
 
+class TetherRenderer : GeoItemRenderer<bpm.world.items.QuantumTetherItem>(TetherModel())
+
+object TetherItemExtensions : IClientItemExtensions {
+    private val renderer by lazy { TetherRenderer() }
+    override fun getCustomRenderer(): BlockEntityWithoutLevelRenderer = renderer
+}
+
 /**
  * Client wiring for the models: the block-entity renderer and the Molang variables the animations read.
  *
@@ -135,6 +148,7 @@ object GeoRenderers {
             when (val a = actor.animatable()) {
                 is ControllerBlockEntity -> if (statusOf(a) == ControllerStatus.RUNNING) 1.0 else 0.5
                 is LinkerItem -> 1.0
+                is bpm.world.items.QuantumTetherItem -> 1.0
                 is bpm.world.devices.DeviceBlockEntity -> 1.0
                 is bpm.world.entity.QuantumWardenEntity -> 1.0
                 else -> 0.6
@@ -190,9 +204,13 @@ object GeoRenderers {
         MolangQueries.setActorVariable<Any>("variable.stage") { actor -> (actor.animatable() as? bpm.world.entity.QuantumWardenEntity)?.stage?.toDouble() ?: 1.0 }
         MolangQueries.setActorVariable<Any>("variable.shield") { actor -> if ((actor.animatable() as? bpm.world.entity.QuantumWardenEntity)?.shielded == true) 1.0 else 0.0 }
         // Linker: 1 while a controller is bound to the stack being drawn.
+        // …and the tether: 1 while the stack being drawn is bound to a controller, which speeds its ring up
+        // and swells the gem, exactly as a bound linker spins faster.
         MolangQueries.setActorVariable<Any>("variable.linked") { actor ->
             val stack = actor.animationState().getData(DataTickets.ITEMSTACK)
-            if (stack != null && stack.has(ModComponents.SELECTED_CONTROLLER.get())) 1.0 else 0.0
+            val bound = stack != null &&
+                (stack.has(ModComponents.SELECTED_CONTROLLER.get()) || stack.has(ModComponents.TETHER_CONTROLLER.get()))
+            if (bound) 1.0 else 0.0
         }
     }
 

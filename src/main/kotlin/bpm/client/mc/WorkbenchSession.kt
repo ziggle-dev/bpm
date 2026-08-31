@@ -166,11 +166,16 @@ object WorkbenchSession {
                 ControllerInfo(
                     s.status.name.lowercase(), s.docId, s.docName, s.docVersion, s.runningVersion, s.enabled, s.debugBuild, s.lastError, s.fibers, s.jobs, s.transfers, s.buffer,
                     s.tanks.map { bpm.client.editor.TankView(it.fluid, it.amount, it.capacity) }, s.energy, s.energyCapacity,
+                    s.maxLinks, s.maxPresence,
                 )
             }
         override val links: List<LinkView>
             get() = view?.links?.map { l ->
-                LinkView(l.name, l.pos.x, l.pos.y, l.pos.z, if (l.side < 0) null else Direction.from3DDataValue(l.side).name.lowercase(), l.dimension)
+                LinkView(
+                    l.name, l.pos.x, l.pos.y, l.pos.z,
+                    if (l.side < 0) null else Direction.from3DDataValue(l.side).name.lowercase(),
+                    l.dimension, l.player.ifEmpty { null },
+                )
             } ?: emptyList()
 
         override fun bind(docId: UUID?) = ClientNet.bindController(pos, docId)

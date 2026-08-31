@@ -66,18 +66,29 @@ class LinksPanel(private val host: WorkbenchHost) {
             cy += 6f
             dl.addLine(x, cy + 0.5f, x + w, cy + 0.5f, PanelBits.ROW_LINE, 1f)
 
-            val links = c.links
-            cy += Chrome.section(dl, x, cy, w, "Links", links.size.toString())
+            // Blocks first, then people: one list so the row behaviour stays in one place, with a divider
+            // where the kinds change. A person is a link like any other — it just is not a chest.
+            val all = c.links
+            val blocks = all.filter { !it.isPresence }
+            val presence = all.filter { it.isPresence }
+            val links = blocks + presence
+            cy += Chrome.section(dl, x, cy, w, "Links", count(blocks.size, info?.maxLinks ?: 0))
             ImGui.setCursorScreenPos(x, cy)
             ImGui.beginChild("##bpm-links-list", w, (y + h - cy).coerceAtLeast(Chrome.ROW_H), false, ImGuiWindowFlags.NoScrollbar)
             try {
                 val ldl = ImGui.getWindowDrawList()
                 val rx = ImGui.getCursorScreenPosX()
                 var ry = ImGui.getCursorScreenPosY()
-                if (links.isEmpty()) {
+                if (blocks.isEmpty()) {
                     PanelBits.label(ldl, rx + Chrome.PAD + 14f, ry, "none — use the Quantum Linker", PanelBits.STAMP, Chrome.ROW_H)
+                    if (presence.isNotEmpty()) ry += Chrome.ROW_H
                 }
+                var dividedAt = false
                 for (l in links) {
+                    if (l.isPresence && !dividedAt) {
+                        dividedAt = true
+                        ry += presenceHeader(ldl, rx, ry, w, presence.size, info?.maxPresence ?: 0)
+                    }
                     val isSel = l.name == selected
                     val hot = Chrome.rowHot(rx, ry, w)
                     Chrome.rowBg(ldl, rx, ry, w, isSel, hot)
@@ -90,9 +101,16 @@ class LinksPanel(private val host: WorkbenchHost) {
                         ry += Chrome.ROW_H
                         continue
                     }
-                    ldl.addCircleFilled(rx + Chrome.PAD + 4f, ry + Chrome.ROW_H * 0.5f, 3.5f, Theme.col(0x4d, 0xff, 0xd8), 12)
-                    PanelBits.label(ldl, rx + Chrome.PAD + 14f, ry, Chrome.fit(l.name, w * 0.5f), if (isSel) Theme.TEXT else Theme.TEXT_DIM, Chrome.ROW_H)
-                    val pos = "${l.x}, ${l.y}, ${l.z}"
+                    // A person is not a chest: the orchid marks presence links apart from the teal of blocks,
+                    // the same orchid that sits at the heart of the tether's gem.
+                    ldl.addCircleFilled(rx + Chrome.PAD + 4f, ry + Chrome.ROW_H * 0.5f, 3.5f, if (l.isPresence) PRESENCE else BLOCK_LINK, 12)
+                    val nameCol = when {
+                        isSel -> Theme.TEXT
+                        l.isPresence -> PRESENCE_TEXT
+                        else -> Theme.TEXT_DIM
+                    }
+                    PanelBits.label(ldl, rx + Chrome.PAD + 14f, ry, Chrome.fit(l.name, w * 0.5f), nameCol, Chrome.ROW_H)
+                    val pos = if (l.isPresence) "player" else "${l.x}, ${l.y}, ${l.z}"
                     PanelBits.label(ldl, rx + w - Chrome.PAD - 22f - ImGui.calcTextSize(pos).x - 6f, ry, pos, PanelBits.STAMP, Chrome.ROW_H)
                     if (hot && dragging == null) preview(ldl, l, rx, ry, w)
                     if (hot && ImGui.isMouseClicked(imgui.flag.ImGuiMouseButton.Left)) {
@@ -161,11 +179,28 @@ class LinksPanel(private val host: WorkbenchHost) {
         dl.addText(mx + 20f, my + 8f + (Chrome.ROW_H - ImGui.getTextLineHeight()) * 0.5f, Theme.TEXT, label)
     }
 
-    /** A card beside the row with the block the link points at, rendered by the host, and where it is. */
+    /**
+     * The divider between the blocks and the people, inside the same list.
+     *
+     * Not a `Chrome.section`: those sit on the panel and this has to scroll with the rows it heads.
+     */
+    private fun presenceHeader(dl: imgui.ImDrawList, x: Float, y: Float, w: Float, n: Int, max: Int): Float {
+        val top = y + 5f
+        dl.addLine(x + Chrome.PAD, top, x + w - Chrome.PAD, top, PanelBits.ROW_LINE, 1f)
+        PanelBits.label(dl, x + Chrome.PAD, top + 2f, "Presence", PRESENCE_TEXT, Chrome.ROW_H)
+        val label = count(n, max)
+        PanelBits.label(dl, x + w - Chrome.PAD - ImGui.calcTextSize(label).x, top + 2f, label, PanelBits.STAMP, Chrome.ROW_H)
+        return Chrome.ROW_H + 7f
+    }
+
+    /** `3/16`, or just `3` before the server has said what the core allows. */
+    private fun count(n: Int, max: Int): String = if (max > 0) "$n/$max" else n.toString()
+
+    /** A card beside the row with what the link points at — a block, or a person's face — and where it is. */
     private fun preview(dl: imgui.ImDrawList, l: LinkView, rx: Float, ry: Float, w: Float) {
         val previews = host.previews
-        previews?.want(l)
-        val region = previews?.region(l)
+        if (!l.isPresence) previews?.want(l)
+        val region = if (l.isPresence) l.player?.let { previews?.head(it) } else previews?.region(l)
         val fdl = ImGui.getForegroundDrawList()
         val cardW = 200f
         val cardH = if (region != null) 116f else 52f
@@ -174,15 +209,18 @@ class LinksPanel(private val host: WorkbenchHost) {
         fdl.addRectFilled(x, y, x + cardW, y + cardH, Theme.withAlpha(Theme.PANEL_BG, 0.97f), 6f, imgui.flag.ImDrawFlags.RoundCornersAll)
         fdl.addRect(x, y, x + cardW, y + cardH, PanelBits.EDGE, 6f, imgui.flag.ImDrawFlags.RoundCornersAll, 1f)
         var ty = y + 4f
-        PanelBits.label(fdl, x + Chrome.PAD, ty, l.name, Theme.TEXT, Chrome.ROW_H)
+        PanelBits.label(fdl, x + Chrome.PAD, ty, l.name, if (l.isPresence) PRESENCE_TEXT else Theme.TEXT, Chrome.ROW_H)
         ty += Chrome.ROW_H
-        PanelBits.label(fdl, x + Chrome.PAD, ty, "${l.x}, ${l.y}, ${l.z}${l.side?.let { " · $it" } ?: ""}", PanelBits.STAMP, Chrome.ROW_H)
+        // A presence link's stored position is only where they were last seen; saying so beats implying it is live.
+        val where = if (l.isPresence) "last seen ${l.x}, ${l.y}, ${l.z}" else "${l.x}, ${l.y}, ${l.z}${l.side?.let { " · $it" } ?: ""}"
+        PanelBits.label(fdl, x + Chrome.PAD, ty, where, PanelBits.STAMP, Chrome.ROW_H)
         ty += Chrome.ROW_H
         if (region != null) {
             val size = 64f
             val ix = x + Chrome.PAD
             fdl.addImage(region.texture.toLong(), ix, ty + 2f, ix + size, ty + 2f + size, region.u0, region.v0, region.u1, region.v1)
-            PanelBits.label(fdl, ix + size + 8f, ty + 2f, Chrome.fit(previews.labelOf(l) ?: "", cardW - size - Chrome.PAD * 2 - 8f), Theme.TEXT_DIM, Chrome.ROW_H)
+            val caption = if (l.isPresence) "tethered" else previews?.labelOf(l) ?: ""
+            PanelBits.label(fdl, ix + size + 8f, ty + 2f, Chrome.fit(caption, cardW - size - Chrome.PAD * 2 - 8f), Theme.TEXT_DIM, Chrome.ROW_H)
         }
         @Suppress("UNUSED_VARIABLE") val unusedW = w
         @Suppress("UNUSED_VARIABLE") val unusedDl = dl
@@ -190,6 +228,12 @@ class LinksPanel(private val host: WorkbenchHost) {
 
     companion object {
         const val WIDTH = 260f
+
+        /** Teal for a block, orchid for a person — palette v4's two accents, doing one job each. */
+        private val BLOCK_LINK: Int = Theme.col(0x4d, 0xff, 0xd8)
+        private val PRESENCE: Int = Theme.col(0xc9, 0x5f, 0xa5)
+        private val PRESENCE_TEXT: Int = Theme.col(0xf0, 0xa3, 0xd6)
+
         private const val ROW_MENU = "##bpm-link-row"
     }
 }

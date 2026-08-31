@@ -10,11 +10,11 @@ import io.osrsx.vscript.vm.StructValue
  */
 object WidgetValue {
     const val TYPE = "Widget"
-    val FIELDS = listOf("kind", "text", "label", "value", "max", "item", "fluid", "colour", "size", "align", "unit", "span")
+    val FIELDS = listOf("kind", "text", "label", "value", "max", "item", "fluid", "colour", "size", "align", "unit", "span", "id")
 
     fun of(w: Widget): StructValue = StructValue(
         TYPE, FIELDS,
-        arrayOf<Any?>(w.kind, w.text, w.label, w.value, w.max, if (w.item.isEmpty) null else ItemStackValue.record(w.item), w.fluid, w.colour, w.size.toLong(), w.align, w.unit, w.span.toLong()),
+        arrayOf<Any?>(w.kind, w.text, w.label, w.value, w.max, if (w.item.isEmpty) null else ItemStackValue.record(w.item), w.fluid, w.colour, w.size.toLong(), w.align, w.unit, w.span.toLong(), w.id),
     )
 
     fun record(value: Any?): StructValue? = (value as? StructValue)?.takeIf { it.type == TYPE }
@@ -37,6 +37,7 @@ object WidgetValue {
             align = str("align").ifEmpty { "Left" },
             unit = str("unit"),
             span = ((r.get("span") as? Number)?.toInt() ?: 1).coerceIn(0, 8),
+            id = str("id"),
         )
     }
 }

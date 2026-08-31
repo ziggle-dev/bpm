@@ -85,8 +85,23 @@ interface DocumentStore {
     fun keepMine(id: UUID)
 }
 
-/** A link as the controller has it. */
-class LinkView(val name: String, val x: Int, val y: Int, val z: Int, val side: String?, val dimension: String)
+/**
+ * A link as the controller has it.
+ *
+ * @param player the uuid of the person a presence link points at, or null for a link to a block — the panel
+ *   colours the row by it and shows their head instead of a block preview.
+ */
+class LinkView(
+    val name: String,
+    val x: Int,
+    val y: Int,
+    val z: Int,
+    val side: String?,
+    val dimension: String,
+    val player: String? = null,
+) {
+    val isPresence: Boolean get() = player != null
+}
 
 /** What the server last said about the controller the workbench is attached to. */
 class ControllerInfo(
@@ -107,6 +122,9 @@ class ControllerInfo(
     val tanks: List<TankView> = emptyList(),
     val energy: Int = 0,
     val energyCapacity: Int = 0,
+    /** What the core tier allows — the denominators in the links panel's `12/16 · 1/2`. */
+    val maxLinks: Int = 0,
+    val maxPresence: Int = 0,
 )
 
 /** One of the controller's tanks. */
@@ -148,6 +166,12 @@ interface BlockPreviews {
 
     /** The block's display name, when the position is loaded. */
     fun labelOf(link: LinkView): String?
+
+    /**
+     * The face of the player a presence link points at, once there is one — their skin's head, or the default
+     * skin for someone the client has never seen. Null while nothing can be drawn.
+     */
+    fun head(playerId: String): io.osrsx.vscript.editor.host.IconRegion? = null
 }
 
 /** Pictures of items by registry id, for the buffer and the pickers. */

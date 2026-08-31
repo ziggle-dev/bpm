@@ -99,7 +99,13 @@ class ControllerRuntime(private val be: ControllerBlockEntity, private val manag
         }
         resolved[name]?.let { return it }
         val link = links[name] ?: return null
-        return ResolvedLink(link, level).also { resolved[name] = it }
+        // A link past the core's capacity is kept but goes quiet: it resolves, and answers nothing.
+        val capped = links.isOverCapacity(name)
+        if (capped && warned.add("$name/capacity")) {
+            log(LogLevel.WARN, "'$name' is past this controller's ${links.capacity} links — a bigger core holds more")
+        }
+        val r = if (link.isPresence) bpm.world.PresenceLink(link, level, be) else ResolvedLink(link, level, capped)
+        return r.also { resolved[name] = it }
     }
 
     override fun items(name: String): IItemHandler? =
@@ -115,7 +121,7 @@ class ControllerRuntime(private val be: ControllerBlockEntity, private val manag
         adHocLinks[name]?.let { return it }
         val link = bpm.world.AdHocLink.parse(name, level.dimension()) ?: return null
         if (!link.pos.closerThan(pos, be.linkRange)) {
-            if (warned.add("$name/range")) log(LogLevel.WARN, "$name is farther than ${be.linkRange.toInt()} blocks from the controller")
+            if (warned.add("$name/range")) log(LogLevel.WARN, "$name is farther than ${bpm.world.CoreTier.rangeText(be.linkRange)} blocks from the controller")
             return null
         }
         return ResolvedLink(link, level).also { adHocLinks[name] = it }
@@ -123,13 +129,160 @@ class ControllerRuntime(private val be: ControllerBlockEntity, private val manag
 
     private fun unavailable(name: String, r: ResolvedLink, what: String) {
         if (!warned.add("$name/$what")) return
-        val why = if (!r.loaded) "its chunk is not loaded" else "the block there has no $what"
+        if (r is bpm.world.PresenceLink) {
+            // A person's link says who and why, not where: "at 12, 64, -8" is no help when the answer is
+            // that they put the tether in a chest.
+            val grant = when (what) { "items" -> bpm.world.Grant.READ; else -> null }
+            val why = r.reason(grant) ?: "they are carrying no inventory bpm can reach"
+            log(LogLevel.WARN, "'$name': $why")
+            return
+        }
+        val why = when {
+            r.capped -> "it is past this controller's ${links.capacity} links"
+            !r.loaded -> "its chunk is not loaded"
+            else -> "the block there has no $what"
+        }
         log(LogLevel.WARN, "link '$name' at ${r.link.pos.toShortString()}: $why")
     }
 
     override fun entity(handle: Any?): Entity? {
         val h = handle as? EntityHandle ?: return null
         return level.server.getLevel(h.dimension)?.getEntity(h.uuid)
+    }
+
+    /**
+     * Keys: which are held, which presses have not been read yet, and what this graph asked of each.
+     *
+     * An edge is shared, not per-node: the first node to ask for `(player, key)` takes it. Two nodes racing
+     * for the same key is a graph asking one question twice, and duplicating the press would fire both
+     * branches off one keystroke — which is the surprising answer, not the useful one.
+     *
+     * A watch lasts for the life of the run once named: a graph that asks about a key in one branch will ask
+     * again the next time that branch runs, and un-watching it in between would drop the very press it waits
+     * for.
+     */
+    class KeyWish(val requireModifier: Boolean, val consume: Boolean)
+
+    private val held = HashMap<java.util.UUID, MutableSet<String>>()
+
+    /**
+     * Presses waiting to be read, COUNTED rather than flagged.
+     *
+     * A set collapsed two quick presses into one, so a toggle tapped twice before its node next ran flipped
+     * once and looked like a dropped keystroke. Capped, because a graph that never reads a key it asked to
+     * watch must not accumulate presses forever.
+     */
+    private val pressed = HashMap<Pair<java.util.UUID, String>, Int>()
+    private val wishes = HashMap<java.util.UUID, MutableMap<String, KeyWish>>()
+
+    /** The panels this controller is drawing on people's screens — see `docs/DESIGN_PLAYER_LINK.md` §10. */
+    val hud = HudPanels { be.blockPos }
+
+    override fun showPanel(
+        player: net.minecraft.server.level.ServerPlayer,
+        widgets: List<bpm.world.devices.Widget>,
+        anchor: String,
+        offsetX: Int,
+        offsetY: Int,
+        width: Int,
+        scale: Double,
+        timeoutTicks: Int,
+    ) {
+        val panel = hud.show(player.uuid, widgets, anchor, offsetX, offsetY, width, scale, timeoutTicks, manager.clock.ticks) ?: return
+        sendPanel(player, panel)
+    }
+
+    override fun clearPanel(player: java.util.UUID): Boolean {
+        if (!hud.clear(player)) return false
+        (level.server.playerList.getPlayer(player))?.let { p ->
+            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(
+                p,
+                bpm.net.HudPanelPayload(be.blockPos, "TopRight", 0, 0, 0, 1f, net.minecraft.nbt.ListTag()),
+            )
+        }
+        return true
+    }
+
+    override fun panelVisible(player: java.util.UUID): Boolean = hud[player]?.visible == true
+
+    /** Take every panel this controller put up back down — what stopping does. */
+    fun clearAllPanels() {
+        for (uuid in hud.players.toList()) clearPanel(uuid)
+        hud.clearAll()
+    }
+
+    override fun takePanelPress(player: java.util.UUID, id: String): Boolean = hud.takePress(player, id)
+
+    override fun panelValue(player: java.util.UUID, id: String): Double = hud.valueOf(player, id)
+
+    override fun panelText(player: java.util.UUID, id: String): String = hud.textOf(player, id)
+
+    private fun sendPanel(player: net.minecraft.server.level.ServerPlayer, panel: bpm.runtime.HudPanels.Panel) {
+        val tags = bpm.world.devices.Widget.saveAll(panel.widgets, level.registryAccess())
+        net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(
+            player,
+            bpm.net.HudPanelPayload(be.blockPos, panel.anchor, panel.offsetX, panel.offsetY, panel.width, panel.scale.toFloat(), tags),
+        )
+    }
+
+    /**
+     * A key moved, from the network. Server thread.
+     *
+     * A graph that asked for the modifier does not see a bare press, so `W` and `alt+W` are different keys to
+     * two different graphs even though the client reports one edge for both.
+     */
+    fun key(player: java.util.UUID, key: String, down: Boolean, modifier: Boolean) {
+        val wish = wishes[player]?.get(key) ?: return
+        if (wish.requireModifier && !modifier) return
+        val set = held.getOrPut(player) { HashSet() }
+        if (down) {
+            set.add(key)
+            val at = player to key
+            pressed[at] = (pressed[at] ?: 0).coerceAtMost(MAX_PENDING - 1) + 1
+        } else {
+            set.remove(key)
+        }
+    }
+
+    /** What [player]'s client is asked to report on this controller's behalf. */
+    fun keyWishes(player: java.util.UUID): Map<String, KeyWish> = wishes[player].orEmpty()
+
+    override fun watchKey(player: java.util.UUID, key: String, requireModifier: Boolean, consume: Boolean) {
+        val map = wishes.getOrPut(player) { LinkedHashMap() }
+        val had = map[key]
+        if (had != null && had.requireModifier == requireModifier && had.consume == consume) return
+        if (had == null && map.size >= bpm.world.KeyNames.MAX_WATCHED) return
+        map[key] = KeyWish(requireModifier, consume)
+        level.server.playerList.getPlayer(player)?.let { KeyWatch.refresh(it) }
+    }
+
+    /** Was it pressed since anything last asked — and if so, take the edge. */
+    override fun takeKey(player: java.util.UUID, key: String): Boolean {
+        val at = player to key
+        val n = pressed[at] ?: return false
+        if (n <= 1) pressed.remove(at) else pressed[at] = n - 1
+        return true
+    }
+
+    override fun keyHeld(player: java.util.UUID, key: String): Boolean = held[player]?.contains(key) == true
+
+    /** Stop watching everything this run named — the run is over. */
+    fun clearKeyWatch() {
+        val players = wishes.keys.toList()
+        wishes.clear()
+        held.clear()
+        pressed.clear()
+        for (uuid in players) {
+            KeyWatch.forget(uuid)
+            level.server.playerList.getPlayer(uuid)?.let { KeyWatch.refresh(it) }
+        }
+    }
+
+    override fun presence(player: java.util.UUID): bpm.world.PresenceLink? =
+        links.byPlayer(player)?.let { link(it.name) as? bpm.world.PresenceLink }
+
+    override fun warnOnce(key: String, message: String) {
+        if (warned.add(key)) log(LogLevel.WARN, message)
     }
 
     override fun emitSignal(side: Direction, strength: Int) = be.setSignal(side, strength)
@@ -196,6 +349,8 @@ class ControllerRuntime(private val be: ControllerBlockEntity, private val manag
         runtime.scheduler.budgetNanos = budgetNanos
         runtime.tick()
         effects.tick()
+        // Panels nothing refreshed this second come down, the way a monitor's screen does.
+        for (uuid in hud.expired(manager.clock.ticks)) clearPanel(uuid)
         lastTickNanos = System.nanoTime() - t0
     }
 
@@ -209,6 +364,19 @@ class ControllerRuntime(private val be: ControllerBlockEntity, private val manag
 
     val isRunning: Boolean get() = runtime.isRunning
     val isAsleep: Boolean get() = runtime.isAsleep
+    /**
+     * The last fiber error, if any.
+     *
+     * `ScriptRuntime.lastError` is sticky for the life of a run and its setter is private, so a caller that
+     * acts on it must remember which error it has already handled — reading it every tick turns one past
+     * error into a permanent verdict. See `ControllerBlockEntity.tickRuntime`.
+     */
     val lastError: String? get() = runtime.lastError
+
     val phaseName: String get() = runtime.phase.name
+
+    private companion object {
+        /** Unread presses kept per key — enough for a fast double-tap, not a queue that grows unwatched. */
+        const val MAX_PENDING = 8
+    }
 }

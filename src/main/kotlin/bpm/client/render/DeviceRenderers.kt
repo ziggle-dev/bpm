@@ -164,7 +164,7 @@ class MonitorRenderer : GeoBlockRenderer<bpm.world.devices.MonitorBlockEntity>(M
     /** After the panel: the screen's content, for the wall's origin tile. */
     override fun render(animatable: bpm.world.devices.MonitorBlockEntity, partialTick: Float, poseStack: PoseStack, bufferSource: MultiBufferSource, packedLight: Int, packedOverlay: Int) {
         super.render(animatable, partialTick, poseStack, bufferSource, packedLight, packedOverlay)
-        MonitorScreenRenderer.draw(animatable, poseStack, bufferSource, packedLight)
+        MonitorScreenRenderer.draw(animatable, poseStack, bufferSource)
     }
 
     override fun renderRecursively(

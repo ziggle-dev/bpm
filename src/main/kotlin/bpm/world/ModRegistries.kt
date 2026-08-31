@@ -87,6 +87,12 @@ object ModComponents {
     /** Game time at which the linker's tracking pulse is ready again. */
     val TRACK_READY_AT = REG.registerComponentType("track_ready_at") { b -> b.persistent(com.mojang.serialization.Codec.LONG).networkSynchronized(net.minecraft.network.codec.ByteBufCodecs.VAR_LONG) }
 
+    /** The controller a tether's bearer has let reach them — see `docs/DESIGN_PLAYER_LINK.md`. */
+    val TETHER_CONTROLLER = REG.registerComponentType("tether_controller") { b -> b.persistent(GlobalPos.CODEC).networkSynchronized(GlobalPos.STREAM_CODEC) }
+
+    /** What that controller may do to them: [bpm.world.Grants], comma-joined so it reads in F3+H. */
+    val TETHER_GRANTS = REG.registerComponentType("tether_grants") { b -> b.persistent(com.mojang.serialization.Codec.STRING).networkSynchronized(net.minecraft.network.codec.ByteBufCodecs.STRING_UTF8) }
+
     /** What the Entangled Compass seeks. */
     val COMPASS_MODE = REG.registerComponentType("compass_mode") { b -> b.persistent(com.mojang.serialization.Codec.STRING).networkSynchronized(net.minecraft.network.codec.ByteBufCodecs.STRING_UTF8) }
 }
