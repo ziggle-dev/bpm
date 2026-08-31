@@ -80,9 +80,11 @@ void main() {
 
     float seed = (vColor.r * 255.0 + vColor.g * 255.0 * 256.0) / 65535.0;   // 0..1, precision-safe
 
-    float packed = floor(vColor.b * 255.0 + 0.5);
-    bool inward = packed >= 128.0;
-    float dist = mod(packed, 128.0) * 0.25;
+    // `packed` is a RESERVED WORD in GLSL, so declaring one killed this whole block: the declaration failed
+    // to parse, and `inward` and `dist` on the next two lines went undefined with it.
+    float flags = floor(vColor.b * 255.0 + 0.5);
+    bool inward = flags >= 128.0;
+    float dist = mod(flags, 128.0) * 0.25;
 
     // The jagged outline. Two octaves against the angle — big lobes, then bite marks.
     float edge = 0.74
