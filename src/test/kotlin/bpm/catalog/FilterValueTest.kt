@@ -105,11 +105,11 @@ class FilterValueTest {
     fun `move takes what fits and answers how many`() {
         val from = ItemStackHandler(2).also { it.setStackInSlot(0, ItemStack(Items.COAL, 20)); it.setStackInSlot(1, ItemStack(Items.STONE, 4)) }
         val to = ItemStackHandler(1)
-        val moved = Transfer.items(from, to, FilterValue.matcher(FilterValue.of(item = "minecraft:coal"), null), 12)
+        val moved = Transfer.items(from, to, FilterValue.matcher(FilterValue.of(item = "minecraft:coal"), null), 12).count
         assertEquals(12, moved)
         assertEquals(8, from.getStackInSlot(0).count)
         assertEquals(12, to.getStackInSlot(0).count)
         // The one slot is coal now, so stone cannot follow.
-        assertEquals(0, Transfer.items(from, to, FilterValue.matcher(FilterValue.of(item = "minecraft:stone"), null), 64))
+        assertEquals(0, Transfer.items(from, to, FilterValue.matcher(FilterValue.of(item = "minecraft:stone"), null), 64).count)
     }
 }

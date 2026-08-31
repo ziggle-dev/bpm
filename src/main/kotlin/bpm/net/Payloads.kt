@@ -626,6 +626,9 @@ class EffectPayload(
     val targetFace: Int,
     val amount: Int,
     val item: String,
+    /** The entity an end is riding, or 0 for a fixed one — a presence link's end walks about. */
+    val originEntity: Int = 0,
+    val targetEntity: Int = 0,
 ) : CustomPacketPayload {
     override fun type() = TYPE
 
@@ -636,12 +639,13 @@ class EffectPayload(
                 b.writeBlockPos(v.controller); b.writeVarInt(v.stream); b.writeEnum(v.op); b.writeEnum(v.kind)
                 b.writeBlockPos(v.origin); b.writeByte(v.originFace); b.writeBlockPos(v.target); b.writeByte(v.targetFace)
                 b.writeVarInt(v.amount); b.writeUtf(v.item, 128)
+                b.writeVarInt(v.originEntity); b.writeVarInt(v.targetEntity)
             },
             { b ->
                 EffectPayload(
                     b.readBlockPos(), b.readVarInt(), b.readEnum(EffectOp::class.java), b.readEnum(EffectKind::class.java),
                     b.readBlockPos(), b.readByte().toInt(), b.readBlockPos(), b.readByte().toInt(),
-                    b.readVarInt(), b.readUtf(128),
+                    b.readVarInt(), b.readUtf(128), b.readVarInt(), b.readVarInt(),
                 )
             },
         )

@@ -44,20 +44,14 @@ object RiftRenderer {
         val open = rift.openness(partialTick)
         if (open <= 0.01f) return
 
-        // The kick from the last batch, applied ALONG THE LINE THE ITEM TRAVELS rather than as a size pulse.
-        // At the origin the item flies out of the face and into the mouth, so that mouth is struck from
-        // behind and lurches outward; at the target it is thrown at the face, so that mouth shoves inward
-        // after it. Same damped ring both ends, opposite directions — they visibly answer each other.
-        val ring = rift.recoil(partialTick)
-        val travel = if (rift.inward) facing else facing.scale(-1.0)
-        val shoved = at.add(travel.scale((ring * Rift.RECOIL_TRAVEL).toDouble()))
-
-        val scaled = (open * (1f + ring * Rift.RECOIL_SIZE)).coerceAtLeast(0.02f)
-        val alpha = ((open * (1f + ring * 0.35f)).coerceIn(0f, 1.4f) / 1.4f * 255).toInt().coerceIn(0, 255)
+        // The tear stays exactly where it was put. What changes is how it sits: a slow wobble and a
+        // breathe, both scaled by how much is going through it — see `Rift.yawWobble`.
+        val scaled = (open * rift.breathe(partialTick)).coerceAtLeast(0.02f)
+        val alpha = (open.coerceIn(0f, 1.4f) / 1.4f * 255).toInt().coerceIn(0, 255)
         val buf = buffers.getBuffer(RiftShader.typeFor(style))
         when (style) {
-            RiftStyle.CUBE -> cube(rift, shoved, scale * scaled, alpha, buf, pose, partialTick)
-            RiftStyle.TEAR -> tear(rift, shoved, anchorPos, facing, scale * scaled, alpha, buf, pose, partialTick)
+            RiftStyle.CUBE -> cube(rift, at, scale * scaled, alpha, buf, pose, partialTick)
+            RiftStyle.TEAR -> tear(rift, at, anchorPos, facing, scale * scaled, alpha, buf, pose, partialTick)
         }
     }
 
@@ -127,6 +121,9 @@ object RiftRenderer {
         pose.translate(at.x, at.y, at.z)
         pose.mulPose(Axis.YP.rotationDegrees(Math.toDegrees(atan2(facing.x, facing.z)).toFloat()))
         pose.mulPose(Axis.XP.rotationDegrees(Math.toDegrees(-asin(facing.y.coerceIn(-1.0, 1.0))).toFloat()))
+        // The wobble, in the tear's own frame so it reads the same whichever way the mouth faces.
+        pose.mulPose(Axis.YP.rotationDegrees(rift.yawWobble(partialTick)))
+        pose.mulPose(Axis.XP.rotationDegrees(rift.tiltWobble(partialTick)))
         pose.mulPose(Axis.ZP.rotation(rift.phase))
         val m = pose.last().pose()
 

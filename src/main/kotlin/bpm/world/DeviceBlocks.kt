@@ -1,6 +1,8 @@
 package bpm.world
 
 import bpm.Bpm
+import bpm.world.devices.AssemblerBlock
+import bpm.world.devices.AssemblerBlockEntity
 import bpm.world.devices.GateBlock
 import bpm.world.devices.GateBlockEntity
 import bpm.world.devices.MonitorBlock
@@ -58,7 +60,10 @@ object DeviceBlocks {
     /** A tiling screen panel (`Monitor.kt`): joins same-facing neighbours into one display. */
     val QUANTUM_MONITOR: DeferredBlock<MonitorBlock> = REG.registerBlock("quantum_monitor", ::MonitorBlock, armour(MapColor.COLOR_BLACK, 2f).lightLevel { s -> if (s.getValue(MonitorBlock.ON)) 6 else 0 })
 
-    val all: List<DeferredBlock<out Block>> get() = listOf(QUANTUM_GATE, CORE_PEDESTAL, PHASE_SPIKE, DECOHERENCE_VENT, OBSERVER_TURRET, PHASE_BLOCK, QUANTUM_MONITOR)
+    /** The fabricator (`Assembler.kt`): pedestals feed it, and a job has to be kept supplied to survive. */
+    val QUANTUM_ASSEMBLER: DeferredBlock<AssemblerBlock> = REG.registerBlock("quantum_assembler", ::AssemblerBlock, armour(MapColor.COLOR_BLUE, 5f).lightLevel { s -> if (s.getValue(AssemblerBlock.RUNNING)) 11 else 4 })
+
+    val all: List<DeferredBlock<out Block>> get() = listOf(QUANTUM_ASSEMBLER, QUANTUM_GATE, CORE_PEDESTAL, PHASE_SPIKE, DECOHERENCE_VENT, OBSERVER_TURRET, PHASE_BLOCK, QUANTUM_MONITOR)
 }
 
 object DeviceBlockEntities {
@@ -75,6 +80,7 @@ object DeviceBlockEntities {
     val TURRET = type("observer_turret", DeviceBlocks.OBSERVER_TURRET, ::TurretBlockEntity)
     val PHASE = type("phase_block", DeviceBlocks.PHASE_BLOCK, ::PhaseBlockEntity)
     val MONITOR = type("quantum_monitor", DeviceBlocks.QUANTUM_MONITOR, ::MonitorBlockEntity)
+    val ASSEMBLER = type("quantum_assembler", DeviceBlocks.QUANTUM_ASSEMBLER, ::AssemblerBlockEntity)
 }
 
 /** A device in item form: the same GeckoLib model, resting, in hand and in the inventory. */
@@ -106,7 +112,8 @@ object DeviceItems {
     val OBSERVER_TURRET = device("observer_turret", DeviceBlocks.OBSERVER_TURRET, "animation.observer_turret.idle")
     val PHASE_BLOCK = device("phase_block", DeviceBlocks.PHASE_BLOCK, "animation.phase_block.solid")
     val QUANTUM_MONITOR = device("quantum_monitor", DeviceBlocks.QUANTUM_MONITOR, "animation.quantum_monitor.idle")
+    val QUANTUM_ASSEMBLER = device("quantum_assembler", DeviceBlocks.QUANTUM_ASSEMBLER, "animation.quantum_assembler.idle")
 
-    val all: List<DeferredItem<out Item>> get() = listOf(QUANTUM_GATE, CORE_PEDESTAL, PHASE_SPIKE, DECOHERENCE_VENT, OBSERVER_TURRET, PHASE_BLOCK, QUANTUM_MONITOR)
+    val all: List<DeferredItem<out Item>> get() = listOf(QUANTUM_ASSEMBLER, QUANTUM_GATE, CORE_PEDESTAL, PHASE_SPIKE, DECOHERENCE_VENT, OBSERVER_TURRET, PHASE_BLOCK, QUANTUM_MONITOR)
 }
 

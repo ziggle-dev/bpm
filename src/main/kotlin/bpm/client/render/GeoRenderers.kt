@@ -190,8 +190,15 @@ object GeoRenderers {
         }
         MolangQueries.setActorVariable<Any>("variable.has_core") { actor ->
             when (val a = actor.animatable()) {
-                is bpm.world.devices.PedestalBlockEntity -> if (a.hasCore) 1.0 else 0.0
+                is bpm.world.devices.PedestalBlockEntity -> if (a.showsCore) 1.0 else 0.0
                 else -> 1.0
+            }
+        }
+        // A pedestal holding an ingredient aims its prongs at it; an empty one rests.
+        MolangQueries.setActorVariable<Any>("variable.has_item") { actor ->
+            when (val a = actor.animatable()) {
+                is bpm.world.devices.PedestalBlockEntity -> if (a.held.isEmpty) 0.0 else 1.0
+                else -> 0.0
             }
         }
         MolangQueries.setActorVariable<Any>("variable.target_yaw") { actor ->

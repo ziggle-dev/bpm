@@ -123,6 +123,9 @@ object LinkerHud {
         val pose = event.poseStack
         val throughWalls = WardenVisorItem.worn(player)
         val range = LinkerItem.reach(be, player)
+        // Where things are THIS FRAME, not this tick. A player's model is drawn interpolated, so anything
+        // hung on them has to be too or it judders a tick behind the head it belongs to.
+        val partial = event.partialTick.getGameTimeDeltaPartialTick(true)
 
         RenderSystem.setShader(GameRenderer::getRendertypeLinesShader)
         RenderSystem.enableBlend()
@@ -139,8 +142,12 @@ object LinkerHud {
         // actually are and box them, not the patch of ground they were last seen on.
         for (link in be.links.presence) {
             val who = tethered(player, link) ?: continue
-            box(pose, builder, who.boundingBox.inflate(0.08), ORCHID, 0.9f)
-            line(pose, builder, centre, who.position().add(0.0, who.bbHeight * 0.5, 0.0), ORCHID, 0.6f)
+            // The interpolated position, for the same reason the label uses it: the outline has to sit on
+            // the body being drawn, not the one the last tick left behind.
+            val at = who.getPosition(partial)
+            val bounds = who.boundingBox.move(at.x - who.x, at.y - who.y, at.z - who.z)
+            box(pose, builder, bounds.inflate(0.08), ORCHID, 0.9f)
+            line(pose, builder, centre, at.add(0.0, who.bbHeight * 0.5, 0.0), ORCHID, 0.6f)
         }
         for (link in be.links.blocks) {
             // A link whose block is gone is drawn amber: aim at it and sneak-use to unlink.
@@ -169,20 +176,21 @@ object LinkerHud {
         RenderSystem.enableCull()
         RenderSystem.enableDepthTest()
         RenderSystem.lineWidth(1f)
-        labels(mc, player, be, cam, pose)
+        labels(mc, player, be, cam, pose, partial)
     }
 
     /** Each link's name (and face) as a sign over its block — amber when the block is gone. */
-    private fun labels(mc: Minecraft, player: Player, be: ControllerBlockEntity, cam: Vec3, pose: PoseStack) {
+    private fun labels(mc: Minecraft, player: Player, be: ControllerBlockEntity, cam: Vec3, pose: PoseStack, partial: Float) {
         val buffers = mc.renderBuffers().bufferSource()
         val font = mc.font
         val orientation = mc.entityRenderDispatcher.cameraOrientation()
         val bg = (mc.options.getBackgroundOpacity(0.25f) * 255).toInt() shl 24
         for (link in be.links.presence) {
             val who = tethered(player, link) ?: continue
-            if (who.position().distanceToSqr(cam) > LABEL_RANGE * LABEL_RANGE) continue
+            val at = who.getPosition(partial)
+            if (at.distanceToSqr(cam) > LABEL_RANGE * LABEL_RANGE) continue
             pose.pushPose()
-            pose.translate(who.x - cam.x, who.y + who.bbHeight + 0.5 - cam.y, who.z - cam.z)
+            pose.translate(at.x - cam.x, at.y + who.bbHeight + 0.5 - cam.y, at.z - cam.z)
             pose.mulPose(orientation)
             pose.scale(-0.025f, -0.025f, 0.025f)
             val m = pose.last().pose()

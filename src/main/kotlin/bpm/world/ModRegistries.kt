@@ -125,6 +125,8 @@ object BpmRegistries {
         DeviceBlocks.REG.register(bus)
         DeviceItems.REG.register(bus)
         DeviceBlockEntities.REG.register(bus)
+        bpm.world.assembly.ModRecipes.TYPES.register(bus)
+        bpm.world.assembly.ModRecipes.SERIALIZERS.register(bus)
         ModAttachments.REG.register(bus)
         bpm.world.entity.ModEntities.REG.register(bus)
         bus.addListener(net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent::class.java, Consumer(bpm.world.entity.ModEntities::attributes))
@@ -137,6 +139,10 @@ object BpmRegistries {
             event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, ModBlockEntities.CONTROLLER.get()) { be, _ -> be.inventory }
             event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, ModBlockEntities.CONTROLLER.get()) { be, _ -> be.tanks }
             event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, ModBlockEntities.CONTROLLER.get()) { be, _ -> be.energy }
+            event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, DeviceBlockEntities.ASSEMBLER.get()) { be, _ -> be.items }
+            event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, DeviceBlockEntities.ASSEMBLER.get()) { be, _ -> be.tanks }
+            event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, DeviceBlockEntities.ASSEMBLER.get()) { be, _ -> be.energy }
+            event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, DeviceBlockEntities.PEDESTAL.get()) { be, _ -> bpm.world.devices.PedestalSlot(be) }
         })
     }
 }

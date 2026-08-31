@@ -1,19 +1,31 @@
 {
-  "type": "minecraft:crafting_shaped",
-  "category": "misc",
-  "pattern": [
-    "SSS",
-    "SCS",
-    "SSS"
-  ],
-  "key": {
-    "S": {
-      "item": "bpm:entanglium_shard"
-    },
-    "C": {
+  "type": "bpm:assembly",
+  "ingredients": [
+    {
       "item": "bpm:entangled_quantum_core"
+    },
+    {
+      "item": "bpm:coherence_lens"
+    },
+    {
+      "item": "bpm:coherence_lens"
+    },
+    {
+      "item": "bpm:entangled_circuit"
+    },
+    {
+      "item": "bpm:entangled_circuit"
+    },
+    {
+      "item": "bpm:phase_conduit"
     }
+  ],
+  "catalyst": {
+    "item": "bpm:coherence_lens"
   },
+  "energy": 600000,
+  "experience": 120000,
+  "ticks": 1200,
   "result": {
     "id": "bpm:coherent_quantum_core",
     "count": 1

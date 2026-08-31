@@ -127,6 +127,9 @@ object Tethers {
         return null
     }
 
+    /** Whether [stack] is somebody's tether — bound to any controller, not just one. */
+    fun isCredential(stack: ItemStack): Boolean = stack.has(ModComponents.TETHER_CONTROLLER.get())
+
     /** The tether stack [player] carries for [controller], for the commands and the tooltip. */
     fun stack(player: Player, controller: GlobalPos): ItemStack? =
         TetherSources.stacks(player).firstOrNull { !it.isEmpty && it.get(ModComponents.TETHER_CONTROLLER.get()) == controller }

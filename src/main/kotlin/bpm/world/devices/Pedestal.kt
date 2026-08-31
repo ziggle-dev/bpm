@@ -7,6 +7,8 @@ import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.chat.Component
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.ItemStack
+import net.neoforged.neoforge.items.IItemHandler
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.EntityBlock
@@ -45,9 +47,17 @@ class PedestalBlock(properties: Properties) : Block(properties), EntityBlock {
         DeviceBlockEntity.ticker(level, type, DeviceBlockEntities.PEDESTAL.get())
 
     override fun useItemOn(stack: net.minecraft.world.item.ItemStack, state: BlockState, level: Level, pos: BlockPos, player: Player, hand: net.minecraft.world.InteractionHand, hit: BlockHitResult): net.minecraft.world.ItemInteractionResult {
-        val linker = stack.item as? bpm.world.LinkerItem ?: return net.minecraft.world.ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION
-        if (!bpm.chamber.ChamberDimension.isChamber(level)) return net.minecraft.world.ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION
-        if (!level.isClientSide) linker.recharge(stack, player)
+        val be = level.getBlockEntity(pos) as? PedestalBlockEntity
+        val linker = stack.item as? bpm.world.LinkerItem
+        if (linker != null && bpm.chamber.ChamberDimension.isChamber(level)) {
+            if (!level.isClientSide) linker.recharge(stack, player)
+            return net.minecraft.world.ItemInteractionResult.sidedSuccess(level.isClientSide)
+        }
+        // A chamber altar is the fight's, not a bench: only a pedestal a player put down holds ingredients.
+        if (be == null || be.slotOwner != null || !be.held.isEmpty) {
+            return net.minecraft.world.ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION
+        }
+        if (!level.isClientSide) be.put(stack.split(1))
         return net.minecraft.world.ItemInteractionResult.sidedSuccess(level.isClientSide)
     }
 
@@ -63,12 +73,90 @@ class PedestalBlock(properties: Properties) : Block(properties), EntityBlock {
     }
 }
 
+/**
+ * A pedestal as one slot, so every item verb in the catalogue already works on it.
+ *
+ * This is the same move that made presence links work: teach the capability rather than add bespoke nodes,
+ * and `items.count`, `items.stacks` and `items.move` all come free — counting is how a graph asks "is this
+ * plinth already loaded", and moving is how it loads one, with no click and no staging in the controller's
+ * buffer. The slot limit of ONE is what makes `items.move` with Max 1 exact.
+ *
+ * A chamber altar ([PedestalBlockEntity.slotOwner]) refuses everything: the Warden fight's state machine owns
+ * what sits on it, and a hopper must not be able to take the core off the altar mid-fight.
+ */
+class PedestalSlot(private val be: PedestalBlockEntity) : IItemHandler {
+
+    private val open: Boolean get() = be.slotOwner == null
+
+    override fun getSlots(): Int = 1
+
+    override fun getStackInSlot(slot: Int): ItemStack = if (slot == 0) be.held else ItemStack.EMPTY
+
+    override fun insertItem(slot: Int, stack: ItemStack, simulate: Boolean): ItemStack {
+        if (slot != 0 || stack.isEmpty || !open || !be.held.isEmpty) return stack
+        if (!simulate) be.put(stack.copyWithCount(1))
+        return stack.copy().also { it.shrink(1) }
+    }
+
+    override fun extractItem(slot: Int, amount: Int, simulate: Boolean): ItemStack {
+        if (slot != 0 || amount <= 0 || !open || be.held.isEmpty) return ItemStack.EMPTY
+        val out = be.held.copy()
+        if (!simulate) be.take()
+        return out
+    }
+
+    /** A plinth displays one thing. That is what makes "move one" mean one. */
+    override fun getSlotLimit(slot: Int): Int = 1
+
+    override fun isItemValid(slot: Int, stack: ItemStack): Boolean = slot == 0 && open && be.held.isEmpty
+}
+
 class PedestalBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(DeviceBlockEntities.PEDESTAL.get(), pos, state) {
     /** The chamber slot this pedestal belongs to; null for a pedestal a player placed. */
     var slotOwner: UUID? = null
 
+    /**
+     * The one thing on the plinth, for an assembler to read — empty for a chamber altar, which shows a core
+     * by its blockstate alone and never holds a real stack.
+     */
+    var held: ItemStack = ItemStack.EMPTY
+        private set
+
     /** What is going on around this pedestal — the fight's state machine lives on the slot; this mirrors it. */
     val hasCore: Boolean get() = blockState.getValue(PedestalBlock.HAS_CORE)
+
+    /**
+     * Whether the model should draw its own decorative core — what `variable.has_core` reads.
+     *
+     * The core and a held ingredient occupy the same socket, so a held item always wins. Stated as a rule
+     * rather than trusted to the blockstate on purpose: an earlier build set [PedestalBlock.HAS_CORE] when
+     * an item was placed, and those blockstates are saved in existing worlds. Deriving it here means such a
+     * pedestal stops drawing the core the moment it loads, with no migration step.
+     */
+    val showsCore: Boolean get() = hasCore && held.isEmpty
+
+    /**
+     * Put [stack] on the plinth.
+     *
+     * [PedestalBlock.HAS_CORE] is deliberately NOT touched. It drives `variable.has_core`, which scales the
+     * model's own decorative core bone — so setting it for a held item drew a teal core with the real item
+     * sitting inside it. The blockstate stays the chamber's flag; a player's ingredient is drawn by
+     * `PedestalRenderer` at the socket instead.
+     */
+    fun put(stack: ItemStack) {
+        held = stack
+        // Heal a blockstate an earlier build set for a held item: it still drives this block's light level.
+        if (slotOwner == null && hasCore) setHasCore(false)
+        sync()
+    }
+
+    /** Take whatever is on the plinth, leaving it bare. */
+    fun take(): ItemStack {
+        val was = held
+        held = ItemStack.EMPTY
+        sync()
+        return was
+    }
 
     fun setHasCore(value: Boolean) {
         val l = level ?: return
@@ -78,16 +166,23 @@ class PedestalBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(
 
     /** The player used the pedestal: the chamber decides what that means (wake the Warden, claim the core). */
     fun use(player: Player) {
-        val handled = PedestalHooks.onUse(this, player)
-        if (!handled) player.displayClientMessage(Component.literal("[bpm] " + if (hasCore) "the core hums in its socket" else "an empty socket"), true)
+        if (PedestalHooks.onUse(this, player)) return
+        if (!held.isEmpty) {
+            val stack = take()
+            if (!player.inventory.add(stack)) player.drop(stack, false)
+            return
+        }
+        player.displayClientMessage(Component.literal("[bpm] " + if (hasCore) "the core hums in its socket" else "an empty socket"), true)
     }
 
     override fun saveSynced(tag: CompoundTag, registries: HolderLookup.Provider) {
         slotOwner?.let { tag.putUUID("slotOwner", it) }
+        tag.put("held", held.saveOptional(registries))
     }
 
     override fun loadSynced(tag: CompoundTag, registries: HolderLookup.Provider) {
         slotOwner = if (tag.hasUUID("slotOwner")) tag.getUUID("slotOwner") else null
+        held = ItemStack.parseOptional(registries, tag.getCompound("held"))
     }
 
     override fun registerControllers(controllers: AnimatableManager.ControllerRegistrar) {

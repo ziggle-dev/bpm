@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "CLC",
+    "IEI",
+    "PPP"
+  ],
+  "key": {
+    "C": {
+      "item": "bpm:entangled_circuit"
+    },
+    "L": {
+      "item": "bpm:coherence_lens"
+    },
+    "I": {
+      "item": "bpm:quantum_alloy_ingot"
+    },
+    "E": {
+      "item": "bpm:phase_conduit"
+    },
+    "P": {
+      "item": "bpm:core_pedestal"
+    }
+  },
+  "result": {
+    "id": "bpm:quantum_assembler",
+    "count": 1
+  }
+}

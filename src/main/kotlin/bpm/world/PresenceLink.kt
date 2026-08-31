@@ -22,8 +22,21 @@ class GrantedInv(private val grants: Set<Grant>, delegate: IItemHandler) : Forwa
     override fun insertItem(slot: Int, stack: ItemStack, simulate: Boolean): ItemStack =
         if (allowed(slot, Grant.GIVE)) super.insertItem(slot, stack, simulate) else stack
 
-    override fun extractItem(slot: Int, amount: Int, simulate: Boolean): ItemStack =
-        if (allowed(slot, Grant.TAKE)) super.extractItem(slot, amount, simulate) else ItemStack.EMPTY
+    /**
+     * Never the tether itself.
+     *
+     * It lives in the same 41 slots everything else does, so `items.move(player, chest)` with no filter used
+     * to post it into the chest — and from the next tick the presence link was dead, the handler was gone,
+     * and the transfer stopped half done and never resumed. A machine must not be able to take away the
+     * thing that lets it reach you; that is the bearer's to put down.
+     *
+     * Any tether, not only this controller's: otherwise one machine could disarm another's.
+     */
+    override fun extractItem(slot: Int, amount: Int, simulate: Boolean): ItemStack {
+        if (!allowed(slot, Grant.TAKE)) return ItemStack.EMPTY
+        if (Tethers.isCredential(getStackInSlot(slot))) return ItemStack.EMPTY
+        return super.extractItem(slot, amount, simulate)
+    }
 
     override fun isItemValid(slot: Int, stack: ItemStack): Boolean =
         allowed(slot, Grant.GIVE) && super.isItemValid(slot, stack)

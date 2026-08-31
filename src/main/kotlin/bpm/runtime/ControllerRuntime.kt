@@ -309,8 +309,11 @@ class ControllerRuntime(private val be: ControllerBlockEntity, private val manag
 
     private fun endpointOf(name: String): EffectSender.Endpoint? {
         if (name == ControllerHost.SELF) return EffectSender.Endpoint(be.blockPos, -1)
-        val l = link(name)?.link ?: return null
-        return EffectSender.Endpoint(l.pos, l.side?.get3DDataValue() ?: -1)
+        val resolved = link(name) ?: return null
+        val l = resolved.link
+        // A person carries their own end about with them; everything else stays where it was put.
+        val entity = (resolved as? bpm.world.PresenceLink)?.player?.id ?: 0
+        return EffectSender.Endpoint(l.pos, l.side?.get3DDataValue() ?: -1, entity)
     }
 
     /** To everyone who can see either end, or the controller, once each. */

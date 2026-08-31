@@ -243,7 +243,8 @@ object DeviceItemExtensions {
 object DeviceRenderers {
     fun register(event: EntityRenderersEvent.RegisterRenderers) {
         event.registerBlockEntityRenderer(DeviceBlockEntities.GATE.get()) { GateRenderer() }
-        event.registerBlockEntityRenderer(DeviceBlockEntities.PEDESTAL.get()) { DeviceRenderer<PedestalBlockEntity>("core_pedestal") { be -> AABB(be.blockPos).inflate(0.3, 0.0, 0.3).expandTowards(0.0, 1.2, 0.0) } }
+        event.registerBlockEntityRenderer(DeviceBlockEntities.PEDESTAL.get()) { PedestalRenderer() }
+        event.registerBlockEntityRenderer(DeviceBlockEntities.ASSEMBLER.get()) { AssemblerRenderer() }
         event.registerBlockEntityRenderer(DeviceBlockEntities.SPIKE.get()) { DeviceRenderer<SpikeBlockEntity>("phase_spike") { be -> AABB(be.blockPos).expandTowards(0.0, 1.2, 0.0) } }
         event.registerBlockEntityRenderer(DeviceBlockEntities.VENT.get()) { DeviceRenderer<VentBlockEntity>("decoherence_vent") { be -> AABB(be.blockPos).expandTowards(0.0, 1.7, 0.0) } }
         event.registerBlockEntityRenderer(DeviceBlockEntities.TURRET.get()) { TurretRenderer() }
