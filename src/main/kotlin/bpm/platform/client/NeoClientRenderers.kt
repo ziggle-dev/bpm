@@ -64,3 +64,16 @@ object NeoRendererRegistry : RendererRegistry {
         for (block in pending) block(sink)
     }
 }
+
+/** NeoForge registers key bindings during `RegisterKeyMappingsEvent`. */
+object NeoKeyRegistry : KeyRegistry {
+    private val pending = ArrayList<((net.minecraft.client.KeyMapping) -> Unit) -> Unit>()
+
+    override fun keys(block: ((net.minecraft.client.KeyMapping) -> Unit) -> Unit) {
+        pending += block
+    }
+
+    fun onRegisterKeys(event: net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent) {
+        for (block in pending) block { mapping -> event.register(mapping) }
+    }
+}

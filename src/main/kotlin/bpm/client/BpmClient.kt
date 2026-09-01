@@ -35,7 +35,7 @@ object BpmClient {
         }
         modBus.addListener(EntityRenderersEvent.RegisterRenderers::class.java, Consumer(bpm.platform.client.NeoRendererRegistry::onRegisterRenderers))
         modBus.addListener(net.neoforged.neoforge.client.event.RegisterShadersEvent::class.java, Consumer(bpm.client.render.RiftShader::register))
-        modBus.addListener(net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent::class.java, Consumer(Keys::register))
+        modBus.addListener(net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent::class.java, Consumer(bpm.platform.client.NeoKeyRegistry::onRegisterKeys))
         modBus.addListener(net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent::class.java, Consumer { e ->
             // The glowmask survey (GlowLayer) is per resource set: forget it when packs reload.
             e.registerReloadListener(net.minecraft.server.packs.resources.ResourceManagerReloadListener { bpm.client.render.Glowmasks.invalidate() })
@@ -45,6 +45,8 @@ object BpmClient {
         bpm.platform.client.FluidVisuals.install(bpm.platform.client.NeoFluidAppearance)
         bpm.client.render.BpmItemRenderers.install()
         GeoRenderers.registerRenderers()
+        bpm.platform.client.ClientKeys.install(bpm.platform.client.NeoKeyRegistry)
+        Keys.register()
         modBus.addListener(net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent::class.java, Consumer { event ->
             event.registerFluidType(ExperienceFluidLook, bpm.world.ModFluids.EXPERIENCE_TYPE.get())
             bpm.platform.client.NeoClientRenderers.onRegisterExtensions(event)

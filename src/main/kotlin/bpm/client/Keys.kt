@@ -7,9 +7,6 @@ import bpm.world.ModComponents
 import com.mojang.blaze3d.platform.InputConstants
 import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
-import net.neoforged.neoforge.client.event.InputEvent
-import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent
-import net.neoforged.neoforge.client.settings.KeyConflictContext
 import bpm.platform.net.Net
 import org.lwjgl.glfw.GLFW
 
@@ -40,9 +37,11 @@ object Keys {
     lateinit var focus: KeyMapping
         private set
 
-    fun register(event: RegisterKeyMappingsEvent) {
-        focus = KeyMapping("key.bpm.panel_focus", KeyConflictContext.IN_GAME, InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_LEFT_ALT, CATEGORY)
-        event.register(focus)
+    fun register() = bpm.platform.client.ClientKeys.register { add ->
+        // No conflict context: Fabric has none, and this binding already refuses to fire while a screen
+        // is open (see onKey), which is what IN_GAME was buying.
+        focus = KeyMapping("key.bpm.panel_focus", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_LEFT_ALT, CATEGORY)
+        add(focus)
     }
 
     /** The server changed what it wants reported. */

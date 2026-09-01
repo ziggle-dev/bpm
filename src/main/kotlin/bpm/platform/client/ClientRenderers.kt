@@ -56,3 +56,26 @@ object ClientRenderers {
 
     fun renderers(block: (RendererSink) -> Unit) = renderers.renderers(block)
 }
+
+/**
+ * Registering a key binding.
+ *
+ * NeoForge fires an event and offers a `KeyConflictContext`; Fabric has `KeyBindingHelper` and no
+ * conflict context at all. The context is not modelled here for that reason — the binding this mod owns
+ * is a modifier key that already refuses to fire while a screen is open, which is what the context was
+ * buying.
+ */
+interface KeyRegistry {
+    /** [block] may be called later, when this loader is ready to hear it. */
+    fun keys(block: ((net.minecraft.client.KeyMapping) -> Unit) -> Unit)
+}
+
+object ClientKeys {
+    private lateinit var backend: KeyRegistry
+
+    fun install(impl: KeyRegistry) {
+        backend = impl
+    }
+
+    fun register(block: ((net.minecraft.client.KeyMapping) -> Unit) -> Unit) = backend.keys(block)
+}
