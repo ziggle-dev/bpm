@@ -7,7 +7,7 @@ import bpm.world.devices.Widget
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.neoforged.neoforge.client.event.RenderGuiEvent
-import net.neoforged.neoforge.network.PacketDistributor
+import bpm.platform.net.Net
 
 /**
  * The panels controllers are drawing on this player's screen — `docs/DESIGN_PLAYER_LINK.md` §10.
@@ -77,16 +77,16 @@ object HudOverlay {
 
     /** Send a press home. Called by [PanelScreen], which is the only place a panel can be touched. */
     fun press(controller: BlockPos, id: String) {
-        PacketDistributor.sendToServer(HudInputPayload(controller, id, true, 0f))
+        Net.sendToServer(HudInputPayload(controller, id, true, 0f))
     }
 
     /** Send a toggle's position, or how far along a slider was grabbed. */
     fun setValue(controller: BlockPos, id: String, value: Float) {
-        PacketDistributor.sendToServer(HudInputPayload(controller, id, false, value))
+        Net.sendToServer(HudInputPayload(controller, id, false, value))
     }
 
     /** Send what someone typed into a panel's field. */
     fun setText(controller: BlockPos, id: String, text: String) {
-        PacketDistributor.sendToServer(HudInputPayload(controller, id, false, 0f, text))
+        Net.sendToServer(HudInputPayload(controller, id, false, 0f, text))
     }
 }

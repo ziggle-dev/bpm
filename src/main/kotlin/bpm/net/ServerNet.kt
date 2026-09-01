@@ -28,7 +28,7 @@ import net.minecraft.network.chat.Component
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
-import net.neoforged.neoforge.network.PacketDistributor
+import bpm.platform.net.Net
 import net.neoforged.neoforge.network.handling.IPayloadContext
 import java.util.UUID
 import java.util.function.Consumer
@@ -66,10 +66,10 @@ object ServerNet {
 
     // ---- sending ------------------------------------------------------------------------------------------
 
-    private fun send(player: ServerPlayer, payload: CustomPacketPayload) = PacketDistributor.sendToPlayer(player, payload)
+    private fun send(player: ServerPlayer, payload: CustomPacketPayload) = Net.sendToPlayer(player, payload)
 
     private fun sendBig(player: ServerPlayer, inner: String, bytes: ByteArray) {
-        for (c in Chunker.split(inner, bytes)) PacketDistributor.sendToPlayer(player, ChunkPayload(c))
+        for (c in Chunker.split(inner, bytes)) Net.sendToPlayer(player, ChunkPayload(c))
     }
 
     private fun player(server: MinecraftServer, id: UUID): ServerPlayer? = server.playerList.getPlayer(id)

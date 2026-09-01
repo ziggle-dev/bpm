@@ -207,7 +207,7 @@ class ControllerRuntime(private val be: ControllerBlockEntity, private val manag
     override fun clearPanel(player: java.util.UUID): Boolean {
         if (!hud.clear(player)) return false
         (level.server.playerList.getPlayer(player))?.let { p ->
-            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(
+            bpm.platform.net.Net.sendToPlayer(
                 p,
                 bpm.net.HudPanelPayload(be.blockPos, "TopRight", 0, 0, 0, 1f, net.minecraft.nbt.ListTag()),
             )
@@ -231,7 +231,7 @@ class ControllerRuntime(private val be: ControllerBlockEntity, private val manag
 
     private fun sendPanel(player: net.minecraft.server.level.ServerPlayer, panel: bpm.runtime.HudPanels.Panel) {
         val tags = bpm.world.devices.Widget.saveAll(panel.widgets, level.registryAccess())
-        net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(
+        bpm.platform.net.Net.sendToPlayer(
             player,
             bpm.net.HudPanelPayload(be.blockPos, panel.anchor, panel.offsetX, panel.offsetY, panel.width, panel.scale.toFloat(), tags),
         )
@@ -333,7 +333,7 @@ class ControllerRuntime(private val be: ControllerBlockEntity, private val manag
         val l = be.level as? ServerLevel ?: return
         val players = LinkedHashSet<net.minecraft.server.level.ServerPlayer>()
         for (pos in listOf(p.controller, p.origin, p.target)) players += l.chunkSource.chunkMap.getPlayers(net.minecraft.world.level.ChunkPos(pos), false)
-        for (player in players) net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player, p)
+        for (player in players) bpm.platform.net.Net.sendToPlayer(player, p)
     }
 
     override fun transferred(from: String, to: String, amount: Int, kind: bpm.net.EffectKind, item: String) {

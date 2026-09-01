@@ -10,7 +10,7 @@ import net.minecraft.client.Minecraft
 import net.neoforged.neoforge.client.event.InputEvent
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent
 import net.neoforged.neoforge.client.settings.KeyConflictContext
-import net.neoforged.neoforge.network.PacketDistributor
+import bpm.platform.net.Net
 import org.lwjgl.glfw.GLFW
 
 /**
@@ -84,7 +84,7 @@ object Keys {
         if (!carryingBoundTether()) return
         val isDown = event.action == GLFW.GLFW_PRESS
         if (isDown) down.add(name) else down.remove(name)
-        PacketDistributor.sendToServer(KeyEdgePayload(name, isDown, modifierHeld))
+        Net.sendToServer(KeyEdgePayload(name, isDown, modifierHeld))
     }
 
     /**

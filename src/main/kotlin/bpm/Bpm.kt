@@ -28,6 +28,9 @@ object Bpm {
         // The language's type registries are global and replace-by-name: once, both sides, before any catalogue.
         McTypes.registerAll()
         BpmConfig.register()
+        // Before anything that might send: a missing backend fails at the first send, and this is the
+        // one line that decides which one it is.
+        bpm.platform.net.Net.install(bpm.platform.net.NeoNet)
         BpmRegistries.install(MOD_BUS)
         // The bridge first: it is what turns this loader's events into the ones the subsystems below
         // listen for, so nothing after this line names a bus.
