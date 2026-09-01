@@ -142,12 +142,12 @@ private class FabricComponentRegistrar(private val namespace: String, private va
     @Suppress("UNCHECKED_CAST")
     override fun <T> registerComponentType(
         name: String,
-        build: (DataComponentType.Builder<T>) -> DataComponentType.Builder<T>,
+        configure: (DataComponentType.Builder<T>) -> DataComponentType.Builder<T>,
     ): RegistryRef<DataComponentType<T>> {
         val id = ResourceLocation.fromNamespaceAndPath(namespace, name)
         val ref = FabricRef<DataComponentType<T>>(id)
         defer {
-            val type = build(DataComponentType.builder()).build()
+            val type = configure(DataComponentType.builder()).build()
             ref.reference = Registry.registerForHolder(BuiltInRegistries.DATA_COMPONENT_TYPE, id, type)
                 as Holder.Reference<DataComponentType<T>>
         }

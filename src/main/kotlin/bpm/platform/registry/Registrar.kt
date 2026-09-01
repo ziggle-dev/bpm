@@ -48,9 +48,17 @@ interface ItemRegistrar : Registrar<Item> {
 }
 
 interface ComponentRegistrar {
+    /**
+     * [configure] and not `build`, which is what it was called until 1.21.11 refused to compile it.
+     *
+     * A `build` on the classpath of a newer node collided with the parameter and the Kotlin compiler
+     * failed with an internal error rather than an ambiguity — "If one candidate within a group is
+     * property+invoke, other should be the same". Nothing about the mod was wrong; the name was just
+     * unlucky, and a name is cheap to change.
+     */
     fun <T> registerComponentType(
         name: String,
-        build: (DataComponentType.Builder<T>) -> DataComponentType.Builder<T>,
+        configure: (DataComponentType.Builder<T>) -> DataComponentType.Builder<T>,
     ): RegistryRef<DataComponentType<T>>
 }
 

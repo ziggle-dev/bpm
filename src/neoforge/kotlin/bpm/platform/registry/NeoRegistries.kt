@@ -83,6 +83,6 @@ private class NeoItemRegistrar(private val items: DeferredRegister.Items) : NeoR
 private class NeoComponentRegistrar(private val components: DeferredRegister.DataComponents) : ComponentRegistrar {
     override fun <T> registerComponentType(
         name: String,
-        build: (DataComponentType.Builder<T>) -> DataComponentType.Builder<T>,
-    ): RegistryRef<DataComponentType<T>> = NeoRef(components.registerComponentType(name) { b -> build(b) })
+        configure: (DataComponentType.Builder<T>) -> DataComponentType.Builder<T>,
+    ): RegistryRef<DataComponentType<T>> = NeoRef(components.registerComponentType(name) { b -> configure(b) })
 }

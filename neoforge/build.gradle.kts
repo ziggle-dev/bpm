@@ -38,7 +38,7 @@ val neoVersion = property("neo_version_" + minecraftVersion.replace('.', '_')) a
  */
 val hasDevMods = minecraftVersion == "1.21.1"
 val geckolibVersion = property("geckolib_version_" + minecraftVersion.replace('.', '_')) as String
-val kffVersion = property("kff_version") as String
+val kffVersion = property("kff_version_" + minecraftVersion.replace('.', '_')) as String
 val kotlinRuntimeVersion = property("kotlin_runtime_version") as String
 val vscriptVersion = property("vscript_version") as String
 val imguiVersion = property("imgui_version") as String
