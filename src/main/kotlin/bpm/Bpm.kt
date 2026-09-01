@@ -31,6 +31,7 @@ object Bpm {
         // Before anything that might send: a missing backend fails at the first send, and this is the
         // one line that decides which one it is.
         bpm.platform.net.Net.install(bpm.platform.net.NeoNet)
+        bpm.platform.world.Actor.install(bpm.platform.world.NeoWorldActor)
         BpmRegistries.install(MOD_BUS)
         // The bridge first: it is what turns this loader's events into the ones the subsystems below
         // listen for, so nothing after this line names a bus.
