@@ -23,14 +23,26 @@ plugins {
 // of this DSL — and also the reason a typo here is a build failure rather than a null two hundred lines later.
 val modId = property("mod_id") as String
 val modVersion = property("mod_version") as String
-val neoVersion = property("neo_version") as String
 // The node IS the Minecraft version: no separate property to keep in step with the version list.
 val minecraftVersion: String = stonecutter.current.version
+val neoVersion = property("neo_version_" + minecraftVersion.replace('.', '_')) as String
+
+/*
+ * The dev-run conveniences — Mekanism, JEI, Just Dire Things, Tag & Component Tooltips, Ponder — are
+ * pinned to builds for one Minecraft version, and most of them do not publish for every version on this
+ * ladder. They exist so the transfer verbs can be tested against real machines and the scenes walked
+ * through; none of them ship, and none of them is worth blocking a node on.
+ *
+ * So they are added only where they resolve. A node without them still builds, runs and passes its game
+ * tests — it is simply a plainer dev world.
+ */
+val hasDevMods = minecraftVersion == "1.21.1"
+val geckolibVersion = property("geckolib_version_" + minecraftVersion.replace('.', '_')) as String
 val kffVersion = property("kff_version") as String
 val kotlinRuntimeVersion = property("kotlin_runtime_version") as String
 val vscriptVersion = property("vscript_version") as String
 val imguiVersion = property("imgui_version") as String
-val geckolibVersion = property("geckolib_version") as String
+
 val mekanismVersion = property("mekanism_version") as String
 val jeiVersion = property("jei_version") as String
 val justdirethingsCurse = property("justdirethings_curse") as String
@@ -169,6 +181,21 @@ for (name in listOf("main", "test", "core", "dev")) {
 }
 kotlin.sourceSets.named("main") {
     kotlin.srcDir(rootProject.file("src/neoforge/kotlin"))
+    /*
+     * The optional integrations compile only where the mod they integrate with exists.
+     *
+     * `bpm/compat/jei` and `bpm/client/ponder` are written against JEI's and Ponder's APIs, which are
+     * compileOnly and published for some Minecraft versions and not others. They are already optional at
+     * runtime — a pack without JEI never loads the plugin class, because @JeiPlugin is read by JEI itself
+     * — so a node where the API is absent should simply not compile them rather than fail.
+     *
+     * This is worth stating plainly because of what it does to a version's apparent cost: excluding these
+     * two directories takes the 1.21.4 node from 393 compile errors to 232. The 161 difference was never
+     * porting work, it was two integrations that are not published for that version yet.
+     */
+    if (!hasDevMods) {
+        kotlin.exclude("bpm/compat/jei/**", "bpm/client/ponder/**")
+    }
 }
 /*
  * ...and this loader's own resources. Currently one file: the experience bucket's model, which NeoForge
@@ -287,24 +314,30 @@ val bundled = listOf(
 
 dependencies {
     implementation("thedarkcolour:kotlinforforge-neoforge:$kffVersion")
+    // GeckoLib is NOT optional — the models are the mod. Its coordinate names the Minecraft version,
+    // so a node whose version GeckoLib has not published for will fail here, loudly, which is right.
     implementation("software.bernie.geckolib:geckolib-neoforge-$minecraftVersion:$geckolibVersion")
 
     // Dev runs only: Mekanism (core + generators) to test the energy and fluid verbs against real machines,
     // cables and pipes. Runtime only — nothing compiles against it, and it is never bundled.
-    runtimeOnly("mekanism:Mekanism:$mekanismVersion")
-    runtimeOnly("mekanism:Mekanism:$mekanismVersion:generators")
+    if (hasDevMods) {
+        runtimeOnly("mekanism:Mekanism:$mekanismVersion")
+        runtimeOnly("mekanism:Mekanism:$mekanismVersion:generators")
+    }
     // JEI: the API on the compile path for our own recipe category (bpm/compat/jei), the full mod at runtime
     // for recipes and item lookup while testing. compileOnly, so a pack without JEI simply never loads the
     // plugin class — @JeiPlugin is only read by JEI itself.
-    compileOnly("mezz.jei:jei-$minecraftVersion-neoforge-api:$jeiVersion")
+    if (hasDevMods) compileOnly("mezz.jei:jei-$minecraftVersion-neoforge-api:$jeiVersion")
 
     // Ponder: in-game scene tutorials (bpm/client/ponder). The API on the compile path, the whole stack at
     // runtime so the scenes can actually be walked through in a dev run. Ponder pulls Flywheel, which is
     // why this is three artifacts and not one — see the note in bpm.client.ponder.BpmPonderPlugin about
     // what that costs a player.
-    compileOnly("net.createmod.ponder:Ponder-NeoForge-$minecraftVersion:$ponderVersion") { isTransitive = false }
-    compileOnly("net.createmod.ponder:Ponder-Common-$minecraftVersion:$ponderVersion") { isTransitive = false }
-    runtimeOnly("net.createmod.ponder:Ponder-NeoForge-$minecraftVersion:$ponderVersion") { isTransitive = false }
+    if (hasDevMods) {
+        compileOnly("net.createmod.ponder:Ponder-NeoForge-$minecraftVersion:$ponderVersion") { isTransitive = false }
+        compileOnly("net.createmod.ponder:Ponder-Common-$minecraftVersion:$ponderVersion") { isTransitive = false }
+        runtimeOnly("net.createmod.ponder:Ponder-NeoForge-$minecraftVersion:$ponderVersion") { isTransitive = false }
+    }
     /*
      * Ponder-Common is compileOnly and deliberately NOT runtimeOnly.
      *
@@ -320,12 +353,14 @@ dependencies {
      * bar with no crash screen. It was latent for as long as both jars were listed; introducing the
      * version node reordered the classpath enough to expose it.
      */
-    runtimeOnly("dev.engine-room.flywheel:flywheel-neoforge-$minecraftVersion:$flywheelVersion") { isTransitive = false }
+    if (hasDevMods) runtimeOnly("dev.engine-room.flywheel:flywheel-neoforge-$minecraftVersion:$flywheelVersion") { isTransitive = false }
     // JEI (recipes and item lookup while testing) and Just Dire Things (more machines, tools and goo to link).
-    runtimeOnly("mezz.jei:jei-$minecraftVersion-neoforge:$jeiVersion")
-    runtimeOnly("curse.maven:$justdirethingsCurse")
-    // Tag & Component Tooltips: every item's tags and data components on its tooltip — the ids the filters take.
-    runtimeOnly("maven.modrinth:tag-and-component-tooltips:$tactVersion")
+    if (hasDevMods) {
+        runtimeOnly("mezz.jei:jei-$minecraftVersion-neoforge:$jeiVersion")
+        runtimeOnly("curse.maven:$justdirethingsCurse")
+        // Tag & Component Tooltips: every item's tags and data components on its tooltip — the ids the filters take.
+        runtimeOnly("maven.modrinth:tag-and-component-tooltips:$tactVersion")
+    }
 
     // Gson is compileOnly for the core: Minecraft ships it, so it is always there at runtime, but the
     // core must not carry a copy of its own into the jar.

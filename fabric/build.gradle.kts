@@ -24,7 +24,7 @@ val imguiVersion = property("imgui_version") as String
 val fabricLoaderVersion = property("fabric_loader_version") as String
 val fabricApiVersion = property("fabric_api_version") as String
 val flkVersion = property("flk_version") as String
-val geckolibVersion = property("geckolib_version") as String
+val geckolibVersion = property("geckolib_version_" + minecraftVersion.replace('.', '_')) as String
 val jeiVersion = property("jei_version") as String
 val ponderVersion = property("ponder_version") as String
 
