@@ -145,6 +145,49 @@ object BpmEvents {
 
     /** A raw key edge, before the game acts on it. False consumes it. */
     val rawKey = Veto<RawKey>()
+
+    /**
+     * The frame, after translucent blocks. Both the effect manager and the linker HUD draw here.
+     *
+     * NeoForge fires `RenderLevelStageEvent` for a dozen stages and the listener filters; Fabric offers
+     * one callback per stage. Naming the stage in the hook rather than in a payload field means the
+     * Fabric bridge subscribes to exactly one thing and the filter disappears on both loaders.
+     */
+    val worldRenderTranslucent = Hook<WorldRender>()
+
+    /**
+     * The use key was pressed with something in hand, on the client, before the interaction is sent.
+     *
+     * One caller — ctrl+use on a link opens the rename box in place of the wand's own use — which is
+     * below the bar the rendering seams are held to. It is here anyway because it is the difference
+     * between the linker HUD being loader-free and not, and because the shape is not in doubt: a client
+     * input, vetoable, with the swing suppressed along with the interaction. Saying no cancels both.
+     */
+    val useItemPressed = Veto<Player>()
 }
 
 data class RawKey(val key: Int, val scancode: Int, val action: Int, val modifiers: Int)
+
+/**
+ * The frame, after translucent blocks have drawn.
+ *
+ * Everything the mod draws in the world hangs off this one moment: block entities have all been drawn,
+ * so the bone positions they published are this frame's, and translucency is already on the screen, so
+ * a link line or a fluid column blends over the glass it passes.
+ *
+ * [eye] rather than the whole `Camera` because the camera's position is the only thing either caller
+ * ever asks it for, and a `Vec3` is the same type on every version. [delta] is passed through whole
+ * because its two flavours of partial tick — with and without the game running normally — are both
+ * used, and it is vanilla.
+ *
+ * NeoForge hands the matrices to the listener directly. Fabric's `WorldRenderContext` may not expose
+ * the model-view separately on every band; when it does not, the bridge reads it from the render state
+ * at this point in the frame, which is a bridge's business and not this payload's.
+ */
+class WorldRender(
+    val pose: com.mojang.blaze3d.vertex.PoseStack,
+    val eye: net.minecraft.world.phys.Vec3,
+    val projection: org.joml.Matrix4f,
+    val modelView: org.joml.Matrix4f,
+    val delta: net.minecraft.client.DeltaTracker,
+)

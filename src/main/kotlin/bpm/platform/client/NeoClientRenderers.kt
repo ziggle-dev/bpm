@@ -14,14 +14,17 @@ import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsE
  */
 object NeoClientRenderers : ItemRendererRegistry {
 
-    private val pending = ArrayList<Pair<Item, () -> BlockEntityWithoutLevelRenderer>>()
+    private val pending = ArrayList<(ItemRendererSink) -> Unit>()
 
-    override fun register(item: Item, renderer: () -> BlockEntityWithoutLevelRenderer) {
-        pending += item to renderer
+    override fun items(block: (ItemRendererSink) -> Unit) {
+        pending += block
     }
 
     fun onRegisterExtensions(event: RegisterClientExtensionsEvent) {
-        for ((item, factory) in pending) {
+        val declared = ArrayList<Pair<Item, () -> BlockEntityWithoutLevelRenderer>>()
+        val sink = ItemRendererSink { item, renderer -> declared += item to renderer }
+        for (block in pending) block(sink)
+        for ((item, factory) in declared) {
             event.registerItem(
                 object : IClientItemExtensions {
                     private val renderer by lazy { factory() }
@@ -37,7 +40,8 @@ object NeoClientRenderers : ItemRendererRegistry {
 object NeoFluidAppearance : FluidAppearance {
     override fun of(fluid: net.minecraft.world.level.material.Fluid): FluidLook {
         val ext = net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions.of(fluid)
-        return FluidLook(ext.stillTexture, ext.tintColor)
+        val still = ext.stillTexture
+        return FluidLook(still, ext.flowingTexture ?: still, ext.tintColor)
     }
 }
 
@@ -75,5 +79,34 @@ object NeoKeyRegistry : KeyRegistry {
 
     fun onRegisterKeys(event: net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent) {
         for (block in pending) block { mapping -> event.register(mapping) }
+    }
+}
+
+/**
+ * NeoForge's GUI layers.
+ *
+ * `registerAboveAll` is what the panel readout used to get from a `RenderGuiEvent.Post` listener. The two
+ * are not quite the same object but they are the same moment — both hang off `Gui.render`, after the
+ * vanilla layers — so the readout draws where it always did, and now through the same mechanism as the
+ * linker overlay rather than a second one.
+ */
+object NeoHudRegistry : HudRegistry {
+    private val pending = ArrayList<(net.neoforged.neoforge.client.event.RegisterGuiLayersEvent) -> Unit>()
+
+    override fun aboveCrosshair(id: net.minecraft.resources.ResourceLocation, layer: HudLayer) {
+        pending += { e ->
+            e.registerAbove(net.neoforged.neoforge.client.gui.VanillaGuiLayers.CROSSHAIR, id, wrap(layer))
+        }
+    }
+
+    override fun onTop(id: net.minecraft.resources.ResourceLocation, layer: HudLayer) {
+        pending += { e -> e.registerAboveAll(id, wrap(layer)) }
+    }
+
+    private fun wrap(layer: HudLayer) =
+        net.minecraft.client.gui.LayeredDraw.Layer { g, delta -> layer.draw(g, delta) }
+
+    fun onRegisterGuiLayers(event: net.neoforged.neoforge.client.event.RegisterGuiLayersEvent) {
+        for (block in pending) block(event)
     }
 }

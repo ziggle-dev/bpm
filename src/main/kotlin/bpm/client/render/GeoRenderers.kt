@@ -120,13 +120,13 @@ class TetherRenderer : GeoItemRenderer<bpm.world.items.QuantumTetherItem>(Tether
  * where you would look for it.
  */
 object BpmItemRenderers {
-    fun install() {
-        ClientRenderers.item(bpm.world.ModItems.CONTROLLER.get()) { ControllerItemRenderer() }
-        ClientRenderers.item(bpm.world.ModItems.LINKER.get()) { LinkerRenderer() }
-        ClientRenderers.item(bpm.world.ContentItems.QUANTUM_TETHER.get()) { TetherRenderer() }
+    fun install() = ClientRenderers.items { sink ->
+        sink.register(bpm.world.ModItems.CONTROLLER.get()) { ControllerItemRenderer() }
+        sink.register(bpm.world.ModItems.LINKER.get()) { LinkerRenderer() }
+        sink.register(bpm.world.ContentItems.QUANTUM_TETHER.get()) { TetherRenderer() }
         for (item in bpm.world.DeviceItems.all) {
             val device = item.get() as? bpm.world.DeviceBlockItem ?: continue
-            ClientRenderers.item(device) { DeviceItemExtensions.of(device.model) }
+            sink.register(device) { DeviceItemExtensions.of(device.model) }
         }
     }
 }

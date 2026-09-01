@@ -15,8 +15,20 @@ import net.minecraft.world.item.Item
  * that the item classes go back to being plain items and the client wiring lives in one client-side
  * table, which is where a reader would look for it anyway.
  */
-interface ItemRendererRegistry {
+fun interface ItemRendererSink {
     fun register(item: Item, renderer: () -> BlockEntityWithoutLevelRenderer)
+}
+
+interface ItemRendererRegistry {
+    /**
+     * [block] may be called later, when this loader is ready to hear it.
+     *
+     * Deferred, and it has to be. The block names its items through the deferred registers, so calling
+     * it during mod construction resolves a holder that nothing has bound yet -- which is exactly what
+     * happened: the client died on "Trying to access unbound value: bpm:quantum_controller" before it
+     * reached the title screen. A dedicated server never runs this code, so no game test could see it.
+     */
+    fun items(block: (ItemRendererSink) -> Unit)
 }
 
 /**
@@ -44,15 +56,15 @@ interface RendererRegistry {
 }
 
 object ClientRenderers {
-    private lateinit var items: ItemRendererRegistry
+    private lateinit var itemRenderers: ItemRendererRegistry
     private lateinit var renderers: RendererRegistry
 
     fun install(items: ItemRendererRegistry, renderers: RendererRegistry) {
-        this.items = items
+        this.itemRenderers = items
         this.renderers = renderers
     }
 
-    fun item(item: Item, renderer: () -> BlockEntityWithoutLevelRenderer) = items.register(item, renderer)
+    fun items(block: (ItemRendererSink) -> Unit) = itemRenderers.items(block)
 
     fun renderers(block: (RendererSink) -> Unit) = renderers.renderers(block)
 }
@@ -78,4 +90,45 @@ object ClientKeys {
     }
 
     fun register(block: ((net.minecraft.client.KeyMapping) -> Unit) -> Unit) = backend.keys(block)
+}
+
+/**
+ * Something drawn over the game, under any screen that happens to be open.
+ *
+ * Deliberately shaped as vanilla's own HUD layer — a `GuiGraphics` and a `DeltaTracker` — because that
+ * is the shape both loaders and every band from 1.21.1 to 26.2 agree on. `GuiGraphics` is not abstracted
+ * here on purpose: the handful of methods this mod calls on it survive the whole ladder, and wrapping it
+ * would cost a translation layer to buy nothing.
+ */
+fun interface HudLayer {
+    fun draw(g: net.minecraft.client.gui.GuiGraphics, delta: net.minecraft.client.DeltaTracker)
+}
+
+/**
+ * Where a HUD layer is declared.
+ *
+ * The mod used to draw its HUD two different ways: the linker's overlay through NeoForge's
+ * `RegisterGuiLayersEvent`, and the panel readout through `RenderGuiEvent.Post`. Two mechanisms for one
+ * job is a maintenance cost at one version and a porting cost at seven — and `RenderGuiEvent` has no
+ * Fabric analogue at all, while a layer registration maps straight onto `HudRenderCallback`.
+ *
+ * So there is one mechanism now, with two positions, which is the only distinction the two callers
+ * actually needed: the linker's world-space labels want to sit just above the crosshair, and the panel
+ * readout wants to be last.
+ */
+interface HudRegistry {
+    fun aboveCrosshair(id: net.minecraft.resources.ResourceLocation, layer: HudLayer)
+    fun onTop(id: net.minecraft.resources.ResourceLocation, layer: HudLayer)
+}
+
+object Hud {
+    private lateinit var backend: HudRegistry
+
+    fun install(impl: HudRegistry) {
+        backend = impl
+    }
+
+    fun aboveCrosshair(id: net.minecraft.resources.ResourceLocation, layer: HudLayer) = backend.aboveCrosshair(id, layer)
+
+    fun onTop(id: net.minecraft.resources.ResourceLocation, layer: HudLayer) = backend.onTop(id, layer)
 }

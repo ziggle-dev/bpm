@@ -6,7 +6,6 @@ import bpm.runtime.HudPanels
 import bpm.world.devices.Widget
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
-import net.neoforged.neoforge.client.event.RenderGuiEvent
 import bpm.platform.net.Net
 
 /**
@@ -64,15 +63,15 @@ object HudOverlay {
         hidden = false
     }
 
-    /** Hung off the HUD: draws every panel, and nothing else. */
-    fun render(event: RenderGuiEvent.Post) {
+    /** Hung off the top of the HUD: draws every panel, and nothing else. */
+    fun render(g: net.minecraft.client.gui.GuiGraphics, delta: net.minecraft.client.DeltaTracker) {
         if (panels.isEmpty() || hidden) return
         val mc = Minecraft.getInstance()
         // A screen draws its own copy, with a cursor; the HUD would only be a second one underneath.
         if (mc.screen != null || mc.level == null) return
         val w = mc.window
         // -1 for the mouse: the HUD is a readout, and nothing on it can be pressed.
-        PanelDraw.drawAll(event.guiGraphics, all, w.guiScaledWidth, w.guiScaledHeight, -1, -1)
+        PanelDraw.drawAll(g, all, w.guiScaledWidth, w.guiScaledHeight, -1, -1)
     }
 
     /** Send a press home. Called by [PanelScreen], which is the only place a panel can be touched. */

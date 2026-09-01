@@ -16,7 +16,6 @@ import net.minecraft.client.DeltaTracker
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
 import net.minecraft.client.gui.GuiGraphics
-import net.minecraft.client.gui.LayeredDraw
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.renderer.GameRenderer
 import net.minecraft.client.renderer.LevelRenderer
@@ -29,12 +28,6 @@ import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
-import net.neoforged.bus.api.IEventBus
-import net.neoforged.neoforge.client.event.InputEvent
-import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent
-import net.neoforged.neoforge.client.event.RenderLevelStageEvent
-import net.neoforged.neoforge.client.gui.VanillaGuiLayers
-import net.neoforged.neoforge.common.NeoForge
 import org.joml.Matrix4f
 import org.joml.Vector2f
 import org.joml.Vector4f
@@ -57,10 +50,10 @@ object LinkerHud {
     private val ORCHID = floatArrayOf(0.79f, 0.37f, 0.65f)
     private const val LABEL_RANGE = 48.0
 
-    fun install(modBus: IEventBus) {
-        modBus.addListener(RegisterGuiLayersEvent::class.java, Consumer { it.registerAbove(VanillaGuiLayers.CROSSHAIR, LAYER, LayeredDraw.Layer(::drawHud)) })
-        NeoForge.EVENT_BUS.addListener(RenderLevelStageEvent::class.java, Consumer(::renderWorld))
-        NeoForge.EVENT_BUS.addListener(InputEvent.InteractionKeyMappingTriggered::class.java, Consumer(::onInteract))
+    fun install() {
+        bpm.platform.client.Hud.aboveCrosshair(LAYER, ::drawHud)
+        bpm.platform.events.BpmEvents.worldRenderTranslucent.listen(::renderWorld)
+        bpm.platform.events.BpmEvents.useItemPressed.listen(::onInteract)
     }
 
     private fun linkerIn(player: Player): net.minecraft.world.item.ItemStack? =
@@ -82,17 +75,20 @@ object LinkerHud {
         }
     }
 
-    /** Ctrl + use on a link opens the rename box in place of the wand's own use. */
-    private fun onInteract(event: InputEvent.InteractionKeyMappingTriggered) {
-        if (!event.isUseItem || !Screen.hasControlDown()) return
+    /**
+     * Ctrl + use on a link opens the rename box in place of the wand's own use.
+     *
+     * Returns false to say "handled" — the bridge cancels the interaction AND suppresses the swing, so
+     * the arm does not wave for a use that never reached the server.
+     */
+    private fun onInteract(player: net.minecraft.world.entity.player.Player): Boolean {
+        if (!Screen.hasControlDown()) return true
         val mc = Minecraft.getInstance()
-        val player = mc.player ?: return
-        if (linkerIn(player) == null || ChamberDimension.isChamber(player.level())) return
-        val be = controller(player) ?: return
-        val link = aimedLink(mc, player, be) ?: return
-        event.isCanceled = true
-        event.setSwingHand(false)
+        if (linkerIn(player) == null || ChamberDimension.isChamber(player.level())) return true
+        val be = controller(player) ?: return true
+        val link = aimedLink(mc, player, be) ?: return true
         LinkRenameScreen.open(be.blockPos, link, be.links.names)
+        return false
     }
 
     // ---- the frame's camera, for hanging a screen box over a world point ------------------------------
@@ -113,19 +109,18 @@ object LinkerHud {
 
     // ---- the world ------------------------------------------------------------------------------------
 
-    private fun renderWorld(event: RenderLevelStageEvent) {
-        if (event.stage != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) return
+    private fun renderWorld(event: bpm.platform.events.WorldRender) {
         val mc = Minecraft.getInstance()
         val player = mc.player ?: return
-        view = View(Matrix4f(event.projectionMatrix), Matrix4f(event.modelViewMatrix), event.camera.position)
+        view = View(Matrix4f(event.projection), Matrix4f(event.modelView), event.eye)
         val be = controller(player) ?: return
-        val cam = event.camera.position
-        val pose = event.poseStack
+        val cam = event.eye
+        val pose = event.pose
         val throughWalls = WardenVisorItem.worn(player)
         val range = LinkerItem.reach(be, player)
         // Where things are THIS FRAME, not this tick. A player's model is drawn interpolated, so anything
         // hung on them has to be too or it judders a tick behind the head it belongs to.
-        val partial = event.partialTick.getGameTimeDeltaPartialTick(true)
+        val partial = event.delta.getGameTimeDeltaPartialTick(true)
 
         RenderSystem.setShader(GameRenderer::getRendertypeLinesShader)
         RenderSystem.enableBlend()

@@ -24,6 +24,9 @@ import java.util.function.Consumer
  * language provider scans annotations. Only ever loaded on the client — see `Bpm`.
  */
 object BpmClient {
+    /** The panel readout, drawn last so it sits over everything else on the HUD. */
+    private val HUD_PANELS = net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(bpm.Bpm.ID, "panels")
+
     fun init(modBus: IEventBus) {
         bpm.platform.events.NeoClientEventBridge.install(modBus, NeoForge.EVENT_BUS)
         BpmEvents.clientSetup.listen {
@@ -40,7 +43,10 @@ object BpmClient {
             // The glowmask survey (GlowLayer) is per resource set: forget it when packs reload.
             e.registerReloadListener(net.minecraft.server.packs.resources.ResourceManagerReloadListener { bpm.client.render.Glowmasks.invalidate() })
         })
-        bpm.client.render.LinkerHud.install(modBus)
+        modBus.addListener(net.neoforged.neoforge.client.event.RegisterGuiLayersEvent::class.java, Consumer(bpm.platform.client.NeoHudRegistry::onRegisterGuiLayers))
+        bpm.platform.client.Hud.install(bpm.platform.client.NeoHudRegistry)
+        bpm.client.render.LinkerHud.install()
+        bpm.platform.client.Hud.onTop(HUD_PANELS, bpm.client.mc.HudOverlay::render)
         bpm.platform.client.ClientRenderers.install(bpm.platform.client.NeoClientRenderers, bpm.platform.client.NeoRendererRegistry)
         bpm.platform.client.FluidVisuals.install(bpm.platform.client.NeoFluidAppearance)
         bpm.client.render.BpmItemRenderers.install()
@@ -66,10 +72,7 @@ object BpmClient {
             ClientNet.reset(); WorkbenchSession.reset(); bpm.client.mc.BlockPreviewRenderer.clear(); bpm.client.mc.HudOverlay.reset(); Keys.reset()
         }
 
-        // Still on the loader's own events: registering a renderer, a shader, a GUI layer or a render
-        // stage is as much a Minecraft-version question as a loader one, and they move with that work.
-        NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.client.event.RenderGuiEvent.Post::class.java, Consumer(bpm.client.mc.HudOverlay::render))
-        NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.client.event.RenderLevelStageEvent::class.java, Consumer(bpm.client.fx.EffectManager::render))
+        BpmEvents.worldRenderTranslucent.listen(bpm.client.fx.EffectManager::render)
     }
 
     private fun onScreenOpened(screen: net.minecraft.client.gui.screens.Screen) {

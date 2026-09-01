@@ -13,9 +13,12 @@ import java.util.function.Consumer
 /**
  * NeoForge's client buses, wired to [BpmEvents].
  *
- * Lifecycle and input only. Renderer, shader, GUI-layer and render-stage registration stay in the client
- * code that uses them, because those change with the Minecraft version at least as much as with the
- * loader — putting them behind a hook now would be inventing an abstraction before knowing its shape.
+ * Lifecycle, input, and the one moment in the frame the mod draws the world at.
+ *
+ * Renderer and shader registration stay in the client code that uses them, because those change with the
+ * Minecraft version at least as much as with the loader and their shape is not yet known. The
+ * render-stage hook is here because its shape IS known: two callers, both wanting the same stage, both
+ * asking the same five questions of it. GUI layers went the same way, into `Hud` — see `HudRegistry`.
  */
 object NeoClientEventBridge {
 
@@ -32,6 +35,24 @@ object NeoClientEventBridge {
         gameBus.addListener(PlayerInteractEvent.LeftClickEmpty::class.java, Consumer { BpmEvents.leftClickEmpty.fire(it.entity) })
         gameBus.addListener(RegisterClientCommandsEvent::class.java, Consumer { e ->
             BpmEvents.registerClientCommands.fire(CommandRegistration(e.dispatcher, e.buildContext))
+        })
+
+        gameBus.addListener(net.neoforged.neoforge.client.event.RenderLevelStageEvent::class.java, Consumer { e ->
+            if (e.stage != net.neoforged.neoforge.client.event.RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) return@Consumer
+            BpmEvents.worldRenderTranslucent.fire(
+                WorldRender(e.poseStack, e.camera.position, e.projectionMatrix, e.modelViewMatrix, e.partialTick)
+            )
+        })
+
+        gameBus.addListener(InputEvent.InteractionKeyMappingTriggered::class.java, Consumer { e ->
+            if (!e.isUseItem) return@Consumer
+            val player = net.minecraft.client.Minecraft.getInstance().player ?: return@Consumer
+            if (!BpmEvents.useItemPressed.fire(player)) {
+                e.isCanceled = true
+                // Cancelling alone still swings the arm, which reads as "the wand did something" when it
+                // did not. The veto means "something else is handling this press", so neither happens.
+                e.setSwingHand(false)
+            }
         })
 
         gameBus.addListener(InputEvent.Key::class.java, Consumer { e ->
