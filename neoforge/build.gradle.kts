@@ -171,12 +171,31 @@ dev.runtimeClasspath += sourceSets.main.get().output + sourceSets.main.get().run
  * `src/dev` is here rather than shared because all ten of its files are NeoForge: the game tests are
  * written against NeoForge's GameTest API. Fabric will need its own.
  */
+/*
+ * **srcDir, not setSrcDirs, and the difference is the whole version axis.**
+ *
+ * Stonecutter configures every source set as it is created — `project.sourceSets.all { configureSource }`
+ * — and what that does is ADD two directories to each one: `<branch>/src/...`, which it processes for
+ * `//? if` directives, and a generated directory holding the processed output. It works out which
+ * directories to add by taking the source set's dirs relative to `<node>/src` and discarding anything
+ * that escapes upwards, so it only ever sees the node-relative defaults.
+ *
+ * Replacing the list afterwards, which is what this used to do, threw both of those away. Nothing failed;
+ * the directives simply stayed in whatever state they were authored in, on every node. Adding leaves them
+ * in place.
+ *
+ * So each source set ends up reading from four places:
+ *   <node>/src/<name>/kotlin      version-specific overrides for this one version (usually empty)
+ *   <branch>/src/<name>/kotlin    PROCESSED — this is where `//? if` directives belong
+ *   build/generated/stonecutter   where the processed copy lands for a non-active node
+ *   <root>/src/<name>/kotlin      the tree shared with the other loader, added below, not processed
+ */
 for (name in listOf("main", "test", "core", "dev")) {
     kotlin.sourceSets.named(name) {
-        kotlin.setSrcDirs(listOf(rootProject.file("src/$name/kotlin")))
+        kotlin.srcDir(rootProject.file("src/$name/kotlin"))
     }
     sourceSets.named(name) {
-        resources.setSrcDirs(listOf(rootProject.file("src/$name/resources")))
+        resources.srcDir(rootProject.file("src/$name/resources"))
     }
 }
 kotlin.sourceSets.named("main") {

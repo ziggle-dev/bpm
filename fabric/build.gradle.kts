@@ -103,24 +103,25 @@ sourceSets {
 /*
  * Every source directory named against rootProject, because this script's projectDir is
  * `fabric/versions/<version>/`. A missed convention here is not an error, it is an empty compilation.
+ *
+ * **srcDir, not setSrcDirs.** Stonecutter adds `<branch>/src/...` and a generated directory to every
+ * source set as it is created, and those are what make `//? if` directives work. Replacing the list threw
+ * them away, and the directives then sat inert on every node — silently, which is the whole problem with
+ * it. See the longer note in the neoforge branch's script.
  */
 kotlin.sourceSets.named("core") {
-    kotlin.setSrcDirs(listOf(rootProject.file("src/core/kotlin")))
+    kotlin.srcDir(rootProject.file("src/core/kotlin"))
 }
 sourceSets.named("core") {
-    resources.setSrcDirs(listOf(rootProject.file("src/core/resources")))
+    resources.srcDir(rootProject.file("src/core/resources"))
 }
 kotlin.sourceSets.named("main") {
-    // The Java directory is listed here TOO, not just under `java` below. Kotlin reads .java sources for
-    // resolution but only from its own source set's dirs, and setSrcDirs replaced what the Kotlin plugin
-    // had added — so without this the Kotlin code cannot see the accessor mixin it calls.
-    kotlin.setSrcDirs(
-        listOf(
-            rootProject.file("src/main/kotlin"),
-            rootProject.file("src/fabric/kotlin"),
-            rootProject.file("src/fabric/java"),
-        ),
-    )
+    // The Java directory is listed among the KOTLIN dirs too, not just under `java` below: Kotlin reads
+    // .java sources for resolution but only from its own source set, and without it the Kotlin code
+    // cannot see the accessor mixin it calls.
+    kotlin.srcDir(rootProject.file("src/main/kotlin"))
+    kotlin.srcDir(rootProject.file("src/fabric/kotlin"))
+    kotlin.srcDir(rootProject.file("src/fabric/java"))
 }
 /*
  * **The mixins are Java, and they have to be.**
@@ -131,10 +132,11 @@ kotlin.sourceSets.named("main") {
  * the project and exists solely for that reason.
  */
 sourceSets.named("main") {
-    java.setSrcDirs(listOf(rootProject.file("src/fabric/java")))
+    java.srcDir(rootProject.file("src/fabric/java"))
 }
 sourceSets.named("main") {
-    resources.setSrcDirs(listOf(rootProject.file("src/main/resources"), rootProject.file("src/fabric/resources")))
+    resources.srcDir(rootProject.file("src/main/resources"))
+    resources.srcDir(rootProject.file("src/fabric/resources"))
 }
 
 /*
