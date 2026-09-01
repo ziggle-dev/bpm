@@ -1,7 +1,6 @@
 package bpm.client.ponder
 
 import bpm.Bpm
-import net.neoforged.fml.ModList
 
 /**
  * The gate that keeps Ponder optional.
@@ -22,7 +21,7 @@ object PonderCompat {
     const val PONDER = "ponder"
 
     fun install() {
-        if (!ModList.get().isLoaded(PONDER)) {
+        if (!bpm.platform.Platform.isModLoaded(PONDER)) {
             Bpm.LOGGER.info("bpm: Ponder is not installed, scene tutorials are off")
             return
         }

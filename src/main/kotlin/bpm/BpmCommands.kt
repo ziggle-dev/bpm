@@ -15,7 +15,6 @@ import net.minecraft.commands.arguments.coordinates.BlockPosArgument
 import net.minecraft.core.Direction
 import net.minecraft.network.chat.Component
 import net.minecraft.world.level.block.entity.BlockEntity
-import net.neoforged.fml.loading.FMLPaths
 import net.neoforged.neoforge.event.RegisterCommandsEvent
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.dedicated.DedicatedServer
@@ -349,7 +348,7 @@ object BpmCommands {
 
     private fun graphFile(name: String): Path {
         val safe = name.replace(Regex("[^A-Za-z0-9._-]"), "_").removeSuffix(".json")
-        return FMLPaths.GAMEDIR.get().resolve("bpm").resolve("graphs").resolve("$safe.json")
+        return bpm.platform.Platform.gameDir.resolve("bpm").resolve("graphs").resolve("$safe.json")
     }
 
     /**

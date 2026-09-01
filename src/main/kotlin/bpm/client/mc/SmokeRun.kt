@@ -4,7 +4,6 @@ import bpm.Bpm
 import imgui.ImGui
 import imgui.type.ImString
 import net.minecraft.client.Minecraft
-import net.neoforged.fml.loading.FMLPaths
 import java.nio.file.Files
 
 /**
@@ -38,7 +37,7 @@ object SmokeRun {
     }
 
     private fun finish(drawn: Int) {
-        val marker = FMLPaths.GAMEDIR.get().resolve("bpm-smoke.ok")
+        val marker = bpm.platform.Platform.gameDir.resolve("bpm-smoke.ok")
         runCatching { Files.writeString(marker, "frames=$drawn\n") }
             .onFailure { Bpm.LOGGER.error("could not write {}", marker, it) }
         Bpm.LOGGER.info("bpm smoke run: drew {} frames, wrote {}", drawn, marker)

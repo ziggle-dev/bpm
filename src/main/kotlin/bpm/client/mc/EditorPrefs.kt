@@ -2,14 +2,13 @@ package bpm.client.mc
 
 import bpm.Bpm
 import bpm.client.editor.Prefs
-import net.neoforged.fml.loading.FMLPaths
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.Properties
 
 /** The workbench's preferences in `<gamedir>/bpm/editor.properties`, written a moment after they change. */
 object EditorPrefs : Prefs {
-    private val file: Path = FMLPaths.GAMEDIR.get().resolve("bpm").resolve("editor.properties")
+    private val file: Path = bpm.platform.Platform.gameDir.resolve("bpm").resolve("editor.properties")
     private val props = Properties()
     private var loaded = false
     private var dirtyAt = 0L

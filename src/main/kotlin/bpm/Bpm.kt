@@ -9,7 +9,6 @@ import net.neoforged.fml.common.Mod
 import net.neoforged.neoforge.common.NeoForge
 import net.neoforged.neoforge.event.RegisterCommandsEvent
 import java.util.function.Consumer
-import net.neoforged.fml.loading.FMLEnvironment
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
@@ -25,15 +24,17 @@ object Bpm {
 
     init {
         LOGGER.info("bpm loading")
-        // The language's type registries are global and replace-by-name: once, both sides, before any catalogue.
-        McTypes.registerAll()
-        BpmConfig.register()
-        // Before anything that might send: a missing backend fails at the first send, and this is the
-        // one line that decides which one it is.
+        // Every seam is wired first, before anything that might use one. A missing backend then fails at
+        // its first use with the name of the thing that was not installed, rather than somewhere further in.
+        bpm.platform.Platform.install(bpm.platform.NeoPlatform)
         bpm.platform.net.Net.install(bpm.platform.net.NeoNet)
         bpm.platform.ports.Ports.install(bpm.platform.ports.NeoPorts)
         bpm.platform.world.Actor.install(bpm.platform.world.NeoWorldActor)
         bpm.platform.world.Fluids.install(bpm.platform.world.NeoFluidBehaviour)
+
+        // The language's type registries are global and replace-by-name: once, both sides, before any catalogue.
+        McTypes.registerAll()
+        BpmConfig.register()
         // Strictly before BpmRegistries: touching ModBlocks and friends is what creates their registrars,
         // and a registrar cannot be created before the thing that makes them exists.
         bpm.platform.registry.Registrars.install(bpm.platform.registry.NeoRegistries(MOD_BUS))
@@ -51,10 +52,10 @@ object Bpm {
         ServerNet.install()
         NeoForge.EVENT_BUS.addListener(RegisterCommandsEvent::class.java, Consumer(BpmCommands::register))
         // The client class is only ever touched on the client, so a dedicated server never loads it.
-        if (FMLEnvironment.dist.isClient) bpm.client.BpmClient.init(MOD_BUS)
+        if (bpm.platform.Platform.isClient) bpm.client.BpmClient.init(MOD_BUS)
         // The dev-only debugging endpoint lives in a source set the shipped jar does not carry; found by
         // name so that its absence is the normal case, and never in a production launch.
-        if (!FMLEnvironment.production) {
+        if (!bpm.platform.Platform.isProduction) {
             runCatching { Class.forName("bpm.dev.DevServer").getMethod("start").invoke(null) }
                 .onFailure { if (it !is ClassNotFoundException) LOGGER.warn("dev server did not start: {}", it.toString()) }
         }
