@@ -168,18 +168,25 @@ class BpmJeiPlugin : IModPlugin {
     override fun getPluginUid(): ResourceLocation = ResourceLocation.fromNamespaceAndPath(Bpm.ID, "jei")
 
     override fun registerCategories(registration: IRecipeCategoryRegistration) {
-        registration.addRecipeCategories(AssemblyCategory(registration.jeiHelpers.guiHelper))
+        registration.addRecipeCategories(
+            AssemblyCategory(registration.jeiHelpers.guiHelper),
+            WardenLootCategory(registration.jeiHelpers.guiHelper),
+        )
     }
 
     override fun registerRecipes(registration: IRecipeRegistration) {
         val manager = Minecraft.getInstance().level?.recipeManager ?: return
         val recipes = manager.getAllRecipesFor(ModRecipes.ASSEMBLY.get())
         registration.addRecipes(AssemblyCategory.TYPE, recipes.toList())
+        // Not recipes at all, but the only honest answer to "where does a Pristine Core come from".
+        registration.addRecipes(WardenLootCategory.TYPE, bpm.world.CoreDrops.all)
     }
 
     /** Clicking the machine in JEI shows what it makes; so does clicking a pedestal, since that is the build. */
     override fun registerRecipeCatalysts(registration: IRecipeCatalystRegistration) {
         registration.addRecipeCatalyst(VanillaTypes.ITEM_STACK, ItemStack(DeviceBlocks.QUANTUM_ASSEMBLER.get()), AssemblyCategory.TYPE)
         registration.addRecipeCatalyst(VanillaTypes.ITEM_STACK, ItemStack(DeviceBlocks.CORE_PEDESTAL.get()), AssemblyCategory.TYPE)
+        // The altar is where you claim it, so it is the thing to click to find out what you might get.
+        registration.addRecipeCatalyst(VanillaTypes.ITEM_STACK, ItemStack(DeviceBlocks.CORE_PEDESTAL.get()), WardenLootCategory.TYPE)
     }
 }

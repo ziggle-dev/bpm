@@ -47,6 +47,15 @@ repositories {
         content { includeGroup 'mekanism' }
     }
     maven {
+        name = 'CreateMod'
+        url = 'https://maven.createmod.net'
+        content {
+            includeGroup 'net.createmod.ponder'
+            includeGroup 'net.createmod.catnip'
+            includeGroup 'dev.engine-room.flywheel'
+        }
+    }
+    maven {
         name = 'BlameJared'
         url = 'https://maven.blamejared.com/'
         content { includeGroup 'mezz.jei' }
@@ -158,6 +167,16 @@ dependencies {
     // for recipes and item lookup while testing. compileOnly, so a pack without JEI simply never loads the
     // plugin class — @JeiPlugin is only read by JEI itself.
     compileOnly "mezz.jei:jei-1.21.1-neoforge-api:${jei_version}"
+
+    // Ponder: in-game scene tutorials (bpm/client/ponder). The API on the compile path, the whole stack at
+    // runtime so the scenes can actually be walked through in a dev run. Ponder pulls Flywheel, which is
+    // why this is three artifacts and not one — see the note in bpm.client.ponder.BpmPonderPlugin about
+    // what that costs a player.
+    compileOnly("net.createmod.ponder:Ponder-NeoForge-1.21.1:${ponder_version}") { transitive = false }
+    compileOnly("net.createmod.ponder:Ponder-Common-1.21.1:${ponder_version}") { transitive = false }
+    runtimeOnly("net.createmod.ponder:Ponder-NeoForge-1.21.1:${ponder_version}") { transitive = false }
+    runtimeOnly("net.createmod.ponder:Ponder-Common-1.21.1:${ponder_version}") { transitive = false }
+    runtimeOnly("dev.engine-room.flywheel:flywheel-neoforge-1.21.1:${flywheel_version}") { transitive = false }
     // JEI (recipes and item lookup while testing) and Just Dire Things (more machines, tools and goo to link).
     runtimeOnly "mezz.jei:jei-1.21.1-neoforge:${jei_version}"
     runtimeOnly "curse.maven:${justdirethings_curse}"

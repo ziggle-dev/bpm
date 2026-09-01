@@ -30,6 +30,7 @@ object BpmClient {
                 net.minecraft.client.renderer.ItemBlockRenderTypes.setRenderLayer(bpm.world.ModFluids.EXPERIENCE_FLOWING.get(), net.minecraft.client.renderer.RenderType.translucent())
             }
             GeoRenderers.installMolang()
+            bpm.client.ponder.PonderCompat.install()
             Bpm.LOGGER.info("bpm client ready (smoke frames: {})", SmokeRun.frames)
         })
         modBus.addListener(EntityRenderersEvent.RegisterRenderers::class.java, Consumer(GeoRenderers::registerRenderers))
