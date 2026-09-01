@@ -35,3 +35,12 @@ description='''Visual scripting for automation: graphs run on the server, edited
 
 [features.bpm]
 openGLVersion="[3.2,)"
+
+# Optional, exactly like JEI: without it the scene tutorials are simply off. `bpm.client.ponder.PonderCompat`
+# checks ModList before anything that names a Ponder type is loaded, so a pack without it loads normally.
+[[dependencies.bpm]]
+    modId="ponder"
+    type="optional"
+    versionRange="[1.0.69,)"
+    ordering="AFTER"
+    side="CLIENT"
