@@ -1,0 +1,90 @@
+package bpm.platform
+
+import net.minecraft.world.InteractionResult
+import net.minecraft.world.item.ItemStack
+
+/**
+ * What using an item, or using an item on a block, answers — spelled the same way on every version.
+ *
+ * 1.21.2 folded three types into one. `InteractionResultHolder<ItemStack>`, which `Item.use` returned and
+ * which carried the stack back, became a plain `InteractionResult`; so did `ItemInteractionResult`, which
+ * `BlockBehaviour.useItemOn` returned. The stack is no longer part of the answer and neither is the
+ * distinction between the two calls.
+ *
+ * That is a signature change in forty-odd places and a behaviour change in none, which makes it exactly
+ * the wrong thing to spend forty-odd `//? if` directives on. Two aliases and two small objects keep every
+ * call site version-independent, and this file is the only place that knows the difference.
+ *
+ * **This is a deliberate copy of `neoforge/src/main/kotlin/bpm/platform/Interactions.kt`.**
+ *
+ * Only a branch's own source is processed for `//? if` directives, and the branches here are the loaders,
+ * so a version-switched alias that the SHARED tree calls has to exist once per loader. The call sites
+ * stay shared and never mention a version; only this switch is duplicated.
+ *
+ * The two copies must stay in step. They are short, they change only when Minecraft changes one of these
+ * three types, and the alternative was every call site knowing its own version — which is the thing this
+ * file exists to prevent.
+ *
+ * The helpers still take the stack on the newer versions and ignore it. Dropping the argument would mean
+ * editing every call site twice — once now, once for the older branch — and an unused argument is cheaper
+ * than a divergence.
+ */
+//? if >=1.21.2 {
+/*typealias UseResult = InteractionResult
+typealias BlockUseResult = InteractionResult
+
+object Use {
+    fun pass(stack: ItemStack): UseResult = InteractionResult.PASS
+    fun success(stack: ItemStack): UseResult = InteractionResult.SUCCESS
+    fun fail(stack: ItemStack): UseResult = InteractionResult.FAIL
+    fun consume(stack: ItemStack): UseResult = InteractionResult.CONSUME
+    fun sided(stack: ItemStack, isClientSide: Boolean): UseResult =
+        if (isClientSide) InteractionResult.SUCCESS else InteractionResult.CONSUME
+}
+
+object BlockUse {
+    val SUCCESS: BlockUseResult = InteractionResult.SUCCESS
+    val CONSUME: BlockUseResult = InteractionResult.CONSUME
+    val FAIL: BlockUseResult = InteractionResult.FAIL
+
+    /** "Not mine — let the block have it." The name it had before the three types merged. */
+    val PASS_TO_BLOCK: BlockUseResult = InteractionResult.PASS
+
+    fun sidedSuccess(isClientSide: Boolean): BlockUseResult = InteractionResult.SUCCESS
+}
+
+/**
+ * A plain `InteractionResult`, for `useWithoutItem` and friends, which never took the other two types.
+ * `sidedSuccess` went away with them at 1.21.2 — the newer answer is simply SUCCESS.
+ */
+object Interact {
+    fun sided(isClientSide: Boolean): InteractionResult = InteractionResult.SUCCESS
+}
+*///?} else {
+typealias UseResult = net.minecraft.world.InteractionResultHolder<ItemStack>
+typealias BlockUseResult = net.minecraft.world.ItemInteractionResult
+
+object Use {
+    fun pass(stack: ItemStack): UseResult = net.minecraft.world.InteractionResultHolder.pass(stack)
+    fun success(stack: ItemStack): UseResult = net.minecraft.world.InteractionResultHolder.success(stack)
+    fun fail(stack: ItemStack): UseResult = net.minecraft.world.InteractionResultHolder.fail(stack)
+    fun consume(stack: ItemStack): UseResult = net.minecraft.world.InteractionResultHolder.consume(stack)
+    fun sided(stack: ItemStack, isClientSide: Boolean): UseResult =
+        net.minecraft.world.InteractionResultHolder.sidedSuccess(stack, isClientSide)
+}
+
+object BlockUse {
+    val SUCCESS: BlockUseResult = net.minecraft.world.ItemInteractionResult.SUCCESS
+    val CONSUME: BlockUseResult = net.minecraft.world.ItemInteractionResult.CONSUME
+    val FAIL: BlockUseResult = net.minecraft.world.ItemInteractionResult.FAIL
+
+    val PASS_TO_BLOCK: BlockUseResult = net.minecraft.world.ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION
+
+    fun sidedSuccess(isClientSide: Boolean): BlockUseResult =
+        net.minecraft.world.ItemInteractionResult.sidedSuccess(isClientSide)
+}
+
+object Interact {
+    fun sided(isClientSide: Boolean): InteractionResult = InteractionResult.sidedSuccess(isClientSide)
+}
+//?}

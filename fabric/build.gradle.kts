@@ -39,7 +39,9 @@ base { archivesName = "$modId-fabric" }
  * be named in an access widener. See the file for what and why.
  */
 loom {
-    accessWidenerPath = rootProject.file("src/fabric/resources/bpm.accesswidener")
+    // The BRANCH's resources, named from the root: `file(...)` here would resolve against the
+    // version node, which holds no sources of its own.
+    accessWidenerPath = rootProject.file("fabric/src/main/resources/bpm.accesswidener")
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
@@ -120,8 +122,6 @@ kotlin.sourceSets.named("main") {
     // .java sources for resolution but only from its own source set, and without it the Kotlin code
     // cannot see the accessor mixin it calls.
     kotlin.srcDir(rootProject.file("src/main/kotlin"))
-    kotlin.srcDir(rootProject.file("src/fabric/kotlin"))
-    kotlin.srcDir(rootProject.file("src/fabric/java"))
 }
 /*
  * **The mixins are Java, and they have to be.**
@@ -132,11 +132,9 @@ kotlin.sourceSets.named("main") {
  * the project and exists solely for that reason.
  */
 sourceSets.named("main") {
-    java.srcDir(rootProject.file("src/fabric/java"))
 }
 sourceSets.named("main") {
     resources.srcDir(rootProject.file("src/main/resources"))
-    resources.srcDir(rootProject.file("src/fabric/resources"))
 }
 
 /*

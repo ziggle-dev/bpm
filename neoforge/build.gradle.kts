@@ -198,8 +198,18 @@ for (name in listOf("main", "test", "core", "dev")) {
         resources.srcDir(rootProject.file("src/$name/resources"))
     }
 }
+/*
+ * **Two source trees, and the difference between them is whether Stonecutter processes it.**
+ *
+ * `<root>/src/main/kotlin`  the tree BOTH loaders compile. Not processed: it is shared with a branch that
+ *                           would want the other answer, so it must not contain version directives.
+ * `<branch>/src/main/...`   this loader's own code, and PROCESSED — `//? if` directives work here.
+ *
+ * The loader-specific code used to live at `<root>/src/neoforge/kotlin`, which compiled fine and could
+ * never carry a directive. Since almost all of it is render and registry code — exactly what changes
+ * between Minecraft versions — it belongs on the processed side.
+ */
 kotlin.sourceSets.named("main") {
-    kotlin.srcDir(rootProject.file("src/neoforge/kotlin"))
     /*
      * The optional integrations compile only where the mod they integrate with exists.
      *
@@ -216,14 +226,8 @@ kotlin.sourceSets.named("main") {
         kotlin.exclude("bpm/compat/jei/**", "bpm/client/ponder/**")
     }
 }
-/*
- * ...and this loader's own resources. Currently one file: the experience bucket's model, which NeoForge
- * composites at runtime from an empty bucket and a tinted fluid overlay. Fabric has no equivalent model
- * loader and carries a static model of its own.
- */
-sourceSets.named("main") {
-    resources.srcDir(rootProject.file("src/neoforge/resources"))
-}
+
+
 
 /*
  * `gameLibraries` is the bundled list as a resolvable set (used by tooling); `devLibraries` holds the dev-only
