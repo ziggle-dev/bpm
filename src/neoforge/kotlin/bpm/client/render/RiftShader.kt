@@ -10,7 +10,6 @@ import net.minecraft.resources.ResourceLocation
 import net.neoforged.neoforge.client.event.RegisterShadersEvent
 
 /** Which rift the client draws. Switch live with `/bpm rift <cube|tear>`. */
-enum class RiftStyle { CUBE, TEAR }
 
 /**
  * The two core shaders a rift can be made of, and the render types that carry them.

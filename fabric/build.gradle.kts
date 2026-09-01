@@ -7,13 +7,8 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
  * Architectury Loom here and ModDevGradle on the NeoForge branch — see settings.gradle.kts for why the
  * two loaders deliberately use different build backends rather than one.
  *
- * **This branch is a skeleton.** It provisions Fabric, compiles the loader-free core, and produces a
- * jar. It does NOT yet compile the shared `src/main/kotlin` tree, because that tree calls into the
- * platform seam and nothing implements the seam for Fabric yet: `src/fabric/kotlin` needs the
- * counterparts of the fourteen files in `src/neoforge/kotlin`, and `Platform.install(...)` has to be
- * given all of them or it fails at first use naming the one that is missing. Writing those adapters is
- * the next piece of work, and until then the honest thing is a branch that builds what it can rather
- * than one that pretends.
+ * `src/main/kotlin` is the shared tree and `src/fabric/kotlin` holds this loader's implementations of
+ * the seam — the counterparts of the fourteen files in `src/neoforge/kotlin`.
  */
 plugins {
     id("dev.kikugie.stonecutter")
@@ -26,6 +21,12 @@ val modVersion = property("mod_version") as String
 val minecraftVersion: String = stonecutter.current.version
 val vscriptVersion = property("vscript_version") as String
 val imguiVersion = property("imgui_version") as String
+val fabricLoaderVersion = property("fabric_loader_version") as String
+val fabricApiVersion = property("fabric_api_version") as String
+val flkVersion = property("flk_version") as String
+val geckolibVersion = property("geckolib_version") as String
+val jeiVersion = property("jei_version") as String
+val ponderVersion = property("ponder_version") as String
 
 version = modVersion
 group = "bpm"
@@ -50,36 +51,85 @@ repositories {
     mavenCentral()
     maven { url = uri("https://maven.fabricmc.net/") }
     maven { url = uri("https://maven.architectury.dev/") }
+    maven {
+        name = "GeckoLib"
+        url = uri("https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/")
+        content { includeGroupByRegex("software\\.bernie.*") }
+    }
+    maven {
+        name = "BlameJared"
+        url = uri("https://maven.blamejared.com/")
+        content { includeGroup("mezz.jei") }
+    }
+    maven {
+        name = "CreateMod"
+        url = uri("https://maven.createmod.net")
+        content {
+            includeGroup("net.createmod.ponder")
+            includeGroup("net.createmod.catnip")
+            includeGroup("dev.engine-room.flywheel")
+        }
+    }
 }
 
 /*
- * Only the core for now. It has no Minecraft on its classpath at all, which is exactly why it is the
- * part that needs no porting: whatever this branch eventually does with the shared tree, these
- * twenty-seven files are already correct on both loaders.
+ * The core has no Minecraft on its classpath at all, which is why it needs no porting: these
+ * twenty-seven files are already correct on both loaders, and this branch compiles the very same ones.
  */
 val core by sourceSets.creating
 
+sourceSets {
+    main {
+        compileClasspath += core.output
+        runtimeClasspath += core.output
+    }
+}
+
+/*
+ * Every source directory named against rootProject, because this script's projectDir is
+ * `fabric/versions/<version>/`. A missed convention here is not an error, it is an empty compilation.
+ */
 kotlin.sourceSets.named("core") {
     kotlin.setSrcDirs(listOf(rootProject.file("src/core/kotlin")))
 }
 sourceSets.named("core") {
     resources.setSrcDirs(listOf(rootProject.file("src/core/resources")))
 }
-// The shared tree is not compiled here yet — see the note at the top of this file.
 kotlin.sourceSets.named("main") {
-    kotlin.setSrcDirs(emptyList<Any>())
+    kotlin.setSrcDirs(listOf(rootProject.file("src/main/kotlin"), rootProject.file("src/fabric/kotlin")))
 }
 sourceSets.named("main") {
-    resources.setSrcDirs(listOf(rootProject.file("src/main/resources")))
+    resources.setSrcDirs(listOf(rootProject.file("src/main/resources"), rootProject.file("src/fabric/resources")))
 }
 
 dependencies {
     minecraft("com.mojang:minecraft:$minecraftVersion")
     mappings(loom.officialMojangMappings())
+    modImplementation("net.fabricmc:fabric-loader:$fabricLoaderVersion")
+    modImplementation("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
+    // Fabric Language Kotlin is this loader's KotlinForForge: it supplies the stdlib in a player's game.
+    modImplementation("net.fabricmc:fabric-language-kotlin:$flkVersion")
+    // GeckoLib publishes per loader from the same source; the model, animation and Molang APIs the mod
+    // uses are identical, which is why none of bpm's renderer code is loader-specific.
+    modImplementation("software.bernie.geckolib:geckolib-fabric-$minecraftVersion:$geckolibVersion")
+    // JEI's API on the compile path only, exactly as on NeoForge: a pack without JEI never loads the
+    // plugin class, because @JeiPlugin is read by JEI itself.
+    modCompileOnly("mezz.jei:jei-$minecraftVersion-fabric-api:$jeiVersion")
+    // Ponder, for the in-game scene tutorials. Compile path only, as on NeoForge.
+    //
+    // NOT Ponder-Common as well: that jar carries a second copy of catnip's PlatformHelper interface,
+    // and having both on a runtime classpath is what made the NeoForge client hang on the loading bar.
+    // One jar, the platform one, on both loaders.
+    modCompileOnly("net.createmod.ponder:Ponder-Fabric-$minecraftVersion:$ponderVersion") { isTransitive = false }
 
     for (m in listOf("vscript", "vscript-runtime", "vscript-ui", "vscript-runview", "editor-host", "editor-graph")) {
+        implementation("dev.ziggle:$m:$vscriptVersion")
         "coreImplementation"("dev.ziggle:$m:$vscriptVersion")
     }
+    implementation("io.github.spair:imgui-java-binding:$imguiVersion")
+    // The GL3 backend and the JNI natives are the host's to supply, and this mod is the host on both
+    // loaders. LWJGL is excluded because the game supplies its own and two copies do not coexist.
+    implementation("io.github.spair:imgui-java-lwjgl3:$imguiVersion") { exclude(group = "org.lwjgl") }
     "coreImplementation"("io.github.spair:imgui-java-binding:$imguiVersion")
     "coreCompileOnly"("com.google.code.gson:gson:2.10.1")
 }

@@ -9,18 +9,19 @@ import net.neoforged.fml.common.Mod
 import net.neoforged.neoforge.common.NeoForge
 import net.neoforged.neoforge.event.RegisterCommandsEvent
 import java.util.function.Consumer
-import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.Logger
 import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
 
 /**
- * The mod entry. The language registries, the catalogue, the payloads and the controller registries each
- * arrive with their own subsystem and hang off the buses from here.
+ * The NeoForge entry point. The language registries, the catalogue, the payloads and the controller
+ * registries each arrive with their own subsystem and hang off the buses from here.
+ *
+ * The mod's id and logger are NOT here — they are on [Bpm], in the shared tree, because a hundred call
+ * sites want them and none of those care about the loader. This object is only the wiring that is
+ * specific to NeoForge, and the corresponding Fabric entry point does the same job with the same seams.
  */
 @Mod(Bpm.ID)
-object Bpm {
-    const val ID = "bpm"
-    val LOGGER: Logger = LogManager.getLogger(ID)
+object BpmNeoForge {
+    private val LOGGER = Bpm.LOGGER
 
     init {
         LOGGER.info("bpm loading")
