@@ -41,10 +41,47 @@ fun unitVector(direction: Direction): Vec3i = direction.unitVec3i
  * honest; aliasing one you do would be pretending two different things are the same.
  */
 typealias NeighborSource = net.minecraft.world.level.redstone.Orientation?
+
+/**
+ * Looking one entry up in a dynamic registry.
+ *
+ * `RegistryAccess.registryOrThrow` became `lookupOrThrow` at 1.21.2, and the thing it returns changed with
+ * it — a `Registry` before, a `HolderLookup` after — so the two call chains do not merely differ in
+ * spelling. Both still answer the same question, which is what these take.
+ */
+fun <T> holderOrNull(
+    access: net.minecraft.core.RegistryAccess,
+    registry: net.minecraft.resources.ResourceKey<net.minecraft.core.Registry<T>>,
+    entry: net.minecraft.resources.ResourceKey<T>,
+): net.minecraft.core.Holder<T>? = access.lookupOrThrow(registry).get(entry).orElse(null)
+
+fun <T> holderOrThrow(
+    access: net.minecraft.core.RegistryAccess,
+    registry: net.minecraft.resources.ResourceKey<net.minecraft.core.Registry<T>>,
+    entry: net.minecraft.resources.ResourceKey<T>,
+): net.minecraft.core.Holder<T> = access.lookupOrThrow(registry).getOrThrow(entry)
+
+/** `NativeImage.getPixelRGBA` became `getPixel`; same packed ABGR either way. */
+fun pixel(image: com.mojang.blaze3d.platform.NativeImage, x: Int, y: Int): Int = image.getPixel(x, y)
 *///?} else {
 val ANIMATED_BLOCK_SHAPE: RenderShape = RenderShape.ENTITYBLOCK_ANIMATED
 
 fun unitVector(direction: Direction): Vec3i = direction.normal
 
 typealias NeighborSource = net.minecraft.core.BlockPos
+
+fun <T> holderOrNull(
+    access: net.minecraft.core.RegistryAccess,
+    registry: net.minecraft.resources.ResourceKey<net.minecraft.core.Registry<T>>,
+    entry: net.minecraft.resources.ResourceKey<T>,
+): net.minecraft.core.Holder<T>? = access.registryOrThrow(registry).getHolder(entry).orElse(null)
+
+fun <T> holderOrThrow(
+    access: net.minecraft.core.RegistryAccess,
+    registry: net.minecraft.resources.ResourceKey<net.minecraft.core.Registry<T>>,
+    entry: net.minecraft.resources.ResourceKey<T>,
+): net.minecraft.core.Holder<T> = access.registryOrThrow(registry).getHolderOrThrow(entry)
+
+fun pixel(image: com.mojang.blaze3d.platform.NativeImage, x: Int, y: Int): Int = image.getPixelRGBA(x, y)
+
 //?}

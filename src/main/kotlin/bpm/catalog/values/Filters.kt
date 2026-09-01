@@ -173,8 +173,8 @@ object FilterValue {
 
     fun enchantment(id: String, registries: RegistryAccess?): Holder<Enchantment>? {
         val rl = ResourceLocation.tryParse(id.trim()) ?: return null
-        val registry = registries?.registryOrThrow(Registries.ENCHANTMENT) ?: return null
-        return registry.getHolder(ResourceKey.create(Registries.ENCHANTMENT, rl)).orElse(null)
+        val access = registries ?: return null
+        return bpm.platform.holderOrNull(access, Registries.ENCHANTMENT, ResourceKey.create(Registries.ENCHANTMENT, rl))
     }
 
     fun componentType(id: String): DataComponentType<*>? =

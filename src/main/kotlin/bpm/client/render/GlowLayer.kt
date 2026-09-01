@@ -53,7 +53,7 @@ object Glowmasks {
     }
 
     fun hasVisiblePixel(image: NativeImage): Boolean {
-        for (y in 0 until image.height) for (x in 0 until image.width) if (image.getPixelRGBA(x, y) ushr 24 != 0) return true
+        for (y in 0 until image.height) for (x in 0 until image.width) if (bpm.platform.pixel(image, x, y) ushr 24 != 0) return true
         return false
     }
 }

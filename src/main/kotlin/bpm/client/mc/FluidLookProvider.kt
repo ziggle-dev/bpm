@@ -36,7 +36,7 @@ object FluidLookProvider : FluidLooks {
             var b = 0L
             var n = 0L
             for (y in 0 until h) for (x in 0 until w) {
-                val abgr = image.getPixelRGBA(x, y)
+                val abgr = bpm.platform.pixel(image, x, y)
                 if ((abgr ushr 24) == 0) continue
                 r += abgr and 0xFF
                 g += (abgr shr 8) and 0xFF
