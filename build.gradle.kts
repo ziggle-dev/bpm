@@ -49,6 +49,15 @@ kotlin {
 }
 
 repositories {
+    /*
+     * vscript, when it is not being built as part of this build (`-Pvscript.local=false`; see
+     * settings.gradle.kts for why that switch exists and when its default flips).
+     *
+     * Content-filtered to `dev.ziggle` and nothing else. An unfiltered mavenLocal is a well-known way to
+     * poison a build with whatever a half-finished publish left lying around; filtered to the one group
+     * this repository publishes, the blast radius is exactly the modules the switch is about.
+     */
+    mavenLocal { content { includeGroup("dev.ziggle") } }
     mavenCentral()
     maven {
         name = "Kotlin for Forge"
