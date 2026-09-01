@@ -1,0 +1,347 @@
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+
+/*
+ * bpm: a NeoForge 1.21.1 mod that hosts the vscript language, VM and canvas editor. See docs/ for the design.
+ */
+plugins {
+    id("net.neoforged.moddev") version "2.0.144"
+    // The SAME Kotlin plugin version as the included vscript build: a composite loads one copy of a plugin,
+    // and two versions of the Kotlin plugin in one build fail to load at all.
+    kotlin("jvm") version "2.3.21"
+}
+
+// gradle.properties, read once and named. Kotlin has no dynamic property access, which is the one real cost
+// of this DSL — and also the reason a typo here is a build failure rather than a null two hundred lines later.
+val modId = property("mod_id") as String
+val modVersion = property("mod_version") as String
+val neoVersion = property("neo_version") as String
+val minecraftVersion = property("minecraft_version") as String
+val kffVersion = property("kff_version") as String
+val kotlinRuntimeVersion = property("kotlin_runtime_version") as String
+val vscriptVersion = property("vscript_version") as String
+val imguiVersion = property("imgui_version") as String
+val geckolibVersion = property("geckolib_version") as String
+val mekanismVersion = property("mekanism_version") as String
+val jeiVersion = property("jei_version") as String
+val justdirethingsCurse = property("justdirethings_curse") as String
+val tactVersion = property("tact_version") as String
+val ponderVersion = property("ponder_version") as String
+val flywheelVersion = property("flywheel_version") as String
+
+version = modVersion
+group = "bpm"
+base { archivesName = modId }
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+kotlin {
+    jvmToolchain(21)
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_21
+        // The mod may not reach for stdlib API newer than the compiler that built vscript (2.3.x): KFF's
+        // runtime is the only stdlib present in a player's game and it must satisfy both.
+        apiVersion = KotlinVersion.KOTLIN_2_3
+        languageVersion = KotlinVersion.KOTLIN_2_3
+        javaParameters = true
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        name = "Kotlin for Forge"
+        url = uri("https://thedarkcolour.github.io/KotlinForForge/")
+        content { includeGroup("thedarkcolour") }
+    }
+    maven {
+        name = "GeckoLib"
+        url = uri("https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/")
+        content { includeGroupByRegex("software\\.bernie.*") }
+    }
+    maven {
+        name = "ModMaven"
+        url = uri("https://modmaven.dev/")
+        content { includeGroup("mekanism") }
+    }
+    maven {
+        name = "CreateMod"
+        url = uri("https://maven.createmod.net")
+        content {
+            includeGroup("net.createmod.ponder")
+            includeGroup("net.createmod.catnip")
+            includeGroup("dev.engine-room.flywheel")
+        }
+    }
+    maven {
+        name = "BlameJared"
+        url = uri("https://maven.blamejared.com/")
+        content { includeGroup("mezz.jei") }
+    }
+    maven {
+        name = "CurseMaven"
+        url = uri("https://cursemaven.com")
+        content { includeGroup("curse.maven") }
+    }
+    maven {
+        name = "Modrinth"
+        url = uri("https://api.modrinth.com/maven")
+        content { includeGroup("maven.modrinth") }
+    }
+}
+
+/*
+ * **The loader-free, Minecraft-free core.**
+ *
+ * Its compile classpath is deliberately NOT built from main's: it gets the bundled libraries and nothing
+ * else, so a `net.minecraft` or `net.neoforged` import here is a compile error rather than a convention.
+ * That is the whole point of the source set — the same boundary a `:core` Gradle project would enforce,
+ * without yet taking on jar-in-jar and FML's module layers, which is where the build has historically
+ * bitten (see the processDevResources comment below).
+ *
+ * It stays part of the bpm mod, so nothing about packaging or dev runs changes.
+ *
+ * No explicit srcDir: `src/core/kotlin` is already what the Kotlin plugin gives a source set called `core`.
+ */
+val core by sourceSets.creating
+
+/*
+ * **The dev-only source set.** `src/dev/kotlin` holds the debugging endpoint (a websocket console with a Lua
+ * `eval`) that is never shipped: it is compiled against `main`, added to the mod's classes in dev runs, and
+ * left out of the jar. `main` reaches it only reflectively, by name, so a build without it is complete.
+ */
+val dev by sourceSets.creating
+
+sourceSets {
+    main {
+        compileClasspath += core.output
+        runtimeClasspath += core.output
+    }
+    test {
+        compileClasspath += core.output
+        runtimeClasspath += core.output
+    }
+}
+
+dev.compileClasspath += sourceSets.main.get().output + sourceSets.main.get().compileClasspath
+dev.runtimeClasspath += sourceSets.main.get().output + sourceSets.main.get().runtimeClasspath
+
+/*
+ * `gameLibraries` is the bundled list as a resolvable set (used by tooling); `devLibraries` holds the dev-only
+ * Lua console and is put on the boot layer of runs and tests — plain Java, so the boot layer suits it.
+ */
+val gameLibraries by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+    isTransitive = false
+}
+val devLibraries by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+    isTransitive = true
+}
+configurations["devImplementation"].extendsFrom(devLibraries)
+
+neoForge {
+    version = neoVersion
+
+    runs {
+        create("client") {
+            client()
+            // `gradlew runClient -Pframes=120`: open the editor on the title screen, draw N frames, write a marker, quit.
+            systemProperty("bpm.editor.frames", (project.findProperty("frames") ?: "0").toString())
+            // `gradlew runClient -Pworld="Test World"`: straight into that single-player world (created if missing).
+            if (project.hasProperty("world")) {
+                programArguments.addAll("--quickPlaySingleplayer", project.property("world").toString())
+            }
+        }
+        create("server") {
+            server()
+            programArgument("--nogui")
+        }
+        create("gameTestServer") {
+            type = "gameTestServer"
+        }
+        configureEach {
+            systemProperty("forge.enabledGameTestNamespaces", modId)
+            logLevel = org.slf4j.event.Level.INFO
+        }
+    }
+
+    mods {
+        create("bpm") {
+            sourceSet(core)
+            sourceSet(sourceSets.main.get())
+            sourceSet(dev)
+        }
+    }
+
+    unitTest {
+        enable()
+        testedMod = mods.getByName("bpm")
+    }
+}
+
+/** One entry in the list of libraries that are both compiled against and embedded in the shipped jar. */
+data class Bundled(val notation: String, val prefer: String, val excludeLwjgl: Boolean = false)
+
+// The libraries embedded in the shipped jar (`jarJar`) and compiled against (`implementation`) — one list.
+val bundled = listOf(
+    Bundled("dev.ziggle:vscript:[$vscriptVersion,2.0)", vscriptVersion),
+    Bundled("dev.ziggle:vscript-runtime:[$vscriptVersion,2.0)", vscriptVersion),
+    Bundled("dev.ziggle:vscript-ui:[$vscriptVersion,2.0)", vscriptVersion),
+    Bundled("dev.ziggle:vscript-runview:[$vscriptVersion,2.0)", vscriptVersion),
+    Bundled("dev.ziggle:editor-host:[$vscriptVersion,2.0)", vscriptVersion),
+    Bundled("dev.ziggle:editor-graph:[$vscriptVersion,2.0)", vscriptVersion),
+    // Dear ImGui via imgui-java. The editor modules compile against the binding only; the GL3 backend and the
+    // JNI natives are the host's to supply, and this mod is the host.
+    Bundled("io.github.spair:imgui-java-binding:[$imguiVersion,1.91)", imguiVersion),
+    // Its POM imports the LWJGL 3.3.6 BOM; Minecraft 1.21.1 ships LWJGL 3.3.3 and that is the one we run on.
+    Bundled("io.github.spair:imgui-java-lwjgl3:[$imguiVersion,1.91)", imguiVersion, excludeLwjgl = true),
+    Bundled("io.github.spair:imgui-java-natives-windows:[$imguiVersion,1.91)", imguiVersion),
+    Bundled("io.github.spair:imgui-java-natives-linux:[$imguiVersion,1.91)", imguiVersion),
+    Bundled("io.github.spair:imgui-java-natives-macos:[$imguiVersion,1.91)", imguiVersion),
+    // vscript-ui's one runtime dependency (Markdown in node docs).
+    // Open-ended on purpose: jar-in-jar resolves one version per library for the WHOLE pack, and an
+    // unsatisfiable set aborts resolution for every mod (Kotlin for Forge's language provider is nested too).
+    // vscript-ui only walks the parser's node tree, which has not changed across 0.2x.
+    Bundled("org.commonmark:commonmark:[0.22.0,)", "0.22.0"),
+)
+
+dependencies {
+    implementation("thedarkcolour:kotlinforforge-neoforge:$kffVersion")
+    implementation("software.bernie.geckolib:geckolib-neoforge-$minecraftVersion:$geckolibVersion")
+
+    // Dev runs only: Mekanism (core + generators) to test the energy and fluid verbs against real machines,
+    // cables and pipes. Runtime only — nothing compiles against it, and it is never bundled.
+    runtimeOnly("mekanism:Mekanism:$mekanismVersion")
+    runtimeOnly("mekanism:Mekanism:$mekanismVersion:generators")
+    // JEI: the API on the compile path for our own recipe category (bpm/compat/jei), the full mod at runtime
+    // for recipes and item lookup while testing. compileOnly, so a pack without JEI simply never loads the
+    // plugin class — @JeiPlugin is only read by JEI itself.
+    compileOnly("mezz.jei:jei-$minecraftVersion-neoforge-api:$jeiVersion")
+
+    // Ponder: in-game scene tutorials (bpm/client/ponder). The API on the compile path, the whole stack at
+    // runtime so the scenes can actually be walked through in a dev run. Ponder pulls Flywheel, which is
+    // why this is three artifacts and not one — see the note in bpm.client.ponder.BpmPonderPlugin about
+    // what that costs a player.
+    compileOnly("net.createmod.ponder:Ponder-NeoForge-$minecraftVersion:$ponderVersion") { isTransitive = false }
+    compileOnly("net.createmod.ponder:Ponder-Common-$minecraftVersion:$ponderVersion") { isTransitive = false }
+    runtimeOnly("net.createmod.ponder:Ponder-NeoForge-$minecraftVersion:$ponderVersion") { isTransitive = false }
+    runtimeOnly("net.createmod.ponder:Ponder-Common-$minecraftVersion:$ponderVersion") { isTransitive = false }
+    runtimeOnly("dev.engine-room.flywheel:flywheel-neoforge-$minecraftVersion:$flywheelVersion") { isTransitive = false }
+    // JEI (recipes and item lookup while testing) and Just Dire Things (more machines, tools and goo to link).
+    runtimeOnly("mezz.jei:jei-$minecraftVersion-neoforge:$jeiVersion")
+    runtimeOnly("curse.maven:$justdirethingsCurse")
+    // Tag & Component Tooltips: every item's tags and data components on its tooltip — the ids the filters take.
+    runtimeOnly("maven.modrinth:tag-and-component-tooltips:$tactVersion")
+
+    // Gson is compileOnly for the core: Minecraft ships it, so it is always there at runtime, but the
+    // core must not carry a copy of its own into the jar.
+    "coreCompileOnly"("com.google.code.gson:gson:2.10.1")
+
+    // `coreImplementation` too: the core compiles against the bundled libraries (vscript, imgui) and
+    // against nothing else. Minecraft is absent from its classpath by construction.
+    for (b in bundled) {
+        for (conf in listOf("implementation", "coreImplementation", "jarJar", "gameLibraries")) {
+            add(conf, b.notation) {
+                version { prefer(b.prefer) }
+                if (b.excludeLwjgl) exclude(group = "org.lwjgl")
+            }
+        }
+    }
+
+    // gson comes from Minecraft (2.10.x); vscript compiles against the 2.8.5 API deliberately.
+
+    // Dev only: the Lua console of the debugging endpoint (unsandboxed, full Java access — never shipped).
+    devLibraries("party.iroiro.luajava:luajava:4.1.0")
+    devLibraries("party.iroiro.luajava:lua54:4.1.0")
+    devLibraries("party.iroiro.luajava:lua54-platform:4.1.0:natives-desktop")
+
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+/*
+ * **The bundled libraries reach a dev run exactly as they reach a player: as jar-in-jar.** FML's userdev locator
+ * only discovers classpath jars that are mods or declare `FMLModType`, so a plain library on the classpath —
+ * Dear ImGui's binding, vscript's modules — is invisible to mod code; and the boot layer is no home for them
+ * either, because Kotlin's stdlib lives in the GAME layer (KFF's) and a boot-layer vscript cannot see it. What
+ * FML does read from a dev mod's classes is `META-INF/jarjar/metadata.json`, the same file it reads from a
+ * shipped jar. `jarJar` generates that directory for the jar; copying it into the dev source set's resources
+ * puts the nested jars into the GAME layer beside the stdlib, which is where they are in production too.
+ */
+tasks.named<ProcessResources>("processDevResources") {
+    from(tasks.named("jarJar"))
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+// A plain `build` must leave the dev run launchable too: an IDE-started run reads build/resources/dev directly.
+tasks.named("build") { dependsOn(tasks.named("processDevResources")) }
+
+/*
+ * The dev-only libraries (the Lua console) are plain Java and go on the boot layer of every run and the unit tests.
+ * On that layer every jar is a module, and luajava finds its native through jnigen's
+ * `SharedLibraryLoader.class.getResourceAsStream("/lua5464.dll")` — a lookup that, in a named module, only sees the
+ * loader's own jar. So the loader, the binding and the natives are merged into one jar first.
+ */
+val devLuaBundle by tasks.registering(Jar::class) {
+    archiveFileName = "luajava-dev-bundle.jar"
+    destinationDirectory = layout.buildDirectory.dir("devlibs")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    inputs.files(devLibraries)
+    from({ devLibraries.files.map { zipTree(it) } }) {
+        exclude(
+            "META-INF/MANIFEST.MF", "META-INF/*.SF", "META-INF/*.RSA", "META-INF/*.DSA",
+            "META-INF/versions/**", "module-info.class",
+        )
+    }
+}
+
+/*
+ * Put that bundle on the legacy classpath of every run and of the unit tests.
+ *
+ * The obvious `tasks.withType<WriteLegacyClasspath>()` does not compile: MDG's task class is
+ * package-private, so Kotlin cannot name it even though its `getEntries` is public. Groovy never noticed,
+ * which is one of the few places this migration is a step sideways rather than forwards.
+ *
+ * `withGroovyBuilder` is the Kotlin DSL's sanctioned escape hatch for exactly this — a plugin type that is
+ * real but not public — and it reaches the property the same way the Groovy script did. MDG does expose
+ * public `clientLegacyClasspath`/`serverLegacyClasspath`/`gameTestServerLegacyClasspath` configurations
+ * that would be cleaner, but nothing public feeds `writeNeoForgeTestClasspath`, and the unit tests need
+ * this too: MDG puts the `dev` source set on the test runtime, and `Bpm`'s init starts the Lua console
+ * reflectively whenever it is not in production. Narrowing that to three of the four tasks would be a
+ * behaviour change discovered as a ClassNotFoundException in a test that happens to touch `Bpm`.
+ *
+ * All of this disappears at the Architectury Loom swap, where runs take `source("dev")` instead.
+ */
+tasks.matching {
+    it.name.matches(Regex("write(Client|Server|GameTestServer)LegacyClasspath|writeNeoForgeTestClasspath"))
+}.configureEach {
+    dependsOn(devLuaBundle)
+    @Suppress("UNCHECKED_CAST")
+    val entries = withGroovyBuilder { getProperty("entries") } as ListProperty<String>
+    entries.add(devLuaBundle.flatMap { it.archiveFile }.map { it.asFile.absolutePath })
+}
+
+configurations.configureEach {
+    // vscript's modules were compiled by Kotlin 2.3.21 and declare that stdlib; KFF ships the game's. One
+    // version everywhere, and it is the newer one, which the older compiler's output is guaranteed to run on.
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.jetbrains.kotlin" && requested.name.startsWith("kotlin-stdlib")) {
+            useVersion(kotlinRuntimeVersion)
+        }
+    }
+}
+
+// The shipped jar carries `main` only.
+tasks.named<Jar>("jar") { from(sourceSets.main.get().output) }
+
+tasks.named<Test>("test") {
+    useJUnitPlatform()
+    testLogging {
+        events("failed")
+        exceptionFormat = TestExceptionFormat.FULL
+    }
+}

@@ -2,16 +2,16 @@ pluginManagement {
     repositories {
         mavenCentral()
         gradlePluginPortal()
-        maven { url = 'https://maven.neoforged.net/releases' }
+        maven { url = uri("https://maven.neoforged.net/releases") }
     }
 }
 
 plugins {
     // Provisions the JDK 21 toolchain Minecraft 1.21 needs, and the JDK 17 one the included vscript build asks for.
-    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
-rootProject.name = 'bpm'
+rootProject.name = "bpm"
 
 /*
  * **vscript is a git submodule (`vscript/`), built as part of this build.** Edits to the language, the runtime or the
@@ -22,13 +22,13 @@ rootProject.name = 'bpm'
  * includeBuild's automatic matching goes by the project's own coordinates. Without the line the dependency
  * silently resolves to whatever stale jar mavenLocal holds and fails as a page of unresolved references.
  */
-includeBuild('vscript') {
+includeBuild("vscript") {
     dependencySubstitution {
-        substitute module('dev.ziggle:vscript') using project(':vscript-lang')
-        substitute module('dev.ziggle:vscript-runtime') using project(':vscript-runtime')
-        substitute module('dev.ziggle:vscript-ui') using project(':vscript-ui')
-        substitute module('dev.ziggle:vscript-runview') using project(':vscript-runview')
-        substitute module('dev.ziggle:editor-host') using project(':editor-host')
-        substitute module('dev.ziggle:editor-graph') using project(':editor-graph')
+        substitute(module("dev.ziggle:vscript")).using(project(":vscript-lang"))
+        substitute(module("dev.ziggle:vscript-runtime")).using(project(":vscript-runtime"))
+        substitute(module("dev.ziggle:vscript-ui")).using(project(":vscript-ui"))
+        substitute(module("dev.ziggle:vscript-runview")).using(project(":vscript-runview"))
+        substitute(module("dev.ziggle:editor-host")).using(project(":editor-host"))
+        substitute(module("dev.ziggle:editor-graph")).using(project(":editor-graph"))
     }
 }
