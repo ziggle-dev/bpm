@@ -5,9 +5,9 @@ import bpm.catalog.values.EntityHandle
 import bpm.catalog.values.FilterValue
 import bpm.catalog.values.FluidStackValue
 import bpm.catalog.values.ItemStackValue
-import io.osrsx.vscript.nodes.Vs
-import io.osrsx.vscript.nodes.VsType
-import io.osrsx.vscript.vm.StructValue
+import dev.ziggle.vscript.nodes.Vs
+import dev.ziggle.vscript.nodes.VsType
+import dev.ziggle.vscript.vm.StructValue
 
 /** The pin types the node declarations are written in — what a parameter of each kind READS as. */
 object McVs {
@@ -34,7 +34,7 @@ object McVs {
     val block: VsType<String> = VsType.of(McTypes.BLOCK.type) { _, v -> v?.toString().orEmpty() }
 
     /** A `MAP<STRING, STRING>` result — a block state's properties, say — handed over as the map it is. */
-    val stringMap: VsType<Any?> = VsType.of(io.osrsx.vscript.model.TypeRef.map(io.osrsx.vscript.model.TypeRef(io.osrsx.vscript.model.PinType.STRING), io.osrsx.vscript.model.TypeRef(io.osrsx.vscript.model.PinType.STRING))) { _, v -> v }
+    val stringMap: VsType<Any?> = VsType.of(dev.ziggle.vscript.model.TypeRef.map(dev.ziggle.vscript.model.TypeRef(dev.ziggle.vscript.model.PinType.STRING), dev.ziggle.vscript.model.TypeRef(dev.ziggle.vscript.model.PinType.STRING))) { _, v -> v }
     val fluid: VsType<String> = VsType.of(McTypes.FLUID.type) { _, v -> v?.toString().orEmpty() }
     val tag: VsType<String> = VsType.of(McTypes.TAG.type) { _, v -> v?.toString().orEmpty() }
 
@@ -52,11 +52,11 @@ object McVs {
     val widget: VsType<StructValue?> = VsType.of(McTypes.WIDGET.type) { _, v -> v as? StructValue }
 
     /** The language's own JSON value — what `readJson` hands back and `as` reads. */
-    val json: VsType<Any?> = VsType.of(io.osrsx.vscript.model.TypeRef.named("Json")) { _, v -> v }
+    val json: VsType<Any?> = VsType.of(dev.ziggle.vscript.model.TypeRef.named("Json")) { _, v -> v }
 
     /** `MAP<STRING, INT>`. */
     val stringIntMap: VsType<Map<Any?, Any?>> = VsType.of(
-        io.osrsx.vscript.model.TypeRef.map(io.osrsx.vscript.model.TypeRef(io.osrsx.vscript.model.PinType.STRING), io.osrsx.vscript.model.TypeRef(io.osrsx.vscript.model.PinType.INT)),
+        dev.ziggle.vscript.model.TypeRef.map(dev.ziggle.vscript.model.TypeRef(dev.ziggle.vscript.model.PinType.STRING), dev.ziggle.vscript.model.TypeRef(dev.ziggle.vscript.model.PinType.INT)),
     ) { _, v -> (v as? Map<*, *>)?.let { m -> LinkedHashMap<Any?, Any?>().also { out -> m.forEach { (k, x) -> out[k] = x } } } ?: LinkedHashMap() }
     val blockState: VsType<net.minecraft.world.level.block.state.BlockState?> =
         VsType.of(McTypes.BLOCK_STATE.type) { _, v -> v as? net.minecraft.world.level.block.state.BlockState }

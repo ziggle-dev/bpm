@@ -7,12 +7,12 @@ import bpm.nodes.ControllerHost
 import bpm.world.ControllerBlockEntity
 import bpm.world.LinkTable
 import bpm.world.ResolvedLink
-import io.osrsx.vscript.host.RunPhase
-import io.osrsx.vscript.log.LogLevel
-import io.osrsx.vscript.nodes.BuiltinHosts
-import io.osrsx.vscript.runtime.EditorDoc
-import io.osrsx.vscript.runtime.ScriptRuntime
-import io.osrsx.vscript.runtime.TickMode
+import dev.ziggle.vscript.host.RunPhase
+import dev.ziggle.vscript.log.LogLevel
+import dev.ziggle.vscript.nodes.BuiltinHosts
+import dev.ziggle.vscript.runtime.EditorDoc
+import dev.ziggle.vscript.runtime.ScriptRuntime
+import dev.ziggle.vscript.runtime.TickMode
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.nbt.CompoundTag
@@ -69,7 +69,7 @@ class ControllerRuntime(private val be: ControllerBlockEntity, private val manag
     private val library = BpmCatalog.library(this)
     private val hosts = library.install(BuiltinHosts.registry(files = files, phase = phase), McValueOut)
 
-    lateinit var debug: io.osrsx.vscript.runtime.DebugSession
+    lateinit var debug: dev.ziggle.vscript.runtime.DebugSession
         private set
     lateinit var publisher: RunViewPublisher
         private set
@@ -85,7 +85,7 @@ class ControllerRuntime(private val be: ControllerBlockEntity, private val manag
     )
 
     init {
-        debug = io.osrsx.vscript.runtime.DebugSession(runtime)
+        debug = dev.ziggle.vscript.runtime.DebugSession(runtime)
         publisher = RunViewPublisher(runtime, debug)
     }
 

@@ -1,7 +1,7 @@
 package bpm.runtime
 
-import io.osrsx.vscript.host.FileStore
-import io.osrsx.vscript.vm.VmError
+import dev.ziggle.vscript.host.FileStore
+import dev.ziggle.vscript.vm.VmError
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.Tag
 

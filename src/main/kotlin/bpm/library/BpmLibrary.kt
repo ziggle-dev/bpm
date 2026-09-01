@@ -2,9 +2,9 @@ package bpm.library
 
 import bpm.Bpm
 import com.google.gson.JsonParser
-import io.osrsx.vscript.model.Graph
-import io.osrsx.vscript.model.GraphDoc
-import io.osrsx.vscript.model.GraphSource
+import dev.ziggle.vscript.model.Graph
+import dev.ziggle.vscript.model.GraphDoc
+import dev.ziggle.vscript.model.GraphSource
 import net.minecraft.core.HolderLookup
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.ListTag

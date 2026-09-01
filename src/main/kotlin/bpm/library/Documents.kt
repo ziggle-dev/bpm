@@ -1,9 +1,9 @@
 package bpm.library
 
-import io.osrsx.vscript.model.BuiltinNodes
-import io.osrsx.vscript.model.Graph
-import io.osrsx.vscript.model.GraphDoc
-import io.osrsx.vscript.model.Node
+import dev.ziggle.vscript.model.BuiltinNodes
+import dev.ziggle.vscript.model.Graph
+import dev.ziggle.vscript.model.GraphDoc
+import dev.ziggle.vscript.model.Node
 import java.util.UUID
 
 /** New documents, the same on both sides. */

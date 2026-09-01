@@ -2,9 +2,9 @@ package bpm.client.editor
 
 import imgui.ImGui
 import imgui.flag.ImGuiWindowFlags
-import io.osrsx.imgui.PanelBits
-import io.osrsx.imgui.Theme
-import io.osrsx.vscript.editor.graph.PanelField
+import dev.ziggle.imgui.PanelBits
+import dev.ziggle.imgui.Theme
+import dev.ziggle.vscript.editor.graph.PanelField
 
 /**
  * The controller the workbench is attached to: what it runs, whether it runs, and its link table (rename

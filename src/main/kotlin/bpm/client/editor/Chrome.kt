@@ -4,10 +4,10 @@ import imgui.ImDrawList
 import imgui.ImGui
 import imgui.flag.ImDrawFlags
 import imgui.flag.ImGuiMouseButton
-import io.osrsx.imgui.Fonts
-import io.osrsx.imgui.PanelBits
-import io.osrsx.imgui.Theme
-import io.osrsx.vscript.editor.graph.PanelField
+import dev.ziggle.imgui.Fonts
+import dev.ziggle.imgui.PanelBits
+import dev.ziggle.imgui.Theme
+import dev.ziggle.vscript.editor.graph.PanelField
 
 /**
  * The look of the bpm panels: the same hand-drawn chrome as vscript's outline and drawer — flat panel

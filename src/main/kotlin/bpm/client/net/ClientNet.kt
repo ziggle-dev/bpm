@@ -40,10 +40,10 @@ import bpm.net.chunk.Chunker
 import bpm.session.CommitStatus
 import bpm.session.Role
 import bpm.session.SessionReason
-import io.osrsx.vscript.model.Graph
-import io.osrsx.vscript.model.GraphDoc
-import io.osrsx.vscript.model.GraphSource
-import io.osrsx.vscript.runtime.EditorDoc
+import dev.ziggle.vscript.model.Graph
+import dev.ziggle.vscript.model.GraphDoc
+import dev.ziggle.vscript.model.GraphSource
+import dev.ziggle.vscript.runtime.EditorDoc
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
@@ -162,14 +162,14 @@ object ClientNet {
         val v = runViews[m.pos] ?: return
         v.applyPause(
             m.contextId, m.stopToken, m.reason,
-            m.stack.map { io.osrsx.vscript.runtime.StackFrame(it.index, it.chunkName, it.pc, it.nodeId, it.activation) },
+            m.stack.map { dev.ziggle.vscript.runtime.StackFrame(it.index, it.chunkName, it.pc, it.nodeId, it.activation) },
             m.scopes.map { scope(it) },
             m.pinValues.map { Triple(it.nodeId, it.pin, it.display) },
             m.pureValues.map { it.nodeId to it.display },
         )
     }
 
-    private fun scope(s: bpm.net.ScopeDto) = io.osrsx.vscript.runtime.Scope(s.name, s.vars.map { io.osrsx.vscript.runtime.Variable(it.name, null, it.nodeId, shown = it.display, typed = it.typeName) })
+    private fun scope(s: bpm.net.ScopeDto) = dev.ziggle.vscript.runtime.Scope(s.name, s.vars.map { dev.ziggle.vscript.runtime.Variable(it.name, null, it.nodeId, shown = it.display, typed = it.typeName) })
 
     /** Which document each controller's graph is, once the server has said. */
     val controllerDocs = HashMap<BlockPos, UUID>()

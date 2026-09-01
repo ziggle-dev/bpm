@@ -18,9 +18,9 @@ import bpm.session.Role
 import bpm.session.SessionReason
 import bpm.world.ControllerBlockEntity
 import bpm.world.Link
-import io.osrsx.vscript.compile.Severity
-import io.osrsx.vscript.compile.Validator
-import io.osrsx.vscript.model.GraphDoc
+import dev.ziggle.vscript.compile.Severity
+import dev.ziggle.vscript.compile.Validator
+import dev.ziggle.vscript.model.GraphDoc
 import net.minecraft.core.BlockPos
 import net.minecraft.core.GlobalPos
 import net.minecraft.network.chat.Component
@@ -480,9 +480,9 @@ object ServerNet {
         val lib = BpmLibrary.get(server)
         val record = lib[docId] ?: return
         val text = lib.text(docId) ?: return
-        val graph = runCatching { io.osrsx.vscript.model.GraphDoc.fromJson(text) }.getOrNull() ?: return
+        val graph = runCatching { dev.ziggle.vscript.model.GraphDoc.fromJson(text) }.getOrNull() ?: return
         if (LinkRenames.rewrite(graph.nodes, BpmCatalog.catalog, old, new) == 0) return
-        val stored = lib.store(docId, io.osrsx.vscript.model.GraphDoc.toJson(graph), record.hasErrors) ?: return
+        val stored = lib.store(docId, dev.ziggle.vscript.model.GraphDoc.toJson(graph), record.hasErrors) ?: return
         for (id in sessions.participantsOf(docId)) {
             val p = player(server, id) ?: continue
             if (sessions.isHolder(id, docId)) send(p, LinkRenamedPayload(docId, old, new, stored.version, stored.sha256)) else pushDoc(p, docId)
@@ -524,7 +524,7 @@ object ServerNet {
         return runWatches.entries.filter { key in it.value }.mapNotNull { player(server, it.key) }
     }
 
-    private fun context(c: io.osrsx.vscript.runtime.Context) =
+    private fun context(c: dev.ziggle.vscript.runtime.Context) =
         ContextDto(c.id, c.name, c.entryNodeId, c.state.ordinal, c.pauseReason.ordinal, c.nodeId, c.error, c.sleepingForMs)
 
     private fun frame(be: ControllerBlockEntity, f: RunViewPublisher.Frame) = RunFramePayload(
@@ -532,7 +532,7 @@ object ServerNet {
         f.contexts?.map(::context), f.error,
     )
 
-    private fun scopes(list: List<io.osrsx.vscript.runtime.Scope>) =
+    private fun scopes(list: List<dev.ziggle.vscript.runtime.Scope>) =
         list.take(32).map { s -> ScopeDto(s.name, s.variables.take(512).map { VarDto(it.name, it.display, it.typeName, it.nodeId) }) }
 
     private fun pauseMsg(be: ControllerBlockEntity, p: RunViewPublisher.Pause) = RunPauseMsg(

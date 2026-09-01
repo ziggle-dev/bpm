@@ -3,8 +3,8 @@ package bpm.nodes
 import bpm.catalog.McVs
 import bpm.catalog.values.BlockPosValue
 import bpm.runtime.CountdownJob
-import io.osrsx.vscript.nodes.Contribution
-import io.osrsx.vscript.nodes.library
+import dev.ziggle.vscript.nodes.Contribution
+import dev.ziggle.vscript.nodes.library
 
 /** `controller.*` — the block the script runs in. */
 object ControllerNodes {

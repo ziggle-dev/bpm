@@ -1,8 +1,8 @@
 package bpm.nodes
 
 import bpm.catalog.McVs
-import io.osrsx.vscript.nodes.Contribution
-import io.osrsx.vscript.nodes.library
+import dev.ziggle.vscript.nodes.Contribution
+import dev.ziggle.vscript.nodes.library
 import net.minecraft.network.chat.Component
 import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket
 import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket

@@ -4,7 +4,7 @@ import bpm.Bpm
 import bpm.library.BpmLibrary
 import bpm.runtime.ControllerRuntime
 import bpm.runtime.RuntimeManager
-import io.osrsx.vscript.runtime.EditorDoc
+import dev.ziggle.vscript.runtime.EditorDoc
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.HolderLookup

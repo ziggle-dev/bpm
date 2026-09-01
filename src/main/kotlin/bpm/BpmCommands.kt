@@ -6,9 +6,9 @@ import bpm.world.ControllerBlockEntity
 import bpm.world.Link
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.context.CommandContext
-import io.osrsx.vscript.compile.Severity
-import io.osrsx.vscript.compile.Validator
-import io.osrsx.vscript.model.GraphDoc
+import dev.ziggle.vscript.compile.Severity
+import dev.ziggle.vscript.compile.Validator
+import dev.ziggle.vscript.model.GraphDoc
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument

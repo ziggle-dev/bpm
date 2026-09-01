@@ -4,8 +4,8 @@ import bpm.catalog.values.FilterValue
 import bpm.runtime.TickJobs
 import bpm.world.LinkTable
 import bpm.world.ResolvedLink
-import io.osrsx.vscript.log.LogLevel
-import io.osrsx.vscript.vm.StructValue
+import dev.ziggle.vscript.log.LogLevel
+import dev.ziggle.vscript.vm.StructValue
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.RegistryAccess

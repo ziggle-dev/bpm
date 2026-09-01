@@ -1,7 +1,7 @@
 package bpm.catalog.values
 
 import bpm.world.devices.Widget
-import io.osrsx.vscript.vm.StructValue
+import dev.ziggle.vscript.vm.StructValue
 
 /**
  * The `Widget` record as the graph sees it — a plain data record with every field a [Widget] has, so a

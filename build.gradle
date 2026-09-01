@@ -134,12 +134,12 @@ neoForge {
 
 // The libraries embedded in the shipped jar (`jarJar`) and compiled against (`implementation`) — one list.
 def bundled = [
-    [notation: "io.osrsx:osrsx-vscript:[${vscript_version},2.0)", prefer: vscript_version],
-    [notation: "io.osrsx:vscript-runtime:[${vscript_version},2.0)", prefer: vscript_version],
-    [notation: "io.osrsx:vscript-ui:[${vscript_version},2.0)", prefer: vscript_version],
-    [notation: "io.osrsx:vscript-runview:[${vscript_version},2.0)", prefer: vscript_version],
-    [notation: "io.osrsx:editor-host:[${vscript_version},2.0)", prefer: vscript_version],
-    [notation: "io.osrsx:editor-graph:[${vscript_version},2.0)", prefer: vscript_version],
+    [notation: "dev.ziggle:vscript:[${vscript_version},2.0)", prefer: vscript_version],
+    [notation: "dev.ziggle:vscript-runtime:[${vscript_version},2.0)", prefer: vscript_version],
+    [notation: "dev.ziggle:vscript-ui:[${vscript_version},2.0)", prefer: vscript_version],
+    [notation: "dev.ziggle:vscript-runview:[${vscript_version},2.0)", prefer: vscript_version],
+    [notation: "dev.ziggle:editor-host:[${vscript_version},2.0)", prefer: vscript_version],
+    [notation: "dev.ziggle:editor-graph:[${vscript_version},2.0)", prefer: vscript_version],
     // Dear ImGui via imgui-java. The editor modules compile against the binding only; the GL3 backend and the
     // JNI natives are the host's to supply, and this mod is the host.
     [notation: "io.github.spair:imgui-java-binding:[${imgui_version},1.91)", prefer: imgui_version],

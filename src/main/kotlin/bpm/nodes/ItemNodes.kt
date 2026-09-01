@@ -7,9 +7,9 @@ import bpm.catalog.values.RegistryIds
 import bpm.catalog.values.SlotValue
 import bpm.runtime.PredicateJob
 import com.mojang.serialization.JsonOps
-import io.osrsx.vscript.json.Json
-import io.osrsx.vscript.nodes.Contribution
-import io.osrsx.vscript.nodes.library
+import dev.ziggle.vscript.json.Json
+import dev.ziggle.vscript.nodes.Contribution
+import dev.ziggle.vscript.nodes.library
 import net.minecraft.core.component.DataComponentType
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.RegistryOps

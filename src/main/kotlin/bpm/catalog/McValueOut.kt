@@ -5,8 +5,8 @@ import bpm.catalog.values.EntityHandle
 import bpm.catalog.values.FluidStackValue
 import bpm.catalog.values.ItemStackValue
 import bpm.catalog.values.RegistryIds
-import io.osrsx.vscript.model.TypeRef
-import io.osrsx.vscript.nodes.OutputConverter
+import dev.ziggle.vscript.model.TypeRef
+import dev.ziggle.vscript.nodes.OutputConverter
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.material.Fluid

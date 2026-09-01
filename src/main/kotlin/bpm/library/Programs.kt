@@ -1,9 +1,9 @@
 package bpm.library
 
-import io.osrsx.vscript.model.BuiltinNodes
-import io.osrsx.vscript.model.Graph
-import io.osrsx.vscript.model.Link
-import io.osrsx.vscript.model.Node
+import dev.ziggle.vscript.model.BuiltinNodes
+import dev.ziggle.vscript.model.Graph
+import dev.ziggle.vscript.model.Link
+import dev.ziggle.vscript.model.Node
 import java.util.UUID
 
 /** Programs the mod ships as documents: the Warden's, which the Warden's Program item puts in the library. */

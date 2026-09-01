@@ -1,6 +1,6 @@
 package bpm.client.editor
 
-import io.osrsx.vscript.model.HostEnum
+import dev.ziggle.vscript.model.HostEnum
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

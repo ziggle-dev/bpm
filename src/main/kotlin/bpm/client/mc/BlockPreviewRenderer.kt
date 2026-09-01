@@ -7,9 +7,9 @@ import bpm.client.editor.LinkView
 import com.mojang.blaze3d.pipeline.TextureTarget
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.VertexSorting
-import io.osrsx.vscript.editor.host.IconRef
-import io.osrsx.vscript.editor.host.IconRegion
-import io.osrsx.vscript.editor.host.IconSource
+import dev.ziggle.vscript.editor.host.IconRef
+import dev.ziggle.vscript.editor.host.IconRegion
+import dev.ziggle.vscript.editor.host.IconSource
 import net.minecraft.client.Minecraft
 import com.mojang.blaze3d.vertex.ByteBufferBuilder
 import net.minecraft.client.gui.GuiGraphics

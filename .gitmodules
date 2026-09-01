@@ -1,4 +1,4 @@
 [submodule "vscript"]
 	path = vscript
-	url = https://github.com/osrsx/osrsx-vscript.git
+	url = https://github.com/ziggle-dev/vscript.git
 	branch = main

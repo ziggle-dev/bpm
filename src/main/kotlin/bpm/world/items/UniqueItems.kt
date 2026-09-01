@@ -9,7 +9,7 @@ import bpm.world.LinkerItem
 import bpm.world.ModComponents
 import bpm.world.TooltipItem
 import bpm.world.devices.GateBlock
-import io.osrsx.vscript.model.GraphDoc
+import dev.ziggle.vscript.model.GraphDoc
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.particles.ParticleTypes

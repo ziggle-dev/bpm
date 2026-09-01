@@ -1,11 +1,11 @@
 package bpm.client.editor
 
 import bpm.catalog.BpmCatalog
-import io.osrsx.vscript.model.Graph
-import io.osrsx.vscript.model.GraphVariable
-import io.osrsx.vscript.model.PinType
-import io.osrsx.vscript.model.TypeRef
-import io.osrsx.vscript.runtime.EditorDoc
+import dev.ziggle.vscript.model.Graph
+import dev.ziggle.vscript.model.GraphVariable
+import dev.ziggle.vscript.model.PinType
+import dev.ziggle.vscript.model.TypeRef
+import dev.ziggle.vscript.runtime.EditorDoc
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

@@ -1,6 +1,6 @@
 package bpm.catalog
 
-import io.osrsx.vscript.model.Types
+import dev.ziggle.vscript.model.Types
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -17,6 +17,6 @@ class DeclarableTypesTest {
         for (name in listOf("ItemStack", "FluidStack", "Filter", "Slot", "BlockState", "Entity", "Player")) {
             assertEquals(false, Types.of(name)!!.authorable, "$name has no inline editor and must not claim one")
         }
-        assertTrue("ItemStack" in io.osrsx.vscript.model.BuiltinNodes.elementTypes.map { it.name }, "a list of stacks")
+        assertTrue("ItemStack" in dev.ziggle.vscript.model.BuiltinNodes.elementTypes.map { it.name }, "a list of stacks")
     }
 }

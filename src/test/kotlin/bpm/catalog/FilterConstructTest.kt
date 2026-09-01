@@ -2,16 +2,16 @@ package bpm.catalog
 
 import bpm.catalog.values.FilterValue
 import bpm.nodes.DetachedHost
-import io.osrsx.vscript.model.BuiltinNodes
-import io.osrsx.vscript.model.Graph
-import io.osrsx.vscript.model.GraphVariable
-import io.osrsx.vscript.model.Link
-import io.osrsx.vscript.model.Node
-import io.osrsx.vscript.model.TypeRef
-import io.osrsx.vscript.nodes.BuiltinHosts
-import io.osrsx.vscript.runtime.EditorDoc
-import io.osrsx.vscript.runtime.ScriptRuntime
-import io.osrsx.vscript.vm.StructValue
+import dev.ziggle.vscript.model.BuiltinNodes
+import dev.ziggle.vscript.model.Graph
+import dev.ziggle.vscript.model.GraphVariable
+import dev.ziggle.vscript.model.Link
+import dev.ziggle.vscript.model.Node
+import dev.ziggle.vscript.model.TypeRef
+import dev.ziggle.vscript.nodes.BuiltinHosts
+import dev.ziggle.vscript.runtime.EditorDoc
+import dev.ziggle.vscript.runtime.ScriptRuntime
+import dev.ziggle.vscript.vm.StructValue
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
 import kotlin.test.Test
@@ -40,7 +40,7 @@ class FilterConstructTest {
             variables = listOf(GraphVariable("f", TypeRef.named(FilterValue.TYPE).orNull(), null)),
         )
         val issues = runtime.validate(EditorDoc(graph))
-        assertTrue(issues.none { it.severity == io.osrsx.vscript.compile.Severity.ERROR }, "issues: ${issues.map { it.message }}")
+        assertTrue(issues.none { it.severity == dev.ziggle.vscript.compile.Severity.ERROR }, "issues: ${issues.map { it.message }}")
         val error = runtime.run(EditorDoc(graph), debug = true)
         assertNull(error, "run: $error")
         repeat(5) { runtime.tick() }

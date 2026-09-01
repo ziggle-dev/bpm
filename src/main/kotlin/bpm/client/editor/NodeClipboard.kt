@@ -1,9 +1,9 @@
 package bpm.client.editor
 
-import io.osrsx.vscript.model.Graph
-import io.osrsx.vscript.model.GraphDoc
-import io.osrsx.vscript.model.Link
-import io.osrsx.vscript.runtime.EditorDoc
+import dev.ziggle.vscript.model.Graph
+import dev.ziggle.vscript.model.GraphDoc
+import dev.ziggle.vscript.model.Link
+import dev.ziggle.vscript.runtime.EditorDoc
 
 /**
  * Copy/paste of nodes as text: the selected nodes and the links between them, serialised through

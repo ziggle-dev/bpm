@@ -4,8 +4,8 @@ import imgui.ImDrawList
 import imgui.ImGui
 import imgui.flag.ImDrawFlags
 import imgui.flag.ImGuiWindowFlags
-import io.osrsx.imgui.PanelBits
-import io.osrsx.imgui.Theme
+import dev.ziggle.imgui.PanelBits
+import dev.ziggle.imgui.Theme
 
 /**
  * The controller's own stores — what the reserved link `self` names: nine item slots, the tanks and the

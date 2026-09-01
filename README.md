@@ -3,7 +3,7 @@
 **Visual scripting for Minecraft automation.** Graphs run on the server, are edited in-game on a node canvas, and
 every transfer they make is drawn in the world.
 
-NeoForge 1.21.1 · Kotlin · built on the [vscript](https://github.com/osrsx/osrsx-vscript) language, VM and canvas editor
+NeoForge 1.21.1 · Kotlin · built on the [vscript](https://github.com/ziggle-dev/vscript) language, VM and canvas editor
 
 ---
 

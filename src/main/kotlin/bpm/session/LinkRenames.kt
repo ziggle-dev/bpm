@@ -1,8 +1,8 @@
 package bpm.session
 
 import bpm.catalog.McTypes
-import io.osrsx.vscript.model.Node
-import io.osrsx.vscript.model.NodeCatalog
+import dev.ziggle.vscript.model.Node
+import dev.ziggle.vscript.model.NodeCatalog
 
 /**
  * A link renamed on a controller is renamed in its graph as well: every literal typed into a `Link`-typed

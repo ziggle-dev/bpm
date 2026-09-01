@@ -1,11 +1,11 @@
 package bpm.client.editor
 
 import bpm.catalog.BpmCatalog
-import io.osrsx.vscript.model.BuiltinNodes
-import io.osrsx.vscript.model.Graph
-import io.osrsx.vscript.model.Node
-import io.osrsx.vscript.model.resolveNode
-import io.osrsx.vscript.runtime.EditorDoc
+import dev.ziggle.vscript.model.BuiltinNodes
+import dev.ziggle.vscript.model.Graph
+import dev.ziggle.vscript.model.Node
+import dev.ziggle.vscript.model.resolveNode
+import dev.ziggle.vscript.runtime.EditorDoc
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

@@ -1,6 +1,6 @@
 package bpm.runtime
 
-import io.osrsx.vscript.vm.VmError
+import dev.ziggle.vscript.vm.VmError
 import net.minecraft.nbt.CompoundTag
 import kotlin.test.Test
 import kotlin.test.assertEquals

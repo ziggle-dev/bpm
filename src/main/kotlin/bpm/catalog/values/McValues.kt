@@ -2,7 +2,7 @@ package bpm.catalog.values
 
 import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
-import io.osrsx.vscript.vm.StructValue
+import dev.ziggle.vscript.vm.StructValue
 import net.minecraft.core.BlockPos
 import net.minecraft.core.component.DataComponentPatch
 import net.minecraft.core.registries.BuiltInRegistries

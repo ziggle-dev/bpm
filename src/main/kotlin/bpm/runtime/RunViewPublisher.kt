@@ -1,10 +1,10 @@
 package bpm.runtime
 
-import io.osrsx.vscript.log.LogRecord
-import io.osrsx.vscript.runtime.DebugSession
-import io.osrsx.vscript.runtime.ScriptRuntime
-import io.osrsx.vscript.runtime.StoppedReason
-import io.osrsx.vscript.runtime.Variable
+import dev.ziggle.vscript.log.LogRecord
+import dev.ziggle.vscript.runtime.DebugSession
+import dev.ziggle.vscript.runtime.ScriptRuntime
+import dev.ziggle.vscript.runtime.StoppedReason
+import dev.ziggle.vscript.runtime.Variable
 
 /**
  * Turns one runtime's state into the deltas the run view sends: which nodes and links fired since last
@@ -26,7 +26,7 @@ class RunViewPublisher(private val runtime: ScriptRuntime, private val debug: De
         val removeNodes: IntArray,
         val addLinks: IntArray,
         val removeLinks: IntArray,
-        val contexts: List<io.osrsx.vscript.runtime.Context>?,
+        val contexts: List<dev.ziggle.vscript.runtime.Context>?,
         val error: String?,
     )
 
@@ -34,8 +34,8 @@ class RunViewPublisher(private val runtime: ScriptRuntime, private val debug: De
         val contextId: Int,
         val stopToken: Long,
         val reason: StoppedReason,
-        val stack: List<io.osrsx.vscript.runtime.StackFrame>,
-        val scopes: List<io.osrsx.vscript.runtime.Scope>,
+        val stack: List<dev.ziggle.vscript.runtime.StackFrame>,
+        val scopes: List<dev.ziggle.vscript.runtime.Scope>,
         val pinValues: List<Triple<Int, String, String>>,
         val pureValues: List<Pair<Int, String>>,
     )
@@ -136,7 +136,7 @@ class RunViewPublisher(private val runtime: ScriptRuntime, private val debug: De
         return Pause(ctx.id, token, debug.stoppedReason() ?: StoppedReason.PAUSE, stack, scopes, pins, pure)
     }
 
-    fun scopes(contextId: Int, frameIndex: Int): List<io.osrsx.vscript.runtime.Scope> = debug.scopes(contextId, frameIndex)
+    fun scopes(contextId: Int, frameIndex: Int): List<dev.ziggle.vscript.runtime.Scope> = debug.scopes(contextId, frameIndex)
 
     private val lastScopes = HashMap<Int, String>()
 
@@ -144,8 +144,8 @@ class RunViewPublisher(private val runtime: ScriptRuntime, private val debug: De
      * The top-frame scopes of every fiber whose values changed since the last call — what keeps the drawer's
      * Variables tab live while the program runs, the way a local session's does by reading every frame.
      */
-    fun liveScopes(): List<Pair<Int, List<io.osrsx.vscript.runtime.Scope>>> {
-        val out = ArrayList<Pair<Int, List<io.osrsx.vscript.runtime.Scope>>>()
+    fun liveScopes(): List<Pair<Int, List<dev.ziggle.vscript.runtime.Scope>>> {
+        val out = ArrayList<Pair<Int, List<dev.ziggle.vscript.runtime.Scope>>>()
         val seen = HashSet<Int>()
         for (c in debug.contexts()) {
             seen += c.id
@@ -160,7 +160,7 @@ class RunViewPublisher(private val runtime: ScriptRuntime, private val debug: De
         return out
     }
 
-    private fun signature(contexts: List<io.osrsx.vscript.runtime.Context>): String =
+    private fun signature(contexts: List<dev.ziggle.vscript.runtime.Context>): String =
         contexts.joinToString("|") { "${it.id}:${it.state}:${it.pauseReason}:${it.nodeId}:${it.error != null}:${it.sleepingForMs}" }
 
     companion object {

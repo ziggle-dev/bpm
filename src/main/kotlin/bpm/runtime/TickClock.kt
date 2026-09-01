@@ -1,6 +1,6 @@
 package bpm.runtime
 
-import io.osrsx.vscript.host.Clock
+import dev.ziggle.vscript.host.Clock
 
 /**
  * Game time for the VM: [ticks] server ticks, 50 ms each, advanced by the [RuntimeManager] once per tick.

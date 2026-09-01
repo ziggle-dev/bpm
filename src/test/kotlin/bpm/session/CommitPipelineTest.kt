@@ -3,11 +3,11 @@ package bpm.session
 import bpm.catalog.BpmCatalog
 import bpm.library.BpmLibrary
 import bpm.library.DocumentCodec
-import io.osrsx.vscript.model.BuiltinNodes
-import io.osrsx.vscript.model.Graph
-import io.osrsx.vscript.model.GraphDoc
-import io.osrsx.vscript.model.Link
-import io.osrsx.vscript.model.Node
+import dev.ziggle.vscript.model.BuiltinNodes
+import dev.ziggle.vscript.model.Graph
+import dev.ziggle.vscript.model.GraphDoc
+import dev.ziggle.vscript.model.Link
+import dev.ziggle.vscript.model.Node
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals

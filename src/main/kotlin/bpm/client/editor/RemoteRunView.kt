@@ -1,16 +1,16 @@
 package bpm.client.editor
 
-import io.osrsx.vscript.log.LogLevel
-import io.osrsx.vscript.log.ScriptLog
-import io.osrsx.vscript.runtime.Context
-import io.osrsx.vscript.runtime.DebugSurface
-import io.osrsx.vscript.runtime.Scope
-import io.osrsx.vscript.runtime.StackFrame
-import io.osrsx.vscript.runtime.StoppedReason
-import io.osrsx.vscript.runtime.Variable
-import io.osrsx.vscript.vm.Breakpoints
-import io.osrsx.vscript.vm.FiberState
-import io.osrsx.vscript.vm.PauseReason
+import dev.ziggle.vscript.log.LogLevel
+import dev.ziggle.vscript.log.ScriptLog
+import dev.ziggle.vscript.runtime.Context
+import dev.ziggle.vscript.runtime.DebugSurface
+import dev.ziggle.vscript.runtime.Scope
+import dev.ziggle.vscript.runtime.StackFrame
+import dev.ziggle.vscript.runtime.StoppedReason
+import dev.ziggle.vscript.runtime.Variable
+import dev.ziggle.vscript.vm.Breakpoints
+import dev.ziggle.vscript.vm.FiberState
+import dev.ziggle.vscript.vm.PauseReason
 
 /** The verbs a run view sends back to the controller's VM. */
 interface RunSink {

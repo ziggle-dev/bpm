@@ -1,9 +1,9 @@
 package bpm.client.editor
 
-import io.osrsx.imgui.FuzzySearch
-import io.osrsx.vscript.editor.host.IconRef
-import io.osrsx.vscript.editor.host.ValueCatalog
-import io.osrsx.vscript.model.HostEnum
+import dev.ziggle.imgui.FuzzySearch
+import dev.ziggle.vscript.editor.host.IconRef
+import dev.ziggle.vscript.editor.host.ValueCatalog
+import dev.ziggle.vscript.model.HostEnum
 
 /**
  * A host enum's members as a value catalogue — what gives a `Click`, `Aim`, `Direction` or `Notify` pin its

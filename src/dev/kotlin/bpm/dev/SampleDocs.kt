@@ -2,13 +2,13 @@ package bpm.dev
 
 import bpm.Bpm
 import bpm.catalog.BpmCatalog
-import io.osrsx.vscript.compile.Severity
-import io.osrsx.vscript.compile.Validator
-import io.osrsx.vscript.model.BuiltinNodes
-import io.osrsx.vscript.model.Graph
-import io.osrsx.vscript.model.GraphDoc
-import io.osrsx.vscript.model.Link
-import io.osrsx.vscript.model.Node
+import dev.ziggle.vscript.compile.Severity
+import dev.ziggle.vscript.compile.Validator
+import dev.ziggle.vscript.model.BuiltinNodes
+import dev.ziggle.vscript.model.Graph
+import dev.ziggle.vscript.model.GraphDoc
+import dev.ziggle.vscript.model.Link
+import dev.ziggle.vscript.model.Node
 import net.neoforged.fml.loading.FMLPaths
 import java.nio.file.Files
 import java.util.UUID
@@ -99,7 +99,7 @@ object SampleDocs {
             Link(15, 12, "True", 13, "Exec"),
             Link(16, 9, "slot", 13, "Slot"),
         )
-        val toolSlot = io.osrsx.vscript.model.GraphVariable("tool slot", io.osrsx.vscript.model.TypeRef(io.osrsx.vscript.model.PinType.INT), 0)
+        val toolSlot = dev.ziggle.vscript.model.GraphVariable("tool slot", dev.ziggle.vscript.model.TypeRef(dev.ziggle.vscript.model.PinType.INT), 0)
         return Graph(UUID.nameUUIDFromBytes("bpm-sample-dump-but-tool".toByteArray()).toString(), "dump-but-tool", nodes, links, variables = listOf(toolSlot))
     }
 

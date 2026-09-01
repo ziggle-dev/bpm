@@ -10,8 +10,8 @@ import bpm.world.devices.MonitorBlock
 import bpm.world.devices.MonitorBlockEntity
 import bpm.world.devices.MonitorWall
 import bpm.world.devices.Widget
-import io.osrsx.vscript.model.Graph
-import io.osrsx.vscript.model.GraphDoc
+import dev.ziggle.vscript.model.Graph
+import dev.ziggle.vscript.model.GraphDoc
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.gametest.framework.GameTest
@@ -63,15 +63,15 @@ class MonitorGameTests {
         val graph = Graph(
             java.util.UUID.nameUUIDFromBytes("bpm-test-monitor".toByteArray()).toString(), "monitor-text",
             listOf(
-                io.osrsx.vscript.model.Node(1, io.osrsx.vscript.model.BuiltinNodes.ENTRY_TICK),
-                io.osrsx.vscript.model.Node(2, "monitor.text", literals = linkedMapOf("Text" to "iron: 64", "Colour" to "teal")),
-                io.osrsx.vscript.model.Node(3, "value.list", literals = linkedMapOf("Of" to "Widget", "Count" to 1L)),
-                io.osrsx.vscript.model.Node(4, "monitor.show", literals = linkedMapOf("Link" to "screen")),
+                dev.ziggle.vscript.model.Node(1, dev.ziggle.vscript.model.BuiltinNodes.ENTRY_TICK),
+                dev.ziggle.vscript.model.Node(2, "monitor.text", literals = linkedMapOf("Text" to "iron: 64", "Colour" to "teal")),
+                dev.ziggle.vscript.model.Node(3, "value.list", literals = linkedMapOf("Of" to "Widget", "Count" to 1L)),
+                dev.ziggle.vscript.model.Node(4, "monitor.show", literals = linkedMapOf("Link" to "screen")),
             ),
             listOf(
-                io.osrsx.vscript.model.Link(1, 1, "Exec", 4, "Exec"),
-                io.osrsx.vscript.model.Link(2, 2, "Widget", 3, "1"),
-                io.osrsx.vscript.model.Link(3, 3, "Value", 4, "Widgets"),
+                dev.ziggle.vscript.model.Link(1, 1, "Exec", 4, "Exec"),
+                dev.ziggle.vscript.model.Link(2, 2, "Widget", 3, "1"),
+                dev.ziggle.vscript.model.Link(3, 3, "Value", 4, "Widgets"),
             ),
         )
         val lib = BpmLibrary.get(level.server)
