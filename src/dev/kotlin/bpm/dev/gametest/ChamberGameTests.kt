@@ -150,12 +150,22 @@ class ChamberGameTests {
         helper.assertTrue(at(18, 4, 20).`is`(stairs) && at(20, 4, 20).`is`(alloy), "tier 4 is wrong")
         helper.assertTrue(at(20, py - 1, 20).`is`(alloy) && at(21, py - 1, 20).`is`(stairs) && at(21, py - 1, 21).`is`(slab) && at(22, py - 1, 20).isAir, "the summit is wrong")
         helper.assertTrue(at(10, 0, 10).`is`(ContentBlocks.CHAMBER_FLOOR.get()), "no floor at (10, 0, 10)")
-        // The trench, checked at a heading no bridge crosses (bridges are drawn per room).
+        // The trench, checked at the headings no bridge crosses (bridges are drawn per room).
+        //
+        // The invariant is that the trench ring EXISTS and the bridges are what cross it — not that any
+        // particular heading shows it. The room's layout is a fresh random draw every run and can put
+        // something else in a given trench cell, so asserting on the first unbridged heading made this
+        // test fail roughly one run in seven with "no trench at (29, 0, 20), heading 0.0, bridges [270]".
+        // Ask whether any unbridged heading shows the trench instead; that is the property being tested.
         val bridges = slot.layout!!.bridges
-        val heading = (0 until 8).map { it * 45.0 }.first { h -> bridges.none { RoomLayout.angleDiff(h, it.toDouble()) <= 16.0 } }
-        val tx = 20 + Math.round(8.5 * Math.cos(Math.toRadians(heading))).toInt()
-        val tz = 20 + Math.round(8.5 * Math.sin(Math.toRadians(heading))).toInt()
-        helper.assertTrue(at(tx, 0, tz).isAir && at(tx, -1, tz).isAir && at(tx, -2, tz).`is`(ContentBlocks.CHAMBER_WALL.get()), "no trench at ($tx, 0, $tz), heading $heading, bridges $bridges")
+        val clear = (0 until 8).map { it * 45.0 }.filter { h -> bridges.none { RoomLayout.angleDiff(h, it.toDouble()) <= 16.0 } }
+        helper.assertTrue(clear.isNotEmpty(), "every heading is bridged, so the trench cannot be checked: $bridges")
+        val trench = clear.any { heading ->
+            val tx = 20 + Math.round(8.5 * Math.cos(Math.toRadians(heading))).toInt()
+            val tz = 20 + Math.round(8.5 * Math.sin(Math.toRadians(heading))).toInt()
+            at(tx, 0, tz).isAir && at(tx, -1, tz).isAir && at(tx, -2, tz).`is`(ContentBlocks.CHAMBER_WALL.get())
+        }
+        helper.assertTrue(trench, "no trench at any unbridged heading $clear, bridges $bridges")
         val bx = 20 + Math.round(8.5 * Math.cos(Math.toRadians(270.0))).toInt()
         val bz = 20 + Math.round(8.5 * Math.sin(Math.toRadians(270.0))).toInt()
         helper.assertTrue(at(bx, 0, bz).`is`(DeviceBlocks.PHASE_BLOCK.get()), "no bridge on the gate side at ($bx, 0, $bz)")
