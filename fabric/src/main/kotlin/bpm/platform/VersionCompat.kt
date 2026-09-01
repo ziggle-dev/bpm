@@ -28,8 +28,23 @@ import net.minecraft.world.level.block.RenderShape
 
 /** `Direction.normal` became private; `getUnitVec3i` is the accessor that replaced it. */
 fun unitVector(direction: Direction): Vec3i = direction.unitVec3i
+
+/**
+ * The fifth parameter of `Block.neighborChanged`.
+ *
+ * It was the position the change came from; at 1.21.2 it became an `Orientation`, which carries the
+ * direction as well. The arity did not change, only the type — which is why an alias is enough, and it is
+ * enough only because every override of it in this mod passes the value straight to `super` and never
+ * asks what it is.
+ *
+ * If one ever needs to READ it, that override moves to a branch. Aliasing a type you do not touch is
+ * honest; aliasing one you do would be pretending two different things are the same.
+ */
+typealias NeighborSource = net.minecraft.world.level.redstone.Orientation?
 *///?} else {
 val ANIMATED_BLOCK_SHAPE: RenderShape = RenderShape.ENTITYBLOCK_ANIMATED
 
 fun unitVector(direction: Direction): Vec3i = direction.normal
+
+typealias NeighborSource = net.minecraft.core.BlockPos
 //?}

@@ -71,7 +71,7 @@ class TrapBlock(
         return BlockEntityTicker { _, _, _, be -> (be as? DeviceBlockEntity)?.serverTick() }
     }
 
-    override fun neighborChanged(state: BlockState, level: Level, pos: BlockPos, block: Block, fromPos: BlockPos, moving: Boolean) {
+    override fun neighborChanged(state: BlockState, level: Level, pos: BlockPos, block: Block, fromPos: bpm.platform.NeighborSource, moving: Boolean) {
         super.neighborChanged(state, level, pos, block, fromPos, moving)
         if (!level.isClientSide) (level.getBlockEntity(pos) as? TrapBlockEntity)?.onRedstone(level.hasNeighborSignal(pos))
     }
@@ -727,7 +727,7 @@ class TurretBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(De
 }
 
 /** The superposition block: solid or a ghost frame, toggled by its cycle, redstone, or a link. */
-class PhaseBlock(properties: Properties) : Block(properties), EntityBlock {
+class PhaseBlock(properties: Properties) : bpm.platform.SkylightAwareBlock(properties), EntityBlock {
     init {
         registerDefaultState(stateDefinition.any().setValue(SOLID, true))
     }
@@ -758,12 +758,12 @@ class PhaseBlock(properties: Properties) : Block(properties), EntityBlock {
 
     override fun getShape(state: BlockState, level: BlockGetter, pos: BlockPos, context: CollisionContext): VoxelShape = Shapes.block()
 
-    override fun propagatesSkylightDown(state: BlockState, level: BlockGetter, pos: BlockPos): Boolean = !state.getValue(SOLID)
+    override fun propagatesSkylight(state: BlockState): Boolean = !state.getValue(SOLID)
 
     override fun <T : BlockEntity> getTicker(level: Level, state: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T>? =
         DeviceBlockEntity.ticker(level, type, DeviceBlockEntities.PHASE.get())
 
-    override fun neighborChanged(state: BlockState, level: Level, pos: BlockPos, block: Block, fromPos: BlockPos, moving: Boolean) {
+    override fun neighborChanged(state: BlockState, level: Level, pos: BlockPos, block: Block, fromPos: bpm.platform.NeighborSource, moving: Boolean) {
         super.neighborChanged(state, level, pos, block, fromPos, moving)
         if (!level.isClientSide) (level.getBlockEntity(pos) as? PhaseBlockEntity)?.onRedstone(level.hasNeighborSignal(pos))
     }

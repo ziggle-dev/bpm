@@ -85,7 +85,7 @@ class GateBlock(properties: Properties) : Block(properties), EntityBlock {
         return InteractionResult.CONSUME
     }
 
-    override fun neighborChanged(state: BlockState, level: Level, pos: BlockPos, block: Block, fromPos: BlockPos, moving: Boolean) {
+    override fun neighborChanged(state: BlockState, level: Level, pos: BlockPos, block: Block, fromPos: bpm.platform.NeighborSource, moving: Boolean) {
         super.neighborChanged(state, level, pos, block, fromPos, moving)
         if (!level.isClientSide) (level.getBlockEntity(pos) as? GateBlockEntity)?.frameChanged()
     }
