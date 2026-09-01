@@ -12,11 +12,11 @@ import kotlin.test.fail
 /**
  * The packages that must stay free of Minecraft, NeoForge, Mojang and LWJGL types.
  *
- * The `src/core` source set is compiled without Minecraft on its classpath at all, so for that one the
- * compiler is the real guard and this is belt and braces — it catches a fully-qualified name in a
- * comment or a string, which the compiler would not. `bpm.client.editor` is still in the main source
- * set, where only this test stands between it and a stray import — it cannot move to core yet because
- * the ImGui bridge it draws through is not loader-free.
+ * Everything guarded here now lives in `src/core`, which is compiled without Minecraft on its classpath
+ * at all — so the compiler is the real guard and this is belt and braces. It still earns its place: it
+ * catches a fully-qualified name in a comment or a string, which the compiler would not, and it fails
+ * loudly if a guarded directory ever goes missing or empty, which is how it caught three separate
+ * mistakes while the core was being carved out.
  *
  * Two things this guard learned the hard way, both worth keeping:
  *
@@ -44,7 +44,6 @@ class ArchitectureTest {
             // is belt and braces — but it also catches a fully-qualified name in a comment or a string,
             // which the compiler would not.
             "src/core/kotlin",
-            "src/main/kotlin/bpm/client/editor",
         )
 
         /**
