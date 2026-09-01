@@ -6,7 +6,6 @@ import bpm.world.ControllerStores
 import bpm.world.ModFluids
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.texture.TextureAtlas
-import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions
 
 /**
  * How the buffer panel colours and names a fluid: the fluid type's tint when it has one (water, liquid
@@ -24,11 +23,11 @@ object FluidLookProvider : FluidLooks {
 
     private fun compute(fluidId: String): Int? {
         val fluid = RegistryIds.fluid(fluidId) ?: return null
-        val ext = IClientFluidTypeExtensions.of(fluid)
-        val tint = ext.tintColor
+        val look = bpm.platform.client.FluidVisuals.of(fluid)
+        val tint = look.tint
         if ((tint and 0xFFFFFF) != 0xFFFFFF) return tint or (0xFF shl 24)
         return runCatching {
-            val sprite = Minecraft.getInstance().getTextureAtlas(TextureAtlas.LOCATION_BLOCKS).apply(ext.stillTexture)
+            val sprite = Minecraft.getInstance().getTextureAtlas(TextureAtlas.LOCATION_BLOCKS).apply(look.still)
             val image = sprite.contents().originalImage
             val w = sprite.contents().width()
             val h = sprite.contents().height()

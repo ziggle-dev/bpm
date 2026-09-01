@@ -19,7 +19,7 @@ import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import org.joml.Vector3f
 import software.bernie.geckolib.cache.`object`.GeoBone
-import net.neoforged.neoforge.client.event.EntityRenderersEvent
+import bpm.platform.client.RendererSink
 import bpm.platform.client.ClientRenderers
 import software.bernie.geckolib.animatable.GeoAnimatable
 import software.bernie.geckolib.constant.DataTickets
@@ -138,12 +138,12 @@ object BpmItemRenderers {
  * freezes the core, so every variable each model reads is set here from the animatable being rendered.
  */
 object GeoRenderers {
-    fun registerRenderers(event: EntityRenderersEvent.RegisterRenderers) {
-        event.registerBlockEntityRenderer(ModBlockEntities.CONTROLLER.get()) { ControllerRenderer() }
-        DeviceRenderers.register(event)
-        event.registerEntityRenderer(bpm.world.entity.ModEntities.WARDEN.get()) { WardenRenderer(it) }
-        event.registerEntityRenderer(bpm.world.entity.ModEntities.BOLT.get()) { WardenBoltRenderer(it) }
-        event.registerEntityRenderer(bpm.world.entity.ModEntities.PULSE.get()) { LinkerPulseRenderer(it) }
+    fun registerRenderers() = ClientRenderers.renderers { sink ->
+        sink.blockEntity(ModBlockEntities.CONTROLLER.get()) { ControllerRenderer() }
+        DeviceRenderers.register(sink)
+        sink.entity(bpm.world.entity.ModEntities.WARDEN.get()) { WardenRenderer(it) }
+        sink.entity(bpm.world.entity.ModEntities.BOLT.get()) { WardenBoltRenderer(it) }
+        sink.entity(bpm.world.entity.ModEntities.PULSE.get()) { LinkerPulseRenderer(it) }
     }
 
     fun installMolang() {

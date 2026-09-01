@@ -19,8 +19,6 @@ import net.minecraft.client.renderer.RenderType
 import net.minecraft.core.Direction
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.phys.AABB
-import net.neoforged.neoforge.client.event.EntityRenderersEvent
-import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions
 import software.bernie.geckolib.animatable.GeoAnimatable
 import software.bernie.geckolib.cache.`object`.GeoBone
 import software.bernie.geckolib.renderer.GeoBlockRenderer
@@ -239,14 +237,14 @@ object DeviceItemExtensions {
 }
 
 object DeviceRenderers {
-    fun register(event: EntityRenderersEvent.RegisterRenderers) {
-        event.registerBlockEntityRenderer(DeviceBlockEntities.GATE.get()) { GateRenderer() }
-        event.registerBlockEntityRenderer(DeviceBlockEntities.PEDESTAL.get()) { PedestalRenderer() }
-        event.registerBlockEntityRenderer(DeviceBlockEntities.ASSEMBLER.get()) { AssemblerRenderer() }
-        event.registerBlockEntityRenderer(DeviceBlockEntities.SPIKE.get()) { DeviceRenderer<SpikeBlockEntity>("phase_spike") { be -> AABB(be.blockPos).expandTowards(0.0, 1.2, 0.0) } }
-        event.registerBlockEntityRenderer(DeviceBlockEntities.VENT.get()) { DeviceRenderer<VentBlockEntity>("decoherence_vent") { be -> AABB(be.blockPos).expandTowards(0.0, 1.7, 0.0) } }
-        event.registerBlockEntityRenderer(DeviceBlockEntities.TURRET.get()) { TurretRenderer() }
-        event.registerBlockEntityRenderer(DeviceBlockEntities.PHASE.get()) { DeviceRenderer<PhaseBlockEntity>("phase_block") { be -> AABB(be.blockPos) } }
-        event.registerBlockEntityRenderer(DeviceBlockEntities.MONITOR.get()) { MonitorRenderer() }
+    fun register(sink: bpm.platform.client.RendererSink) {
+        sink.blockEntity(DeviceBlockEntities.GATE.get()) { GateRenderer() }
+        sink.blockEntity(DeviceBlockEntities.PEDESTAL.get()) { PedestalRenderer() }
+        sink.blockEntity(DeviceBlockEntities.ASSEMBLER.get()) { AssemblerRenderer() }
+        sink.blockEntity(DeviceBlockEntities.SPIKE.get()) { DeviceRenderer<SpikeBlockEntity>("phase_spike") { be -> AABB(be.blockPos).expandTowards(0.0, 1.2, 0.0) } }
+        sink.blockEntity(DeviceBlockEntities.VENT.get()) { DeviceRenderer<VentBlockEntity>("decoherence_vent") { be -> AABB(be.blockPos).expandTowards(0.0, 1.7, 0.0) } }
+        sink.blockEntity(DeviceBlockEntities.TURRET.get()) { TurretRenderer() }
+        sink.blockEntity(DeviceBlockEntities.PHASE.get()) { DeviceRenderer<PhaseBlockEntity>("phase_block") { be -> AABB(be.blockPos) } }
+        sink.blockEntity(DeviceBlockEntities.MONITOR.get()) { MonitorRenderer() }
     }
 }

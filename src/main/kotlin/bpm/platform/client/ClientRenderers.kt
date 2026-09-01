@@ -19,12 +19,40 @@ interface ItemRendererRegistry {
     fun register(item: Item, renderer: () -> BlockEntityWithoutLevelRenderer)
 }
 
-object ClientRenderers {
-    private lateinit var backend: ItemRendererRegistry
+/**
+ * Where block-entity and entity renderers are declared.
+ *
+ * Registration, not rendering: what a renderer DOES with a PoseStack is the part that changes with the
+ * Minecraft version, and none of that is here. Saying "this block entity draws with that renderer" is
+ * stable, and every loader has a place to say it — NeoForge an event, Fabric two registries.
+ */
+interface RendererSink {
+    fun <T : net.minecraft.world.level.block.entity.BlockEntity> blockEntity(
+        type: net.minecraft.world.level.block.entity.BlockEntityType<out T>,
+        renderer: (net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider.Context) -> net.minecraft.client.renderer.blockentity.BlockEntityRenderer<T>,
+    )
 
-    fun install(impl: ItemRendererRegistry) {
-        backend = impl
+    fun <T : net.minecraft.world.entity.Entity> entity(
+        type: net.minecraft.world.entity.EntityType<out T>,
+        renderer: (net.minecraft.client.renderer.entity.EntityRendererProvider.Context) -> net.minecraft.client.renderer.entity.EntityRenderer<T>,
+    )
+}
+
+interface RendererRegistry {
+    /** [block] may be called later, when this loader is ready to hear it. */
+    fun renderers(block: (RendererSink) -> Unit)
+}
+
+object ClientRenderers {
+    private lateinit var items: ItemRendererRegistry
+    private lateinit var renderers: RendererRegistry
+
+    fun install(items: ItemRendererRegistry, renderers: RendererRegistry) {
+        this.items = items
+        this.renderers = renderers
     }
 
-    fun item(item: Item, renderer: () -> BlockEntityWithoutLevelRenderer) = backend.register(item, renderer)
+    fun item(item: Item, renderer: () -> BlockEntityWithoutLevelRenderer) = items.register(item, renderer)
+
+    fun renderers(block: (RendererSink) -> Unit) = renderers.renderers(block)
 }

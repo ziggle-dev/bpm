@@ -33,7 +33,7 @@ object BpmClient {
             bpm.client.ponder.PonderCompat.install()
             Bpm.LOGGER.info("bpm client ready (smoke frames: {})", SmokeRun.frames)
         }
-        modBus.addListener(EntityRenderersEvent.RegisterRenderers::class.java, Consumer(GeoRenderers::registerRenderers))
+        modBus.addListener(EntityRenderersEvent.RegisterRenderers::class.java, Consumer(bpm.platform.client.NeoRendererRegistry::onRegisterRenderers))
         modBus.addListener(net.neoforged.neoforge.client.event.RegisterShadersEvent::class.java, Consumer(bpm.client.render.RiftShader::register))
         modBus.addListener(net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent::class.java, Consumer(Keys::register))
         modBus.addListener(net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent::class.java, Consumer { e ->
@@ -41,8 +41,10 @@ object BpmClient {
             e.registerReloadListener(net.minecraft.server.packs.resources.ResourceManagerReloadListener { bpm.client.render.Glowmasks.invalidate() })
         })
         bpm.client.render.LinkerHud.install(modBus)
-        bpm.platform.client.ClientRenderers.install(bpm.platform.client.NeoClientRenderers)
+        bpm.platform.client.ClientRenderers.install(bpm.platform.client.NeoClientRenderers, bpm.platform.client.NeoRendererRegistry)
+        bpm.platform.client.FluidVisuals.install(bpm.platform.client.NeoFluidAppearance)
         bpm.client.render.BpmItemRenderers.install()
+        GeoRenderers.registerRenderers()
         modBus.addListener(net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent::class.java, Consumer { event ->
             event.registerFluidType(ExperienceFluidLook, bpm.world.ModFluids.EXPERIENCE_TYPE.get())
             bpm.platform.client.NeoClientRenderers.onRegisterExtensions(event)
