@@ -3,8 +3,8 @@ package bpm.nodes
 import bpm.catalog.McVs
 import bpm.world.ControllerStores
 import bpm.world.ModFluids
-import io.osrsx.vscript.nodes.Contribution
-import io.osrsx.vscript.nodes.library
+import dev.ziggle.vscript.nodes.Contribution
+import dev.ziggle.vscript.nodes.library
 import net.minecraft.world.entity.ExperienceOrb
 import net.minecraft.world.phys.AABB
 import net.neoforged.neoforge.fluids.FluidStack

@@ -1,12 +1,12 @@
 package bpm.client.editor
 
 import imgui.ImGui
-import io.osrsx.vscript.editor.graph.ColorPicker
-import io.osrsx.vscript.editor.graph.ValuePicker
-import io.osrsx.vscript.model.FunctionPin
-import io.osrsx.vscript.model.Literals
-import io.osrsx.vscript.model.TypeRef
-import io.osrsx.vscript.runtime.EditorDoc
+import dev.ziggle.vscript.editor.graph.ColorPicker
+import dev.ziggle.vscript.editor.graph.ValuePicker
+import dev.ziggle.vscript.model.FunctionPin
+import dev.ziggle.vscript.model.Literals
+import dev.ziggle.vscript.model.TypeRef
+import dev.ziggle.vscript.runtime.EditorDoc
 
 /**
  * The value and colour pickers are singletons drawn once per frame from the outermost surface, into the
@@ -50,7 +50,7 @@ object PickerRouting {
                     // A host enum has no zero the compiler could supply, so a variable retyped to one starts
                     // at its first member (or the member its old default spelled) rather than at nothing —
                     // which the validator would refuse until a default was picked.
-                    val enum = io.osrsx.vscript.model.HostEnums.of(type.required().name)
+                    val enum = dev.ziggle.vscript.model.HostEnums.of(type.required().name)
                     val default = if (enum != null && !type.optional) {
                         val text = v.default?.toString().orEmpty()
                         enum.members.firstOrNull { it.equals(text, ignoreCase = true) } ?: enum.members.first()

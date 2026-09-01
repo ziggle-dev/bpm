@@ -4,17 +4,17 @@ import bpm.session.SessionReasonText
 import imgui.ImGui
 import imgui.flag.ImGuiKey
 import imgui.flag.ImGuiWindowFlags
-import io.osrsx.imgui.EditorKeyboard
-import io.osrsx.imgui.Fonts
-import io.osrsx.imgui.PanelBits
-import io.osrsx.imgui.Theme
-import io.osrsx.vscript.compile.Issue
-import io.osrsx.vscript.compile.Severity
-import io.osrsx.vscript.compile.Validator
-import io.osrsx.vscript.editor.graph.OutlinePanel
-import io.osrsx.vscript.editor.graph.OwnCanvas
-import io.osrsx.vscript.model.GraphDoc
-import io.osrsx.vscript.runtime.EditorDoc
+import dev.ziggle.imgui.EditorKeyboard
+import dev.ziggle.imgui.Fonts
+import dev.ziggle.imgui.PanelBits
+import dev.ziggle.imgui.Theme
+import dev.ziggle.vscript.compile.Issue
+import dev.ziggle.vscript.compile.Severity
+import dev.ziggle.vscript.compile.Validator
+import dev.ziggle.vscript.editor.graph.OutlinePanel
+import dev.ziggle.vscript.editor.graph.OwnCanvas
+import dev.ziggle.vscript.model.GraphDoc
+import dev.ziggle.vscript.runtime.EditorDoc
 import java.util.UUID
 
 /**
@@ -59,16 +59,16 @@ class Workbench(host: WorkbenchHost) {
     private var links = LinksPanel(host)
     private var buffer = BufferPanel(host)
     /** vscript's own drawer (console, stack, variables, breakpoints) over a client log that carries the validator's issues; the run view fills it in phase 6. */
-    private val drawerRuntime = io.osrsx.vscript.runtime.ScriptRuntime(host.catalog, io.osrsx.vscript.vm.HostRegistry())
-    private val drawerSession = io.osrsx.vscript.runtime.DebugSession(drawerRuntime)
-    private val drawer = io.osrsx.vscript.runview.DebugPanel(host.catalog)
-    private val log = io.osrsx.vscript.log.ScriptLog()
+    private val drawerRuntime = dev.ziggle.vscript.runtime.ScriptRuntime(host.catalog, dev.ziggle.vscript.vm.HostRegistry())
+    private val drawerSession = dev.ziggle.vscript.runtime.DebugSession(drawerRuntime)
+    private val drawer = dev.ziggle.vscript.runview.DebugPanel(host.catalog)
+    private val log = dev.ziggle.vscript.log.ScriptLog()
 
     init {
         // The drawer's height is vscript's global; remembered in the mod's preferences like the panel toggles.
         val prefs = host.prefs
-        io.osrsx.vscript.runview.DebugPanel.remembered = object : io.osrsx.vscript.runview.DebugPanel.Remembered {
-            override fun get(): Float = prefs.getFloat("drawer.height", io.osrsx.vscript.runview.DebugPanel.DEFAULT_H)
+        dev.ziggle.vscript.runview.DebugPanel.remembered = object : dev.ziggle.vscript.runview.DebugPanel.Remembered {
+            override fun get(): Float = prefs.getFloat("drawer.height", dev.ziggle.vscript.runview.DebugPanel.DEFAULT_H)
             override fun set(v: Float) = prefs.putFloat("drawer.height", v)
         }
     }
@@ -161,7 +161,7 @@ class Workbench(host: WorkbenchHost) {
         val alias = lib.name.replace(Regex("[^A-Za-z0-9_]"), "_").ifEmpty { "lib" }
         editor.edit("import ${lib.name}") {
             editor.imports.removeAll { it.alias == alias }
-            editor.imports += io.osrsx.vscript.model.GraphImport(alias, lib.name, id.toString())
+            editor.imports += dev.ziggle.vscript.model.GraphImport(alias, lib.name, id.toString())
         }
         host.store.ensureLibraryGraph(id)
         return true
@@ -265,7 +265,7 @@ class Workbench(host: WorkbenchHost) {
         // The drawer's console shows the same problems, one record per issue, badged on the nodes they name.
         log.clear()
         for (i in issues) {
-            log.add(if (i.severity == Severity.ERROR) io.osrsx.vscript.log.LogLevel.ERROR else io.osrsx.vscript.log.LogLevel.WARN, i.message, i.nodeId ?: -1)
+            log.add(if (i.severity == Severity.ERROR) dev.ziggle.vscript.log.LogLevel.ERROR else dev.ziggle.vscript.log.LogLevel.WARN, i.message, i.nodeId ?: -1)
         }
         drawer.describeNodes(editor)
     }
@@ -485,7 +485,7 @@ class Workbench(host: WorkbenchHost) {
                 }
                 links.drop?.let { drop ->
                     links.drop = null
-                    if (d.canEdit) canvas.pendingDrop = io.osrsx.vscript.editor.graph.OutlineDrop(null, LINK_NODE, set = false, screenX = drop.screenX, screenY = drop.screenY, literals = mapOf(LINK_NODE_PIN to drop.name))
+                    if (d.canEdit) canvas.pendingDrop = dev.ziggle.vscript.editor.graph.OutlineDrop(null, LINK_NODE, set = false, screenX = drop.screenX, screenY = drop.screenY, literals = mapOf(LINK_NODE_PIN to drop.name))
                 }
                 canvas.render(editor)
             }

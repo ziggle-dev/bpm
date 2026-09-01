@@ -2,8 +2,8 @@ package bpm.nodes
 
 import bpm.catalog.McVs
 import bpm.runtime.PredicateJob
-import io.osrsx.vscript.nodes.Contribution
-import io.osrsx.vscript.nodes.library
+import dev.ziggle.vscript.nodes.Contribution
+import dev.ziggle.vscript.nodes.library
 
 /** `redstone.*` — reading signals at links, and driving the controller's own faces. */
 object RedstoneNodes {

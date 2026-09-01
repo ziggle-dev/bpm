@@ -7,8 +7,8 @@ import bpm.runtime.RuntimeManager
 import bpm.world.ControllerBlockEntity
 import bpm.world.Link
 import bpm.world.ModBlocks
-import io.osrsx.vscript.model.Graph
-import io.osrsx.vscript.model.GraphDoc
+import dev.ziggle.vscript.model.Graph
+import dev.ziggle.vscript.model.GraphDoc
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.gametest.framework.GameTest
@@ -150,13 +150,13 @@ class ControllerGameTests {
         val graph = Graph(
             java.util.UUID.nameUUIDFromBytes("bpm-test-count-in".toByteArray()).toString(), "count-in",
             listOf(
-                io.osrsx.vscript.model.Node(1, io.osrsx.vscript.model.BuiltinNodes.ENTRY_TICK),
-                io.osrsx.vscript.model.Node(2, "world.countIn", literals = linkedMapOf("From" to "${a.x},${a.y},${a.z}", "To" to "${b.x},${b.y},${b.z}", "Type" to "minecraft:pig")),
-                io.osrsx.vscript.model.Node(3, "redstone.emit", literals = linkedMapOf("Side" to "Up")),
+                dev.ziggle.vscript.model.Node(1, dev.ziggle.vscript.model.BuiltinNodes.ENTRY_TICK),
+                dev.ziggle.vscript.model.Node(2, "world.countIn", literals = linkedMapOf("From" to "${a.x},${a.y},${a.z}", "To" to "${b.x},${b.y},${b.z}", "Type" to "minecraft:pig")),
+                dev.ziggle.vscript.model.Node(3, "redstone.emit", literals = linkedMapOf("Side" to "Up")),
             ),
             listOf(
-                io.osrsx.vscript.model.Link(1, 1, "Exec", 3, "Exec"),
-                io.osrsx.vscript.model.Link(2, 2, "Count", 3, "Level"),
+                dev.ziggle.vscript.model.Link(1, 1, "Exec", 3, "Exec"),
+                dev.ziggle.vscript.model.Link(2, 2, "Count", 3, "Level"),
             ),
         )
         val be = deploy(helper, graph, BlockPos(1, 1, 1))
@@ -176,10 +176,10 @@ class ControllerGameTests {
         val graph = Graph(
             java.util.UUID.nameUUIDFromBytes("bpm-test-emit-at".toByteArray()).toString(), "emit-at",
             listOf(
-                io.osrsx.vscript.model.Node(1, io.osrsx.vscript.model.BuiltinNodes.ENTRY_TICK),
-                io.osrsx.vscript.model.Node(2, "redstone.emitAt", literals = linkedMapOf("Link" to "node", "Level" to 15L)),
+                dev.ziggle.vscript.model.Node(1, dev.ziggle.vscript.model.BuiltinNodes.ENTRY_TICK),
+                dev.ziggle.vscript.model.Node(2, "redstone.emitAt", literals = linkedMapOf("Link" to "node", "Level" to 15L)),
             ),
-            listOf(io.osrsx.vscript.model.Link(1, 1, "Exec", 2, "Exec")),
+            listOf(dev.ziggle.vscript.model.Link(1, 1, "Exec", 2, "Exec")),
         )
         val be = deploy(helper, graph, BlockPos(1, 1, 1), "node" to (emitter to null))
         helper.succeedWhen {
@@ -199,19 +199,19 @@ class ControllerGameTests {
         val graph = Graph(
             java.util.UUID.nameUUIDFromBytes("bpm-test-link-info".toByteArray()).toString(), "link-info",
             listOf(
-                io.osrsx.vscript.model.Node(1, io.osrsx.vscript.model.BuiltinNodes.ENTRY_TICK),
-                io.osrsx.vscript.model.Node(2, "controller.linkInfo", literals = linkedMapOf("Link" to "chest")),
-                io.osrsx.vscript.model.Node(3, "world.inArea", literals = linkedMapOf("From" to here, "To" to here)),
-                io.osrsx.vscript.model.Node(4, "flow.branch"),
-                io.osrsx.vscript.model.Node(5, "redstone.emit", literals = linkedMapOf("Side" to "Up", "Level" to 15L)),
-                io.osrsx.vscript.model.Node(6, "redstone.emit", literals = linkedMapOf("Side" to "Up", "Level" to 3L)),
+                dev.ziggle.vscript.model.Node(1, dev.ziggle.vscript.model.BuiltinNodes.ENTRY_TICK),
+                dev.ziggle.vscript.model.Node(2, "controller.linkInfo", literals = linkedMapOf("Link" to "chest")),
+                dev.ziggle.vscript.model.Node(3, "world.inArea", literals = linkedMapOf("From" to here, "To" to here)),
+                dev.ziggle.vscript.model.Node(4, "flow.branch"),
+                dev.ziggle.vscript.model.Node(5, "redstone.emit", literals = linkedMapOf("Side" to "Up", "Level" to 15L)),
+                dev.ziggle.vscript.model.Node(6, "redstone.emit", literals = linkedMapOf("Side" to "Up", "Level" to 3L)),
             ),
             listOf(
-                io.osrsx.vscript.model.Link(1, 1, "Exec", 4, "Exec"),
-                io.osrsx.vscript.model.Link(2, 2, "Pos", 3, "Pos"),
-                io.osrsx.vscript.model.Link(3, 3, "Inside", 4, "Condition"),
-                io.osrsx.vscript.model.Link(4, 4, "True", 5, "Exec"),
-                io.osrsx.vscript.model.Link(5, 4, "False", 6, "Exec"),
+                dev.ziggle.vscript.model.Link(1, 1, "Exec", 4, "Exec"),
+                dev.ziggle.vscript.model.Link(2, 2, "Pos", 3, "Pos"),
+                dev.ziggle.vscript.model.Link(3, 3, "Inside", 4, "Condition"),
+                dev.ziggle.vscript.model.Link(4, 4, "True", 5, "Exec"),
+                dev.ziggle.vscript.model.Link(5, 4, "False", 6, "Exec"),
             ),
         )
         val be = deploy(helper, graph, BlockPos(1, 1, 1), "chest" to (chest to Direction.UP))
@@ -230,21 +230,21 @@ class ControllerGameTests {
         val graph = Graph(
             java.util.UUID.nameUUIDFromBytes("bpm-test-block-property".toByteArray()).toString(), "block-property",
             listOf(
-                io.osrsx.vscript.model.Node(1, io.osrsx.vscript.model.BuiltinNodes.ENTRY_TICK),
-                io.osrsx.vscript.model.Node(2, "world.blockAt", literals = linkedMapOf("Pos" to "${abs.x},${abs.y},${abs.z}")),
-                io.osrsx.vscript.model.Node(3, "world.property", literals = linkedMapOf("Name" to "lit")),
-                io.osrsx.vscript.model.Node(4, "compare.eq", literals = linkedMapOf("B" to "true")),
-                io.osrsx.vscript.model.Node(5, "flow.branch"),
-                io.osrsx.vscript.model.Node(6, "redstone.emit", literals = linkedMapOf("Side" to "Up", "Level" to 15L)),
-                io.osrsx.vscript.model.Node(7, "redstone.emit", literals = linkedMapOf("Side" to "Up", "Level" to 3L)),
+                dev.ziggle.vscript.model.Node(1, dev.ziggle.vscript.model.BuiltinNodes.ENTRY_TICK),
+                dev.ziggle.vscript.model.Node(2, "world.blockAt", literals = linkedMapOf("Pos" to "${abs.x},${abs.y},${abs.z}")),
+                dev.ziggle.vscript.model.Node(3, "world.property", literals = linkedMapOf("Name" to "lit")),
+                dev.ziggle.vscript.model.Node(4, "compare.eq", literals = linkedMapOf("B" to "true")),
+                dev.ziggle.vscript.model.Node(5, "flow.branch"),
+                dev.ziggle.vscript.model.Node(6, "redstone.emit", literals = linkedMapOf("Side" to "Up", "Level" to 15L)),
+                dev.ziggle.vscript.model.Node(7, "redstone.emit", literals = linkedMapOf("Side" to "Up", "Level" to 3L)),
             ),
             listOf(
-                io.osrsx.vscript.model.Link(1, 1, "Exec", 5, "Exec"),
-                io.osrsx.vscript.model.Link(2, 2, "State", 3, "State"),
-                io.osrsx.vscript.model.Link(3, 3, "Value", 4, "A"),
-                io.osrsx.vscript.model.Link(4, 4, "Result", 5, "Condition"),
-                io.osrsx.vscript.model.Link(5, 5, "True", 6, "Exec"),
-                io.osrsx.vscript.model.Link(6, 5, "False", 7, "Exec"),
+                dev.ziggle.vscript.model.Link(1, 1, "Exec", 5, "Exec"),
+                dev.ziggle.vscript.model.Link(2, 2, "State", 3, "State"),
+                dev.ziggle.vscript.model.Link(3, 3, "Value", 4, "A"),
+                dev.ziggle.vscript.model.Link(4, 4, "Result", 5, "Condition"),
+                dev.ziggle.vscript.model.Link(5, 5, "True", 6, "Exec"),
+                dev.ziggle.vscript.model.Link(6, 5, "False", 7, "Exec"),
             ),
         )
         val be = deploy(helper, graph, BlockPos(1, 1, 1))
@@ -269,15 +269,15 @@ class ControllerGameTests {
         val graph = Graph(
             java.util.UUID.nameUUIDFromBytes("bpm-test-blocks-in".toByteArray()).toString(), "blocks-in",
             listOf(
-                io.osrsx.vscript.model.Node(1, io.osrsx.vscript.model.BuiltinNodes.ENTRY_TICK),
-                io.osrsx.vscript.model.Node(2, "items.filter", literals = linkedMapOf("tag" to "c:ores")),
-                io.osrsx.vscript.model.Node(3, "world.blocksIn", literals = linkedMapOf("From" to "${a.x},${a.y},${a.z}", "To" to "${b.x},${b.y},${b.z}")),
-                io.osrsx.vscript.model.Node(4, "redstone.emit", literals = linkedMapOf("Side" to "Up")),
+                dev.ziggle.vscript.model.Node(1, dev.ziggle.vscript.model.BuiltinNodes.ENTRY_TICK),
+                dev.ziggle.vscript.model.Node(2, "items.filter", literals = linkedMapOf("tag" to "c:ores")),
+                dev.ziggle.vscript.model.Node(3, "world.blocksIn", literals = linkedMapOf("From" to "${a.x},${a.y},${a.z}", "To" to "${b.x},${b.y},${b.z}")),
+                dev.ziggle.vscript.model.Node(4, "redstone.emit", literals = linkedMapOf("Side" to "Up")),
             ),
             listOf(
-                io.osrsx.vscript.model.Link(1, 1, "Exec", 4, "Exec"),
-                io.osrsx.vscript.model.Link(2, 2, "Filter", 3, "Filter"),
-                io.osrsx.vscript.model.Link(3, 3, "Count", 4, "Level"),
+                dev.ziggle.vscript.model.Link(1, 1, "Exec", 4, "Exec"),
+                dev.ziggle.vscript.model.Link(2, 2, "Filter", 3, "Filter"),
+                dev.ziggle.vscript.model.Link(3, 3, "Count", 4, "Level"),
             ),
         )
         val be = deploy(helper, graph, BlockPos(1, 1, 1))
@@ -291,10 +291,10 @@ class ControllerGameTests {
     private fun clicker(name: String, vararg literals: Pair<String, Any?>): Graph = Graph(
         java.util.UUID.nameUUIDFromBytes("bpm-test-$name".toByteArray()).toString(), name,
         listOf(
-            io.osrsx.vscript.model.Node(1, io.osrsx.vscript.model.BuiltinNodes.ENTRY_TICK),
-            io.osrsx.vscript.model.Node(2, "world.click", literals = linkedMapOf(*literals)),
+            dev.ziggle.vscript.model.Node(1, dev.ziggle.vscript.model.BuiltinNodes.ENTRY_TICK),
+            dev.ziggle.vscript.model.Node(2, "world.click", literals = linkedMapOf(*literals)),
         ),
-        listOf(io.osrsx.vscript.model.Link(1, 1, "Exec", 2, "Exec")),
+        listOf(dev.ziggle.vscript.model.Link(1, 1, "Exec", 2, "Exec")),
     )
 
     @GameTest(template = TEMPLATE, timeoutTicks = 200)
@@ -408,16 +408,16 @@ class ControllerGameTests {
         val graph = Graph(
             java.util.UUID.nameUUIDFromBytes("bpm-test-drop-count".toByteArray()).toString(), "drop-count",
             listOf(
-                io.osrsx.vscript.model.Node(1, io.osrsx.vscript.model.BuiltinNodes.ENTRY_TICK),
-                io.osrsx.vscript.model.Node(2, "items.drop", literals = linkedMapOf("Link" to "spot", "Max" to 2L)),
-                io.osrsx.vscript.model.Node(3, "redstone.emit", literals = linkedMapOf("Side" to "Up")),
-                io.osrsx.vscript.model.Node(4, "controller.wait", literals = linkedMapOf("Ticks" to 100L)),
+                dev.ziggle.vscript.model.Node(1, dev.ziggle.vscript.model.BuiltinNodes.ENTRY_TICK),
+                dev.ziggle.vscript.model.Node(2, "items.drop", literals = linkedMapOf("Link" to "spot", "Max" to 2L)),
+                dev.ziggle.vscript.model.Node(3, "redstone.emit", literals = linkedMapOf("Side" to "Up")),
+                dev.ziggle.vscript.model.Node(4, "controller.wait", literals = linkedMapOf("Ticks" to 100L)),
             ),
             listOf(
-                io.osrsx.vscript.model.Link(1, 1, "Exec", 2, "Exec"),
-                io.osrsx.vscript.model.Link(2, 2, "Exec", 3, "Exec"),
-                io.osrsx.vscript.model.Link(3, 2, "Dropped", 3, "Level"),
-                io.osrsx.vscript.model.Link(4, 3, "Exec", 4, "Exec"),
+                dev.ziggle.vscript.model.Link(1, 1, "Exec", 2, "Exec"),
+                dev.ziggle.vscript.model.Link(2, 2, "Exec", 3, "Exec"),
+                dev.ziggle.vscript.model.Link(3, 2, "Dropped", 3, "Level"),
+                dev.ziggle.vscript.model.Link(4, 3, "Exec", 4, "Exec"),
             ),
         )
         val be = deploy(helper, graph, controller, "spot" to (spot to null))
@@ -570,7 +570,7 @@ class ControllerGameTests {
             val messages = be.runtime?.runtime?.log?.records?.map { it.message } ?: emptyList()
             helper.assertTrue(listOf("one", "two", "three").all { it in messages }, "log holds $messages")
             val warn = be.runtime?.runtime?.log?.records?.firstOrNull { it.message == "two" }
-            helper.assertTrue(warn?.level == io.osrsx.vscript.log.LogLevel.WARN, "level of 'two' is ${warn?.level}")
+            helper.assertTrue(warn?.level == dev.ziggle.vscript.log.LogLevel.WARN, "level of 'two' is ${warn?.level}")
         }
     }
 

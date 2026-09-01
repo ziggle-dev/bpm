@@ -3,14 +3,14 @@ package bpm.client.mc
 import bpm.catalog.McTypes
 import bpm.client.net.ClientNet
 import imgui.ImGui
-import io.osrsx.imgui.FuzzySearch
-import io.osrsx.vscript.editor.host.Editor
-import io.osrsx.vscript.editor.host.IconRef
-import io.osrsx.vscript.editor.host.TypeStyle
-import io.osrsx.vscript.editor.host.TypeStyles
-import io.osrsx.vscript.editor.host.ValueCatalog
-import io.osrsx.vscript.editor.host.ValueCatalogs
-import io.osrsx.vscript.model.TypeRef
+import dev.ziggle.imgui.FuzzySearch
+import dev.ziggle.vscript.editor.host.Editor
+import dev.ziggle.vscript.editor.host.IconRef
+import dev.ziggle.vscript.editor.host.TypeStyle
+import dev.ziggle.vscript.editor.host.TypeStyles
+import dev.ziggle.vscript.editor.host.ValueCatalog
+import dev.ziggle.vscript.editor.host.ValueCatalogs
+import dev.ziggle.vscript.model.TypeRef
 import com.mojang.blaze3d.platform.InputConstants
 import net.minecraft.core.Registry
 import net.minecraft.core.registries.BuiltInRegistries
@@ -40,7 +40,7 @@ object BpmCatalogs : ValueCatalogs {
         McTypes.TAG.type.name -> tags
         McTypes.LINK.name -> links
         McTypes.KEY.type.name -> keys
-        else -> io.osrsx.vscript.model.HostEnums.of(name)?.let { e -> enums.getOrPut(e.name) { bpm.client.editor.EnumCatalog(e) } }
+        else -> dev.ziggle.vscript.model.HostEnums.of(name)?.let { e -> enums.getOrPut(e.name) { bpm.client.editor.EnumCatalog(e) } }
     }
 
     /** Drops cached registry snapshots (resource reload, new world). */

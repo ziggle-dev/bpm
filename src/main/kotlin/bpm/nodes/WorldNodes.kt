@@ -11,8 +11,8 @@ import bpm.catalog.values.EntityHandle
 import bpm.runtime.BreakBlockJob
 import bpm.runtime.ClickJob
 import bpm.runtime.UseItemJob
-import io.osrsx.vscript.nodes.Contribution
-import io.osrsx.vscript.nodes.library
+import dev.ziggle.vscript.nodes.Contribution
+import dev.ziggle.vscript.nodes.library
 import net.minecraft.core.particles.SimpleParticleType
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
@@ -110,12 +110,12 @@ object WorldNodes {
             val positions = result("Positions", McVs.blockPos.list())
             val count = result("Count", McVs.int)
             query {
-                positions set emptyList<io.osrsx.vscript.vm.StructValue?>()
+                positions set emptyList<dev.ziggle.vscript.vm.StructValue?>()
                 count set 0L
                 val a = BlockPosValue.toBlockPos(from()) ?: return@query null
                 val b = BlockPosValue.toBlockPos(to()) ?: return@query null
                 val m = host.blockMatcher(filter())
-                val out = ArrayList<io.osrsx.vscript.vm.StructValue?>()
+                val out = ArrayList<dev.ziggle.vscript.vm.StructValue?>()
                 scan@ for (y in maxOf(a.y, b.y) downTo minOf(a.y, b.y)) {
                     for (z in minOf(a.z, b.z)..maxOf(a.z, b.z)) {
                         for (x in minOf(a.x, b.x)..maxOf(a.x, b.x)) {

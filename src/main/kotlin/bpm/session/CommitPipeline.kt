@@ -2,12 +2,12 @@ package bpm.session
 
 import bpm.library.BpmLibrary
 import bpm.library.DocumentCodec
-import io.osrsx.vscript.compile.Issue
-import io.osrsx.vscript.compile.Severity
-import io.osrsx.vscript.compile.Validator
-import io.osrsx.vscript.model.BuiltinNodes
-import io.osrsx.vscript.model.GraphDoc
-import io.osrsx.vscript.model.NodeCatalog
+import dev.ziggle.vscript.compile.Issue
+import dev.ziggle.vscript.compile.Severity
+import dev.ziggle.vscript.compile.Validator
+import dev.ziggle.vscript.model.BuiltinNodes
+import dev.ziggle.vscript.model.GraphDoc
+import dev.ziggle.vscript.model.NodeCatalog
 import java.util.UUID
 
 enum class CommitStatus { OK, UNCHANGED, CONFLICT, NOT_HOLDER, NOT_FOUND, BAD_FORMAT, REJECTED, TOO_LARGE }

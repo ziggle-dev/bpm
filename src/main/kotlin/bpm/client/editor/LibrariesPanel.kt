@@ -3,12 +3,12 @@ package bpm.client.editor
 import imgui.ImDrawList
 import imgui.ImGui
 import imgui.flag.ImGuiWindowFlags
-import io.osrsx.imgui.Fonts
-import io.osrsx.imgui.PanelBits
-import io.osrsx.imgui.Theme
-import io.osrsx.vscript.editor.graph.PanelField
-import io.osrsx.vscript.model.GraphImport
-import io.osrsx.vscript.runtime.EditorDoc
+import dev.ziggle.imgui.Fonts
+import dev.ziggle.imgui.PanelBits
+import dev.ziggle.imgui.Theme
+import dev.ziggle.vscript.editor.graph.PanelField
+import dev.ziggle.vscript.model.GraphImport
+import dev.ziggle.vscript.runtime.EditorDoc
 import java.util.UUID
 
 /**

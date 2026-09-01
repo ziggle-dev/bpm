@@ -4,7 +4,7 @@ import com.mojang.blaze3d.platform.InputConstants
 import imgui.ImGui
 import imgui.ImGuiIO
 import imgui.flag.ImGuiKey
-import io.osrsx.vscript.editor.host.TypedText
+import dev.ziggle.vscript.editor.host.TypedText
 import org.lwjgl.glfw.GLFW
 
 /**

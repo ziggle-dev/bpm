@@ -1,7 +1,7 @@
 package bpm.library
 
-import io.osrsx.vscript.model.GraphDoc
-import io.osrsx.vscript.model.GraphImport
+import dev.ziggle.vscript.model.GraphDoc
+import dev.ziggle.vscript.model.GraphImport
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -11,7 +11,7 @@ import kotlin.test.assertTrue
 
 class BpmLibraryTest {
     private val lib = BpmLibrary()
-    private fun doc(name: String) = GraphDoc.toJson(io.osrsx.vscript.model.Graph("id-$name", name))
+    private fun doc(name: String) = GraphDoc.toJson(dev.ziggle.vscript.model.Graph("id-$name", name))
 
     @Test
     fun `create, store, rename and delete move the right versions`() {

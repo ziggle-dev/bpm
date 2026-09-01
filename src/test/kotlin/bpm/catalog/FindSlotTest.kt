@@ -6,18 +6,18 @@ import bpm.nodes.DetachedHost
 import bpm.runtime.TickJobs
 import bpm.world.LinkTable
 import bpm.world.ResolvedLink
-import io.osrsx.vscript.log.LogLevel
-import io.osrsx.vscript.model.BuiltinNodes
-import io.osrsx.vscript.model.Graph
-import io.osrsx.vscript.model.GraphDoc
-import io.osrsx.vscript.model.GraphVariable
-import io.osrsx.vscript.model.Link
-import io.osrsx.vscript.model.Node
-import io.osrsx.vscript.model.TypeRef
-import io.osrsx.vscript.nodes.BuiltinHosts
-import io.osrsx.vscript.runtime.EditorDoc
-import io.osrsx.vscript.runtime.ScriptRuntime
-import io.osrsx.vscript.vm.StructValue
+import dev.ziggle.vscript.log.LogLevel
+import dev.ziggle.vscript.model.BuiltinNodes
+import dev.ziggle.vscript.model.Graph
+import dev.ziggle.vscript.model.GraphDoc
+import dev.ziggle.vscript.model.GraphVariable
+import dev.ziggle.vscript.model.Link
+import dev.ziggle.vscript.model.Node
+import dev.ziggle.vscript.model.TypeRef
+import dev.ziggle.vscript.nodes.BuiltinHosts
+import dev.ziggle.vscript.runtime.EditorDoc
+import dev.ziggle.vscript.runtime.ScriptRuntime
+import dev.ziggle.vscript.vm.StructValue
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.RegistryAccess
@@ -102,14 +102,14 @@ class FindSlotTest {
                 Link(8, 5, "Filter", 8, "Value"),
             ),
             variables = listOf(
-                GraphVariable("slot", TypeRef(io.osrsx.vscript.model.PinType.INT), -1L),
+                GraphVariable("slot", TypeRef(dev.ziggle.vscript.model.PinType.INT), -1L),
                 GraphVariable("f", TypeRef.named(FilterValue.TYPE).orNull(), null),
             ),
         )
         // Through JSON, the way a deployed document reaches a controller.
         val loaded = GraphDoc.fromJson(GraphDoc.toJson(graph))
         val issues = runtime.validate(EditorDoc(loaded))
-        assertTrue(issues.none { it.severity == io.osrsx.vscript.compile.Severity.ERROR }, "issues: ${issues.map { it.message }}")
+        assertTrue(issues.none { it.severity == dev.ziggle.vscript.compile.Severity.ERROR }, "issues: ${issues.map { it.message }}")
         assertNull(runtime.run(EditorDoc(loaded), debug = true))
         repeat(5) { runtime.tick() }
 

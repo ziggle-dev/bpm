@@ -7,8 +7,8 @@ import bpm.catalog.values.ItemStackValue
 import bpm.runtime.PredicateJob
 import bpm.world.Grant
 import bpm.world.PresenceLink
-import io.osrsx.vscript.nodes.Contribution
-import io.osrsx.vscript.nodes.library
+import dev.ziggle.vscript.nodes.Contribution
+import dev.ziggle.vscript.nodes.library
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.EquipmentSlot

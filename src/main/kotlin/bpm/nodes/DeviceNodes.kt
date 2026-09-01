@@ -11,8 +11,8 @@ import bpm.world.devices.PhaseBlockEntity
 import bpm.world.devices.TrapBlockEntity
 import bpm.world.devices.TrapMode
 import bpm.world.devices.TurretBlockEntity
-import io.osrsx.vscript.nodes.Contribution
-import io.osrsx.vscript.nodes.library
+import dev.ziggle.vscript.nodes.Contribution
+import dev.ziggle.vscript.nodes.library
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.phys.Vec3
 

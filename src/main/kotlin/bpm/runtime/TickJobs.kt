@@ -1,6 +1,6 @@
 package bpm.runtime
 
-import io.osrsx.vscript.vm.HostAwait
+import dev.ziggle.vscript.vm.HostAwait
 
 /**
  * Work that takes more than one tick, done a tick at a time on the server thread.

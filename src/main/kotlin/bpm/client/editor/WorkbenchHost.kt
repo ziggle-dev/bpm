@@ -3,9 +3,9 @@ package bpm.client.editor
 import bpm.session.CommitStatus
 import bpm.session.Role
 import bpm.session.SessionReason
-import io.osrsx.vscript.model.GraphSource
-import io.osrsx.vscript.model.NodeCatalog
-import io.osrsx.vscript.runtime.EditorDoc
+import dev.ziggle.vscript.model.GraphSource
+import dev.ziggle.vscript.model.NodeCatalog
+import dev.ziggle.vscript.runtime.EditorDoc
 import java.util.UUID
 
 /*
@@ -162,7 +162,7 @@ interface BlockPreviews {
     fun want(link: LinkView)
 
     /** The rendered picture, once there is one. */
-    fun region(link: LinkView): io.osrsx.vscript.editor.host.IconRegion?
+    fun region(link: LinkView): dev.ziggle.vscript.editor.host.IconRegion?
 
     /** The block's display name, when the position is loaded. */
     fun labelOf(link: LinkView): String?
@@ -171,13 +171,13 @@ interface BlockPreviews {
      * The face of the player a presence link points at, once there is one — their skin's head, or the default
      * skin for someone the client has never seen. Null while nothing can be drawn.
      */
-    fun head(playerId: String): io.osrsx.vscript.editor.host.IconRegion? = null
+    fun head(playerId: String): dev.ziggle.vscript.editor.host.IconRegion? = null
 }
 
 /** Pictures of items by registry id, for the buffer and the pickers. */
 interface ItemIcons {
     fun want(itemId: String)
-    fun region(itemId: String): io.osrsx.vscript.editor.host.IconRegion?
+    fun region(itemId: String): dev.ziggle.vscript.editor.host.IconRegion?
     fun labelOf(itemId: String): String?
 }
 

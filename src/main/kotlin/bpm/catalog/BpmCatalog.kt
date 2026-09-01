@@ -14,11 +14,11 @@ import bpm.nodes.ItemNodes
 import bpm.nodes.PlayerNodes
 import bpm.nodes.RedstoneNodes
 import bpm.nodes.WorldNodes
-import io.osrsx.vscript.manifest.CatalogManifest
-import io.osrsx.vscript.model.BuiltinNodes
-import io.osrsx.vscript.model.NodeCatalog
-import io.osrsx.vscript.nodes.Contribution
-import io.osrsx.vscript.nodes.NodeLibrary
+import dev.ziggle.vscript.manifest.CatalogManifest
+import dev.ziggle.vscript.model.BuiltinNodes
+import dev.ziggle.vscript.model.NodeCatalog
+import dev.ziggle.vscript.nodes.Contribution
+import dev.ziggle.vscript.nodes.NodeLibrary
 import java.security.MessageDigest
 
 /**

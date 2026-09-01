@@ -1,8 +1,8 @@
 package bpm.session
 
 import bpm.catalog.BpmCatalog
-import io.osrsx.vscript.model.BuiltinNodes
-import io.osrsx.vscript.model.Node
+import dev.ziggle.vscript.model.BuiltinNodes
+import dev.ziggle.vscript.model.Node
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

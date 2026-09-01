@@ -1,8 +1,8 @@
 package bpm.client.editor
 
 import bpm.catalog.BpmCatalog
-import io.osrsx.vscript.editor.host.IconRegion
-import io.osrsx.vscript.model.GraphSource
+import dev.ziggle.vscript.editor.host.IconRegion
+import dev.ziggle.vscript.model.GraphSource
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertTrue

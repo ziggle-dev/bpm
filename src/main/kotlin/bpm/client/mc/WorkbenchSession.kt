@@ -19,8 +19,8 @@ import bpm.net.LinkOp
 import bpm.net.RunAction
 import bpm.session.Role
 import bpm.session.SessionReason
-import io.osrsx.vscript.model.GraphSource
-import io.osrsx.vscript.runtime.EditorDoc
+import dev.ziggle.vscript.model.GraphSource
+import dev.ziggle.vscript.runtime.EditorDoc
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction

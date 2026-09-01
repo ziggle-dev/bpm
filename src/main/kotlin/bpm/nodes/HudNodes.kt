@@ -6,8 +6,8 @@ import bpm.runtime.HudPanels
 import bpm.runtime.PredicateJob
 import bpm.world.Grant
 import bpm.world.devices.Widget
-import io.osrsx.vscript.nodes.Contribution
-import io.osrsx.vscript.nodes.library
+import dev.ziggle.vscript.nodes.Contribution
+import dev.ziggle.vscript.nodes.library
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.player.Player
 

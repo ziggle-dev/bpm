@@ -6,9 +6,9 @@ import bpm.catalog.values.WidgetValue
 import bpm.world.devices.MonitorBlockEntity
 import bpm.world.devices.MonitorWall
 import bpm.world.devices.Widget
-import io.osrsx.vscript.nodes.Contribution
-import io.osrsx.vscript.nodes.library
-import io.osrsx.vscript.vm.StructValue
+import dev.ziggle.vscript.nodes.Contribution
+import dev.ziggle.vscript.nodes.library
+import dev.ziggle.vscript.vm.StructValue
 
 /**
  * `monitor.*` — writing to a linked Quantum Monitor. A screen shows a list of [Widget]s, top to bottom:

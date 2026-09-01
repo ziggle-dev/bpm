@@ -18,17 +18,17 @@ rootProject.name = 'bpm'
  * canvas are picked up on the next `gradlew` run with no publish step.
  *
  * The substitutions are stated explicitly, and the first one is load-bearing: the language module is
- * `:vscript-lang` but its artifact is `io.osrsx:osrsx-vscript` (see vscript-lang/build.gradle), and
+ * `:vscript-lang` but its artifact is `dev.ziggle:vscript` (see vscript-lang/build.gradle), and
  * includeBuild's automatic matching goes by the project's own coordinates. Without the line the dependency
  * silently resolves to whatever stale jar mavenLocal holds and fails as a page of unresolved references.
  */
 includeBuild('vscript') {
     dependencySubstitution {
-        substitute module('io.osrsx:osrsx-vscript') using project(':vscript-lang')
-        substitute module('io.osrsx:vscript-runtime') using project(':vscript-runtime')
-        substitute module('io.osrsx:vscript-ui') using project(':vscript-ui')
-        substitute module('io.osrsx:vscript-runview') using project(':vscript-runview')
-        substitute module('io.osrsx:editor-host') using project(':editor-host')
-        substitute module('io.osrsx:editor-graph') using project(':editor-graph')
+        substitute module('dev.ziggle:vscript') using project(':vscript-lang')
+        substitute module('dev.ziggle:vscript-runtime') using project(':vscript-runtime')
+        substitute module('dev.ziggle:vscript-ui') using project(':vscript-ui')
+        substitute module('dev.ziggle:vscript-runview') using project(':vscript-runview')
+        substitute module('dev.ziggle:editor-host') using project(':editor-host')
+        substitute module('dev.ziggle:editor-graph') using project(':editor-graph')
     }
 }
