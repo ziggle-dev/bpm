@@ -29,7 +29,7 @@ import net.minecraft.world.entity.Entity
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
 import bpm.platform.ports.EnergyPort
-import net.neoforged.neoforge.fluids.capability.IFluidHandler
+import bpm.platform.ports.FluidPort
 import bpm.platform.ports.ItemPort
 import net.neoforged.neoforge.items.ItemStackHandler
 import kotlin.test.Test
@@ -54,10 +54,10 @@ class FindSlotTest {
         override val registries: RegistryAccess get() = RegistryAccess.EMPTY
         override fun link(name: String): ResolvedLink? = null
         override fun items(name: String): ItemPort? = if (name == ControllerHost.SELF) inv else null
-        override fun fluids(name: String): IFluidHandler? = null
+        override fun fluids(name: String): FluidPort? = null
         override fun energy(name: String): EnergyPort? = null
         override val selfInventory: ItemPort get() = inv
-        override val selfTanks: IFluidHandler get() = DetachedHost.selfTanks
+        override val selfTanks: FluidPort get() = DetachedHost.selfTanks
         override val selfEnergy: EnergyPort get() = DetachedHost.selfEnergy
         override fun entity(handle: Any?): Entity? = null
         override fun emitSignal(side: Direction, strength: Int) {}

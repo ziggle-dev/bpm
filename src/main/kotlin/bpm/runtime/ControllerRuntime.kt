@@ -20,9 +20,10 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.Entity
 import bpm.platform.ports.EnergyPort
+import bpm.platform.ports.HandlerFluidPort
 import bpm.platform.ports.HandlerPort
 import bpm.platform.ports.StoragePort
-import net.neoforged.neoforge.fluids.capability.IFluidHandler
+import bpm.platform.ports.FluidPort
 import bpm.platform.ports.ItemPort
 
 /**
@@ -46,11 +47,13 @@ class ControllerRuntime(private val be: ControllerBlockEntity, private val manag
     override val tickCount: Long get() = manager.clock.ticks
     private val selfInventoryPort: ItemPort by lazy { HandlerPort(be.inventory) }
     override val selfInventory: ItemPort get() = selfInventoryPort
-    override val selfTanks: IFluidHandler get() = be.tanks
+    private val selfTanksPort: FluidPort by lazy { HandlerFluidPort(be.tanks) }
+    override val selfTanks: FluidPort get() = selfTanksPort
+
     /**
-     * The cell wrapped once rather than per access. The block entity's own store stays a NeoForge
-     * `IEnergyStorage` — that is what other mods' cables look for — and only the face the nodes see
-     * changes.
+     * The stores wrapped once rather than per access. The block entity's own buffer, tanks and cell stay
+     * NeoForge handlers and stay published as capabilities — that is what other mods' pipes and cables
+     * look for — and only the face the nodes see changes.
      */
     private val selfEnergyPort: EnergyPort by lazy { StoragePort(be.energy) }
     override val selfEnergy: EnergyPort get() = selfEnergyPort
@@ -120,7 +123,7 @@ class ControllerRuntime(private val be: ControllerBlockEntity, private val manag
     override fun items(name: String): ItemPort? =
         if (name == ControllerHost.SELF) selfInventory else link(name)?.let { r -> r.items().also { if (it == null) unavailable(name, r, "items") } }
 
-    override fun fluids(name: String): IFluidHandler? =
+    override fun fluids(name: String): FluidPort? =
         if (name == ControllerHost.SELF) selfTanks else link(name)?.let { r -> r.fluids().also { if (it == null) unavailable(name, r, "fluids") } }
 
     override fun energy(name: String): EnergyPort? =

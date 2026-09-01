@@ -7,8 +7,8 @@ import dev.ziggle.vscript.nodes.Contribution
 import dev.ziggle.vscript.nodes.library
 import net.minecraft.world.entity.ExperienceOrb
 import net.minecraft.world.phys.AABB
-import net.neoforged.neoforge.fluids.FluidStack
-import net.neoforged.neoforge.fluids.capability.IFluidHandler
+import bpm.platform.ports.FluidVolume
+
 
 /**
  * `xp.*` — experience as a thing the controller can hold. Orbs on the ground become liquid experience in
@@ -19,7 +19,7 @@ import net.neoforged.neoforge.fluids.capability.IFluidHandler
 object XpNodes {
     private const val MB = ControllerStores.XP_MB_PER_POINT
 
-    private fun liquid(points: Int): FluidStack = FluidStack(ModFluids.EXPERIENCE.get(), points * MB)
+    private fun liquid(points: Int): FluidVolume = FluidVolume.ofMb(ModFluids.EXPERIENCE.get(), points * MB)
 
     fun contribution(host: ControllerHost): Contribution = library("xp", "Experience") {
         func("vacuum") {
@@ -43,8 +43,8 @@ object XpNodes {
                     val value = orb.value
                     if (value <= 0) continue
                     val want = liquid(value)
-                    if (host.selfTanks.fill(want, IFluidHandler.FluidAction.SIMULATE) < want.amount) continue
-                    host.selfTanks.fill(want, IFluidHandler.FluidAction.EXECUTE)
+                    if (host.selfTanks.fill(want, simulate = true) < want.droplets) continue
+                    host.selfTanks.fill(want, simulate = false)
                     orb.discard()
                     points += value
                 }
@@ -63,9 +63,9 @@ object XpNodes {
                 val center = centerOf(host, link()) ?: return@command 0L
                 val asked = points().toInt().coerceAtLeast(0)
                 if (asked == 0) return@command 0L
-                val have = host.selfTanks.drain(liquid(asked), IFluidHandler.FluidAction.SIMULATE).amount / MB
+                val have = host.selfTanks.drain(liquid(asked), simulate = true).mb / MB
                 if (have <= 0) return@command 0L
-                host.selfTanks.drain(liquid(have), IFluidHandler.FluidAction.EXECUTE)
+                host.selfTanks.drain(liquid(have), simulate = false)
                 ExperienceOrb.award(host.level, center, have)
                 if (fx()) host.transferred(ControllerHost.SELF, link(), have, bpm.net.EffectKind.XP)
                 have.toLong()
@@ -80,8 +80,8 @@ object XpNodes {
                 val h = host.fluids(link()) ?: return@query 0L
                 var mb = 0L
                 for (i in 0 until h.tanks) {
-                    val s = h.getFluidInTank(i)
-                    if (!s.isEmpty && s.fluid == ModFluids.EXPERIENCE.get()) mb += s.amount
+                    val s = h.inTank(i)
+                    if (!s.isEmpty && s.fluid == ModFluids.EXPERIENCE.get()) mb += s.mb
                 }
                 mb / MB
             }

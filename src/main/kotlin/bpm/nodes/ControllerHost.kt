@@ -14,7 +14,7 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.Entity
 import bpm.platform.ports.EnergyPort
-import net.neoforged.neoforge.fluids.capability.IFluidHandler
+import bpm.platform.ports.FluidPort
 import bpm.platform.ports.ItemPort
 
 /**
@@ -41,14 +41,14 @@ interface ControllerHost {
 
     /** The capability a link's face offers right now, or null (unlinked, unloaded, or nothing there). */
     fun items(name: String): ItemPort?
-    fun fluids(name: String): IFluidHandler?
+    fun fluids(name: String): FluidPort?
     fun energy(name: String): EnergyPort?
 
     /** The controller's own buffer, reachable as the reserved link `"self"`. */
     val selfInventory: ItemPort
 
     /** The controller's own tanks and energy cell — what `self` names for the fluid and energy verbs. */
-    val selfTanks: IFluidHandler
+    val selfTanks: FluidPort
     val selfEnergy: EnergyPort
 
     fun entity(handle: Any?): Entity?
@@ -162,10 +162,10 @@ object DetachedHost : ControllerHost {
     override val registries: RegistryAccess get() = none()
     override fun link(name: String): ResolvedLink? = none()
     override fun items(name: String): ItemPort? = none()
-    override fun fluids(name: String): IFluidHandler? = none()
+    override fun fluids(name: String): FluidPort? = none()
     override fun energy(name: String): EnergyPort? = none()
     override val selfInventory: ItemPort get() = none()
-    override val selfTanks: IFluidHandler get() = none()
+    override val selfTanks: FluidPort get() = none()
     override val selfEnergy: EnergyPort get() = none()
     override fun entity(handle: Any?): Entity? = none()
     override fun presence(player: java.util.UUID): bpm.world.PresenceLink? = none()

@@ -16,7 +16,7 @@ import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.material.Fluid
-import net.neoforged.neoforge.fluids.FluidStack
+import bpm.platform.ports.FluidVolume
 import java.util.UUID
 
 /*
@@ -128,7 +128,14 @@ object ItemStackValue {
     }
 }
 
-/** A `FluidStack` record: `fluid` and `amount` in millibuckets. */
+/**
+ * A `FluidStack` record: `fluid` and `amount` in millibuckets.
+ *
+ * The name and the unit are both public surface. `FluidStack` is what a graph declares and what is written
+ * into saved documents, and `amount` has always meant millibuckets — a literal `1000` in someone's graph
+ * means a bucket. Neither may change because the type behind it did: internally fluid is counted in
+ * droplets ([FluidVolume]), and the rounding to millibuckets happens here and nowhere else.
+ */
 object FluidStackValue {
     const val TYPE = "FluidStack"
     val FIELDS = listOf("fluid", "amount")
@@ -138,14 +145,14 @@ object FluidStackValue {
     fun record(value: Any?): StructValue? = when (value) {
         null -> null
         is StructValue -> value.takeIf { it.type == TYPE }
-        is FluidStack -> if (value.isEmpty) null else of(RegistryIds.of(value.fluid), value.amount)
+        is FluidVolume -> if (value.isEmpty) null else of(RegistryIds.of(value.fluid), value.mb)
         else -> null
     }
 
-    fun stack(value: Any?): FluidStack {
-        val r = record(value) ?: return FluidStack.EMPTY
-        val fluid = RegistryIds.fluid(r.get("fluid")?.toString().orEmpty()) ?: return FluidStack.EMPTY
-        return FluidStack(fluid, BlockPosValue.int(r.get("amount")).coerceAtLeast(1))
+    fun volume(value: Any?): FluidVolume {
+        val r = record(value) ?: return FluidVolume.EMPTY
+        val fluid = RegistryIds.fluid(r.get("fluid")?.toString().orEmpty()) ?: return FluidVolume.EMPTY
+        return FluidVolume.ofMb(fluid, BlockPosValue.int(r.get("amount")).coerceAtLeast(1))
     }
 }
 

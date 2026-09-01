@@ -4,8 +4,9 @@ import bpm.catalog.values.FilterValue
 import bpm.catalog.values.RegistryIds
 import net.minecraft.world.item.ItemStack
 import bpm.platform.ports.EnergyPort
-import net.neoforged.neoforge.fluids.FluidStack
-import net.neoforged.neoforge.fluids.capability.IFluidHandler
+import bpm.platform.ports.Droplets
+import bpm.platform.ports.FluidPort
+import bpm.platform.ports.FluidVolume
 import bpm.platform.ports.ItemPort
 import bpm.platform.ports.insertStacked
 
@@ -89,22 +90,25 @@ object Transfer {
         if (stack.isEmpty) ItemStack.EMPTY else to.insertStacked(stack, simulate)
 
     /** Move up to [maxMb] of [fluidId] (empty = whatever is first) from one tank to another. Answers the mB moved. */
-    fun fluids(from: IFluidHandler, to: IFluidHandler, fluidId: String?, maxMb: Int): Int {
+    fun fluids(from: FluidPort, to: FluidPort, fluidId: String?, maxMb: Int): Int {
         val want = fluidId?.takeIf { it.isNotBlank() }
-        val drained: FluidStack = if (want == null) {
-            from.drain(maxMb, IFluidHandler.FluidAction.SIMULATE)
+        val cap = Droplets.ofMb(maxMb)
+        val drained: FluidVolume = if (want == null) {
+            from.drain(cap, simulate = true)
         } else {
             val kind = RegistryIds.fluid(want) ?: return 0
-            from.drain(FluidStack(kind, maxMb), IFluidHandler.FluidAction.SIMULATE)
+            from.drain(FluidVolume(kind, cap), simulate = true)
         }
         if (drained.isEmpty) return 0
-        val accepted = to.fill(drained, IFluidHandler.FluidAction.SIMULATE)
-        if (accepted <= 0) return 0
-        val real = from.drain(drained.copyWithAmount(accepted), IFluidHandler.FluidAction.EXECUTE)
+        val accepted = to.fill(drained, simulate = true)
+        if (accepted <= 0L) return 0
+        val real = from.drain(drained.withDroplets(accepted), simulate = false)
         if (real.isEmpty) return 0
-        val filled = to.fill(real, IFluidHandler.FluidAction.EXECUTE)
-        if (filled < real.amount) from.fill(real.copyWithAmount(real.amount - filled), IFluidHandler.FluidAction.EXECUTE)
-        return filled
+        val filled = to.fill(real, simulate = false)
+        // The simulation said it would fit; if a tank changed its mind, the fluid goes back.
+        if (filled < real.droplets) from.fill(real.withDroplets(real.droplets - filled), simulate = false)
+        // Droplets throughout, millibuckets only here, where the scripting contract is.
+        return Droplets.toMb(filled)
     }
 
     /** Move up to [max] FE from one store to another. Answers the FE moved. */
