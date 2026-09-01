@@ -20,9 +20,6 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.Entity
 import bpm.platform.ports.EnergyPort
-import bpm.platform.ports.HandlerFluidPort
-import bpm.platform.ports.HandlerPort
-import bpm.platform.ports.StoragePort
 import bpm.platform.ports.FluidPort
 import bpm.platform.ports.ItemPort
 
@@ -45,18 +42,14 @@ class ControllerRuntime(private val be: ControllerBlockEntity, private val manag
     override val links: LinkTable get() = be.links
     override val jobs = TickJobs()
     override val tickCount: Long get() = manager.clock.ticks
-    private val selfInventoryPort: ItemPort by lazy { HandlerPort(be.inventory) }
-    override val selfInventory: ItemPort get() = selfInventoryPort
-    private val selfTanksPort: FluidPort by lazy { HandlerFluidPort(be.tanks) }
-    override val selfTanks: FluidPort get() = selfTanksPort
-
     /**
-     * The stores wrapped once rather than per access. The block entity's own buffer, tanks and cell stay
-     * NeoForge handlers and stay published as capabilities — that is what other mods' pipes and cables
-     * look for — and only the face the nodes see changes.
+     * No wrapping any more: the block entity's own stores are ports. They are still published to other
+     * mods as capabilities, but that conversion now happens once at the publishing site rather than on
+     * every access here.
      */
-    private val selfEnergyPort: EnergyPort by lazy { StoragePort(be.energy) }
-    override val selfEnergy: EnergyPort get() = selfEnergyPort
+    override val selfInventory: ItemPort get() = be.inventory
+    override val selfTanks: FluidPort get() = be.tanks
+    override val selfEnergy: EnergyPort get() = be.energy
 
     /** Links made from coordinates, most recently used last; the table's version does not touch these. */
     private val adHocLinks = object : LinkedHashMap<String, ResolvedLink>(64, 0.75f, true) {

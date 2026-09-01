@@ -1,6 +1,7 @@
 package bpm.net
 
 import bpm.platform.events.BpmEvents
+import bpm.platform.ports.Droplets
 import bpm.Bpm
 import bpm.catalog.BpmCatalog
 import bpm.library.BpmLibrary
@@ -124,17 +125,22 @@ object ServerNet {
         val name = be.docId?.let { id -> server?.let { BpmLibrary.get(it)[id]?.name } } ?: ""
         val rt = be.runtime
         val buffer = (0 until be.inventory.slots).map { i ->
-            val stack = be.inventory.getStackInSlot(i)
+            val stack = be.inventory.stackIn(i)
             if (stack.isEmpty) "" to 0 else net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.item).toString() to stack.count
         }
         val tanks = (0 until be.tanks.tanks).map { i ->
-            val f = be.tanks.getFluidInTank(i)
-            TankDto(if (f.isEmpty) "" else net.minecraft.core.registries.BuiltInRegistries.FLUID.getKey(f.fluid).toString(), f.amount, be.tanks.getTankCapacity(i))
+            val f = be.tanks.inTank(i)
+            // The panel speaks millibuckets, like everything a player sees.
+            TankDto(
+                if (f.isEmpty) "" else net.minecraft.core.registries.BuiltInRegistries.FLUID.getKey(f.fluid).toString(),
+                f.mb,
+                Droplets.toMb(be.tanks.tankCapacity(i)),
+            )
         }
         return ControllerStatusPayload(
             be.blockPos, be.status, be.docId, name, be.docVersion, be.runningVersion, be.enabled, be.debugBuild, be.lastError,
             rt?.runtime?.fibers?.size ?: 0, rt?.jobs?.size ?: 0, rt?.transfers ?: 0, buffer,
-            tanks, be.energy.energyStored, be.energy.maxEnergyStored, be.maxLinks, be.maxPlayerLinks,
+            tanks, be.energy.stored.toInt(), be.energy.capacity.toInt(), be.maxLinks, be.maxPlayerLinks,
         )
     }
 

@@ -281,7 +281,7 @@ object BpmCommands {
             ctx.source.sendFailure(Component.literal("no fluid called $id"))
             return 0
         }
-        val filled = be.tanks.fill(net.neoforged.neoforge.fluids.FluidStack(fluid, mb), net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction.EXECUTE)
+        val filled = bpm.platform.ports.Droplets.toMb(be.tanks.fill(bpm.platform.ports.FluidVolume.ofMb(fluid, mb), simulate = false))
         reply(ctx, "tanks of ${be.blockPos.toShortString()}: +$filled mB of $id")
         return 1
     }
@@ -289,8 +289,8 @@ object BpmCommands {
     /** `/bpm energy <pos> <fe>`: set the controller's energy cell. */
     private fun energy(ctx: CommandContext<CommandSourceStack>): Int {
         val be = controller(ctx) ?: return 0
-        be.energy.set(com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "fe"))
-        reply(ctx, "energy of ${be.blockPos.toShortString()}: ${be.energy.energyStored} / ${be.energy.maxEnergyStored} FE")
+        be.energy.set(com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "fe").toLong())
+        reply(ctx, "energy of ${be.blockPos.toShortString()}: ${be.energy.stored} / ${be.energy.capacity} FE")
         return 1
     }
 
@@ -299,7 +299,7 @@ object BpmCommands {
         val be = controller(ctx) ?: return 0
         val slot = com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "slot")
         val stack = net.minecraft.commands.arguments.item.ItemArgument.getItem(ctx, "item").createItemStack(count, false)
-        be.inventory.setStackInSlot(slot, stack)
+        be.inventory.setStackIn(slot, stack)
         be.setChanged()
         reply(ctx, "slot $slot of ${be.blockPos.toShortString()}: ${stack.count} × ${stack.hoverName.string}${if (stack.isEnchanted) " (enchanted)" else ""}")
         return 1
