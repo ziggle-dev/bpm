@@ -289,14 +289,14 @@ object EnergyNodes {
             doc("How much energy a link holds.")
             val link = param("Link", McVs.link, "which store")
             result("Stored", McVs.int)
-            query { (host.energy(link())?.energyStored ?: 0).toLong() }
+            query { host.energy(link())?.stored ?: 0L }
         }
         func("capacity") {
             title("Energy Capacity")
             doc("How much energy a link can hold.")
             val link = param("Link", McVs.link, "which store")
             result("Capacity", McVs.int)
-            query { (host.energy(link())?.maxEnergyStored ?: 0).toLong() }
+            query { host.energy(link())?.capacity ?: 0L }
         }
         func("canReceive") {
             title("Can Receive Energy")
@@ -316,9 +316,9 @@ object EnergyNodes {
             command {
                 val a = host.energy(from()) ?: return@command 0L
                 val b = host.energy(to()) ?: return@command 0L
-                val moved = Transfer.energy(a, b, max().toInt().coerceAtLeast(0))
-                if (moved > 0 && fx()) host.transferred(from(), to(), moved, bpm.net.EffectKind.ENERGY)
-                moved.toLong()
+                val moved = Transfer.energy(a, b, max().coerceAtLeast(0L))
+                if (moved > 0L && fx()) host.transferred(from(), to(), moved.toInt(), bpm.net.EffectKind.ENERGY)
+                moved
             }
         }
     }

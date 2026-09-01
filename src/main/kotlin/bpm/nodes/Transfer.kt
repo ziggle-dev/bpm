@@ -3,7 +3,7 @@ package bpm.nodes
 import bpm.catalog.values.FilterValue
 import bpm.catalog.values.RegistryIds
 import net.minecraft.world.item.ItemStack
-import net.neoforged.neoforge.energy.IEnergyStorage
+import bpm.platform.ports.EnergyPort
 import net.neoforged.neoforge.fluids.FluidStack
 import net.neoforged.neoforge.fluids.capability.IFluidHandler
 import net.neoforged.neoforge.items.IItemHandler
@@ -108,15 +108,16 @@ object Transfer {
     }
 
     /** Move up to [max] FE from one store to another. Answers the FE moved. */
-    fun energy(from: IEnergyStorage, to: IEnergyStorage, max: Int): Int {
-        if (!from.canExtract() || !to.canReceive()) return 0
-        val offered = from.extractEnergy(max, true)
-        if (offered <= 0) return 0
-        val accepted = to.receiveEnergy(offered, true)
-        if (accepted <= 0) return 0
-        val taken = from.extractEnergy(accepted, false)
-        val received = to.receiveEnergy(taken, false)
-        if (received < taken) from.receiveEnergy(taken - received, false)
+    fun energy(from: EnergyPort, to: EnergyPort, max: Long): Long {
+        if (!from.canExtract() || !to.canReceive()) return 0L
+        val offered = from.extract(max, true)
+        if (offered <= 0L) return 0L
+        val accepted = to.receive(offered, true)
+        if (accepted <= 0L) return 0L
+        val taken = from.extract(accepted, false)
+        val received = to.receive(taken, false)
+        // The store changed its mind between the simulation and the deed; put back what it would not take.
+        if (received < taken) from.receive(taken - received, false)
         return received
     }
 }

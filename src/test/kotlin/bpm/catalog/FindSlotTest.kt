@@ -27,7 +27,7 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
-import net.neoforged.neoforge.energy.IEnergyStorage
+import bpm.platform.ports.EnergyPort
 import net.neoforged.neoforge.fluids.capability.IFluidHandler
 import net.neoforged.neoforge.items.IItemHandler
 import net.neoforged.neoforge.items.ItemStackHandler
@@ -54,10 +54,10 @@ class FindSlotTest {
         override fun link(name: String): ResolvedLink? = null
         override fun items(name: String): IItemHandler? = if (name == ControllerHost.SELF) inv else null
         override fun fluids(name: String): IFluidHandler? = null
-        override fun energy(name: String): IEnergyStorage? = null
+        override fun energy(name: String): EnergyPort? = null
         override val selfInventory: IItemHandler get() = inv
         override val selfTanks: IFluidHandler get() = DetachedHost.selfTanks
-        override val selfEnergy: IEnergyStorage get() = DetachedHost.selfEnergy
+        override val selfEnergy: EnergyPort get() = DetachedHost.selfEnergy
         override fun entity(handle: Any?): Entity? = null
         override fun emitSignal(side: Direction, strength: Int) {}
         override fun emitted(side: Direction): Int = 0

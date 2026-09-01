@@ -13,7 +13,8 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.Level
 import net.neoforged.neoforge.capabilities.BlockCapabilityCache
 import net.neoforged.neoforge.capabilities.Capabilities
-import net.neoforged.neoforge.energy.IEnergyStorage
+import bpm.platform.ports.EnergyPort
+import bpm.platform.ports.StoragePort
 import net.neoforged.neoforge.fluids.capability.IFluidHandler
 import net.neoforged.neoforge.items.IItemHandler
 
@@ -271,5 +272,6 @@ open class ResolvedLink(open val link: Link, val level: ServerLevel, val capped:
 
     open fun items(): IItemHandler? = if (loaded) itemCache.capability else null
     open fun fluids(): IFluidHandler? = if (loaded) fluidCache.capability else null
-    open fun energy(): IEnergyStorage? = if (loaded) energyCache.capability else null
+    open fun energy(): EnergyPort? =
+        if (loaded) energyCache.capability?.let(::StoragePort) else null
 }

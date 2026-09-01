@@ -19,7 +19,8 @@ import net.minecraft.nbt.CompoundTag
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.Entity
-import net.neoforged.neoforge.energy.IEnergyStorage
+import bpm.platform.ports.EnergyPort
+import bpm.platform.ports.StoragePort
 import net.neoforged.neoforge.fluids.capability.IFluidHandler
 import net.neoforged.neoforge.items.IItemHandler
 
@@ -44,7 +45,13 @@ class ControllerRuntime(private val be: ControllerBlockEntity, private val manag
     override val tickCount: Long get() = manager.clock.ticks
     override val selfInventory: IItemHandler get() = be.inventory
     override val selfTanks: IFluidHandler get() = be.tanks
-    override val selfEnergy: IEnergyStorage get() = be.energy
+    /**
+     * The cell wrapped once rather than per access. The block entity's own store stays a NeoForge
+     * `IEnergyStorage` — that is what other mods' cables look for — and only the face the nodes see
+     * changes.
+     */
+    private val selfEnergyPort: EnergyPort by lazy { StoragePort(be.energy) }
+    override val selfEnergy: EnergyPort get() = selfEnergyPort
 
     /** Links made from coordinates, most recently used last; the table's version does not touch these. */
     private val adHocLinks = object : LinkedHashMap<String, ResolvedLink>(64, 0.75f, true) {
@@ -114,7 +121,7 @@ class ControllerRuntime(private val be: ControllerBlockEntity, private val manag
     override fun fluids(name: String): IFluidHandler? =
         if (name == ControllerHost.SELF) selfTanks else link(name)?.let { r -> r.fluids().also { if (it == null) unavailable(name, r, "fluids") } }
 
-    override fun energy(name: String): IEnergyStorage? =
+    override fun energy(name: String): EnergyPort? =
         if (name == ControllerHost.SELF) selfEnergy else link(name)?.let { r -> r.energy().also { if (it == null) unavailable(name, r, "energy") } }
 
     private fun adHoc(name: String): ResolvedLink? {
