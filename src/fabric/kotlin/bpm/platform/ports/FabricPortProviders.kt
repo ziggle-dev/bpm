@@ -50,7 +50,9 @@ object FabricPortProviders : PortProviders {
             }
 
             override fun <T : BlockEntity> energy(type: BlockEntityType<T>, port: (T, Direction?) -> EnergyPort?) {
-                // FABRIC TODO: needs Team Reborn's Energy API; see the note in FabricPorts.
+                team.reborn.energy.api.EnergyStorage.SIDED.registerForBlockEntity({ be, side ->
+                    port(be, side)?.let(::PortEnergyStorage)
+                }, type)
             }
         }
         for (block in pending) block(sink)
@@ -144,4 +146,36 @@ private class TankView(private val port: FluidPort, private val tank: Int) :
     override fun getResource(): FluidVariant = port.inTank(tank).let { FluidVariant.of(it.fluid, it.components) }
     override fun getAmount(): Long = port.inTank(tank).droplets
     override fun getCapacity(): Long = port.tankCapacity(tank)
+}
+
+/**
+ * An [EnergyPort] as a Team Reborn `EnergyStorage`, so other mods' cables can reach a controller.
+ *
+ * Same shape as [PortFluidStorage] above and for the same reason: the port has no notion of a
+ * transaction, so the work is measured now with a simulate and done on commit.
+ */
+private class PortEnergyStorage(private val port: EnergyPort) : team.reborn.energy.api.EnergyStorage {
+
+    override fun supportsInsertion(): Boolean = port.canReceive()
+    override fun supportsExtraction(): Boolean = port.canExtract()
+    override fun getAmount(): Long = port.stored
+    override fun getCapacity(): Long = port.capacity
+
+    override fun insert(maxAmount: Long, transaction: TransactionContext): Long {
+        val room = port.receive(maxAmount, true)
+        if (room <= 0) return 0
+        transaction.addCloseCallback { _, result ->
+            if (result.wasCommitted()) port.receive(room, false)
+        }
+        return room
+    }
+
+    override fun extract(maxAmount: Long, transaction: TransactionContext): Long {
+        val available = port.extract(maxAmount, true)
+        if (available <= 0) return 0
+        transaction.addCloseCallback { _, result ->
+            if (result.wasCommitted()) port.extract(available, false)
+        }
+        return available
+    }
 }

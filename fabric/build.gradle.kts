@@ -25,6 +25,7 @@ val fabricLoaderVersion = property("fabric_loader_version") as String
 val fabricApiVersion = property("fabric_api_version") as String
 val flkVersion = property("flk_version") as String
 val geckolibVersion = property("geckolib_version_" + minecraftVersion.replace('.', '_')) as String
+val energyApiVersion = property("energy_api_version_" + minecraftVersion.replace('.', '_')) as String
 val jeiVersion = property("jei_version") as String
 val ponderVersion = property("ponder_version") as String
 
@@ -60,6 +61,11 @@ repositories {
     mavenCentral()
     maven { url = uri("https://maven.fabricmc.net/") }
     maven { url = uri("https://maven.architectury.dev/") }
+    maven {
+        name = "modmuss50"
+        url = uri("https://maven.modmuss50.me/")
+        content { includeGroup("teamreborn") }
+    }
     maven {
         name = "GeckoLib"
         url = uri("https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/")
@@ -162,6 +168,19 @@ dependencies {
     // GeckoLib publishes per loader from the same source; the model, animation and Molang APIs the mod
     // uses are identical, which is why none of bpm's renderer code is loader-specific.
     modImplementation("software.bernie.geckolib:geckolib-fabric-$minecraftVersion:$geckolibVersion")
+    /*
+     * Team Reborn's Energy API.
+     *
+     * Fabric API has no energy storage of its own, and this is what every Fabric mod that moves power
+     * actually implements — so it is the difference between `energy.move` finding other mods' machines
+     * and finding nothing at all.
+     *
+     * Nested with `include` rather than left as a dependency a player must install: it is a small API
+     * library that expects to be bundled, and one more required download for a verb that should just
+     * work is a bad trade.
+     */
+    modImplementation("teamreborn:energy:$energyApiVersion")
+    include("teamreborn:energy:$energyApiVersion")
     // JEI's API on the compile path only, exactly as on NeoForge: a pack without JEI never loads the
     // plugin class, because @JeiPlugin is read by JEI itself.
     modCompileOnly("mezz.jei:jei-$minecraftVersion-fabric-api:$jeiVersion")
