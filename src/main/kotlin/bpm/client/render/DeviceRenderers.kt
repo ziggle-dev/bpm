@@ -39,7 +39,16 @@ open class DeviceRenderer<T : DeviceBlockEntity>(name: String, private val box: 
         addRenderLayer(GlowLayer(this))
     }
 
-    override fun getRenderBoundingBox(blockEntity: T): AABB = box(blockEntity)
+    /*
+     * Vanilla's `shouldRenderOffScreen`, not NeoForge's `getRenderBoundingBox`.
+     *
+     * Both exist to stop a model being culled when the block it belongs to leaves the frustum but the
+     * model still pokes into view. NeoForge lets you name the real box; vanilla only lets you opt out of
+     * the check, and vanilla is what both loaders have. The cost of opting out is one skipped frustum
+     * test for three block-entity types that are almost always on screen when their chunk is; the cost of
+     * the precise box was a method that does not exist on Fabric.
+     */
+    override fun shouldRenderOffScreen(blockEntity: T): Boolean = true
 
     override fun getRenderType(animatable: T, texture: ResourceLocation, bufferSource: MultiBufferSource?, partialTick: Float): RenderType =
         RenderType.entityTranslucent(texture)
@@ -154,9 +163,13 @@ class MonitorRenderer : GeoBlockRenderer<bpm.world.devices.MonitorBlockEntity>(M
         addRenderLayer(GlowLayer(this))
     }
 
-    /** A wall's content is drawn from its origin tile across every tile, so the origin must not be culled while any of the wall is in view. */
-    override fun getRenderBoundingBox(blockEntity: bpm.world.devices.MonitorBlockEntity): AABB =
-        if (blockEntity.widgets.isEmpty()) AABB(blockEntity.blockPos) else AABB(blockEntity.blockPos).inflate(bpm.world.devices.MonitorWall.MAX.toDouble())
+    /**
+     * A wall's content is drawn from its origin tile across every tile, so the origin must not be culled
+     * while any of the wall is in view. See the note above on why this is `shouldRenderOffScreen` rather
+     * than a bounding box: only one of the two exists on both loaders. A monitor with no widgets draws
+     * nothing anyway, so opting out of the frustum test costs nothing there either.
+     */
+    override fun shouldRenderOffScreen(blockEntity: bpm.world.devices.MonitorBlockEntity): Boolean = true
     override fun getFacing(animatable: bpm.world.devices.MonitorBlockEntity): Direction = animatable.facing
 
     /** After the panel: the screen's content, for the wall's origin tile. */

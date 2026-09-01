@@ -146,6 +146,9 @@ object BpmEvents {
     /** A raw key edge, before the game acts on it. False consumes it. */
     val rawKey = Veto<RawKey>()
 
+    /** A use-click on a block, before the block sees it. See [UseOnBlock]. */
+    val useOnBlock = Hook<UseOnBlock>()
+
     /**
      * The frame, after translucent blocks. Both the effect manager and the linker HUD draw here.
      *
@@ -167,6 +170,26 @@ object BpmEvents {
 }
 
 data class RawKey(val key: Int, val scancode: Int, val action: Int, val modifiers: Int)
+
+/**
+ * A use-click on a block, offered BEFORE the block itself gets it.
+ *
+ * NeoForge spells this `Item.onItemUseFirst`, a method it adds to `Item` so a held item can answer a
+ * click on a chest before the chest opens. Vanilla has no such hook and Fabric supplies it as an event
+ * (`UseBlockCallback`), so the shape that suits both is the event, not the method — a listener that
+ * wants the click sets [result] and the loader stops the vanilla interaction there.
+ *
+ * Leaving [result] null means "not mine", which is the overwhelmingly common answer.
+ */
+class UseOnBlock(
+    val level: net.minecraft.world.level.Level,
+    val player: Player,
+    val hand: net.minecraft.world.InteractionHand,
+    val pos: BlockPos,
+    val face: net.minecraft.core.Direction,
+) {
+    var result: net.minecraft.world.InteractionResult? = null
+}
 
 /**
  * The frame, after translucent blocks have drawn.

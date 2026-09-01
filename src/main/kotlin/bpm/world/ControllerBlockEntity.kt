@@ -14,6 +14,7 @@ import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientGamePacketListener
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.state.BlockState
@@ -193,8 +194,17 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
 
     // ---- lifecycle --------------------------------------------------------------------------------------
 
-    override fun onLoad() {
-        super.onLoad()
+    /**
+     * Vanilla's `setLevel`, not NeoForge's `onLoad`.
+     *
+     * The two fire at the same moment for our purposes, and only one of them exists on both loaders.
+     * The ordering that matters is that this runs AFTER the NBT: a chunk restores a block entity with
+     * `loadStatic`, which reads the tag, and only then hands it to the chunk, which is what calls
+     * `setLevel`. So `enabled` and `docId` are already the saved ones by the time they are read here —
+     * which they would not be if this had been hung on the constructor.
+     */
+    override fun setLevel(level: Level) {
+        super.setLevel(level)
         if (level is ServerLevel) {
             RuntimeManager.register(this)
             if (enabled && docId != null) RuntimeManager.queueRestart(this)
@@ -206,10 +216,12 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
         super.setRemoved()
     }
 
-    override fun onChunkUnloaded() {
-        shutdown()
-        super.onChunkUnloaded()
-    }
+    /*
+     * There is no `onChunkUnloaded` override any more, and none is needed. NeoForge added that method to
+     * tell "the chunk went away" apart from "the block was broken", but this class did the same thing in
+     * both cases, and vanilla already calls `setRemoved` on every block entity in a chunk it unloads
+     * (`LevelChunk.clearAllBlockEntities`). So the override above covers both, on both loaders.
+     */
 
     private fun shutdown() {
         if (level !is ServerLevel) return

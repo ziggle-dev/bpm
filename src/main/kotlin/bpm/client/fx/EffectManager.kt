@@ -3,7 +3,6 @@ package bpm.client.fx
 import bpm.client.render.BoneAnchors
 import bpm.client.render.ControllerRenderer
 import bpm.client.render.RiftRenderer
-import bpm.client.render.RiftShader
 import bpm.net.EffectKind
 import bpm.net.EffectOp
 import bpm.net.EffectPayload
@@ -455,7 +454,7 @@ object EffectManager {
 
     /** The rift sits where things vanish and appear — [Anchor.far]. It is billboarded, so it has no facing. */
     private fun drawRift(level: Level, rift: Rift, a: Anchor, pose: PoseStack, buffers: MultiBufferSource, cam: Vec3, partial: Float) {
-        if (riftsBroken || !RiftShader.ready || hidden(level, a, partial)) return
+        if (riftsBroken || !bpm.platform.client.RiftLooks.ready || hidden(level, a, partial)) return
         try {
             RiftRenderer.draw(rift, a.far(partial).subtract(cam), a.cell(partial), a.facing, RIFT_SCALE, buffers, pose, partial)
         } catch (t: Throwable) {

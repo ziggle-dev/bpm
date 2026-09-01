@@ -32,6 +32,15 @@ version = modVersion
 group = "bpm"
 base { archivesName = "$modId-fabric" }
 
+/*
+ * NeoForge compiles against a Minecraft whose access transformers have already widened a good deal of
+ * vanilla. Fabric does not, so anything the shared tree reaches for that vanilla keeps to itself has to
+ * be named in an access widener. See the file for what and why.
+ */
+loom {
+    accessWidenerPath = rootProject.file("src/fabric/resources/bpm.accesswidener")
+}
+
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 kotlin {

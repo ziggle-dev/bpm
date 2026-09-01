@@ -149,6 +149,7 @@ object BpmRegistries {
         ModComponents.REG
         ModCreativeTab.REG
         Registrars.installAll()
+        LinkerItem.installHooks()
         Ports.providers { sink ->
             sink.items(ModBlockEntities.CONTROLLER.get()) { be, _ -> be.inventory }
             sink.fluids(ModBlockEntities.CONTROLLER.get()) { be, _ -> be.tanks }

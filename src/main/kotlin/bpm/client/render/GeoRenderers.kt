@@ -61,9 +61,17 @@ class ControllerRenderer : GeoBlockRenderer<ControllerBlockEntity>(ControllerMod
         addRenderLayer(GlowLayer(this))
     }
 
-    /** The model reaches 1.33 blocks up and the flanges poke half a block out. */
-    override fun getRenderBoundingBox(blockEntity: ControllerBlockEntity): AABB =
-        AABB(blockEntity.blockPos).inflate(0.5, 0.0, 0.5).expandTowards(0.0, 0.75, 0.0)
+    /** The model reaches 1.33 blocks up and the flanges poke half a block out, so it must not be culled. */
+    /*
+     * Vanilla's `shouldRenderOffScreen`, not NeoForge's `getRenderBoundingBox`.
+     *
+     * Both exist to stop a model being culled when the block it belongs to leaves the frustum but the
+     * model still pokes into view. NeoForge lets you name the real box; vanilla only lets you opt out of
+     * the check, and vanilla is what both loaders have. The cost of opting out is one skipped frustum
+     * test for three block-entity types that are almost always on screen when their chunk is; the cost of
+     * the precise box was a method that does not exist on Fabric.
+     */
+    override fun shouldRenderOffScreen(blockEntity: ControllerBlockEntity): Boolean = true
 
     override fun getRenderType(animatable: ControllerBlockEntity, texture: ResourceLocation, bufferSource: MultiBufferSource?, partialTick: Float): RenderType =
         RenderType.entityTranslucent(texture)

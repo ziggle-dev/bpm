@@ -22,6 +22,21 @@ import java.util.function.Consumer
 object NeoEventBridge {
 
     fun install(bus: IEventBus) {
+        /*
+         * `Item.onItemUseFirst` is a method NeoForge adds so a held item can answer a click on a block
+         * before the block does. Vanilla has no such method, so the shared tree reaches it as an event
+         * and this is where that event comes from on this loader. RightClickBlock fires just before the
+         * interaction, and cancelling it with a result is what "first" means.
+         */
+        bus.addListener(net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.RightClickBlock::class.java, Consumer { e ->
+            val payload = UseOnBlock(e.level, e.entity, e.hand, e.pos, e.face ?: net.minecraft.core.Direction.UP)
+            BpmEvents.useOnBlock.fire(payload)
+            payload.result?.let { r ->
+                e.isCanceled = true
+                e.cancellationResult = r
+            }
+        })
+
         bus.addListener(ServerAboutToStartEvent::class.java, Consumer { BpmEvents.serverStarting.fire(it.server) })
         bus.addListener(ServerTickEvent.Post::class.java, Consumer { BpmEvents.serverTickEnd.fire(it.server) })
         bus.addListener(ServerStoppingEvent::class.java, Consumer { BpmEvents.serverStopping.fire(it.server) })

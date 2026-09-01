@@ -1,0 +1,15 @@
+accessWidener v2 named
+# The header must be the very first line — a comment above it is a format error, not a comment.
+#
+# Fabric's counterpart to NeoForge's access transformers.
+#
+# NeoForge ships a widened Minecraft: a good deal of vanilla that is private or protected upstream is
+# public by the time a mod compiles against it, which is why the shared tree can touch these at all.
+# Fabric does not, so anything the shared tree reaches for has to be named here instead.
+#
+# Keep this list short and keep a reason on every line. Every entry is a piece of vanilla this mod
+# depends on being able to see, and a shorter list is a smaller surface to re-check each version.
+
+# The buffer panel tints a fluid gauge by averaging the fluid's still texture. Only the sprite's own
+# source image has the pixels; the atlas copy has been packed and mip-mapped by then.
+accessible	field	net/minecraft/client/renderer/texture/SpriteContents	originalImage	Lcom/mojang/blaze3d/platform/NativeImage;

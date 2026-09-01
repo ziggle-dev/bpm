@@ -48,7 +48,7 @@ object RiftRenderer {
         // breathe, both scaled by how much is going through it — see `Rift.yawWobble`.
         val scaled = (open * rift.breathe(partialTick)).coerceAtLeast(0.02f)
         val alpha = (open.coerceIn(0f, 1.4f) / 1.4f * 255).toInt().coerceIn(0, 255)
-        val buf = buffers.getBuffer(RiftShader.typeFor(style))
+        val buf = buffers.getBuffer(bpm.platform.client.RiftLooks.typeFor(style))
         when (style) {
             RiftStyle.CUBE -> cube(rift, at, scale * scaled, alpha, buf, pose, partialTick)
             RiftStyle.TEAR -> tear(rift, at, anchorPos, facing, scale * scaled, alpha, buf, pose, partialTick)

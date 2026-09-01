@@ -624,7 +624,15 @@ class ControllerGameTests {
         player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, stack)
         val abs = helper.absolutePos(chest)
         val hit = net.minecraft.world.phys.BlockHitResult(Vec3.atCenterOf(abs).add(0.0, 0.5, 0.0), Direction.UP, abs, false)
-        fun click() = stack.item.onItemUseFirst(stack, net.minecraft.world.item.context.UseOnContext(player, net.minecraft.world.InteractionHand.MAIN_HAND, hit))
+        // Fire the seam the way a real click does, rather than calling a loader's own method: the wand
+        // answers `BpmEvents.useOnBlock` now, and this is the path both loaders take to reach it.
+        fun click(): net.minecraft.world.InteractionResult {
+            val e = bpm.platform.events.UseOnBlock(
+                helper.level, player, net.minecraft.world.InteractionHand.MAIN_HAND, hit.blockPos, hit.direction,
+            )
+            bpm.platform.events.BpmEvents.useOnBlock.fire(e)
+            return e.result ?: net.minecraft.world.InteractionResult.PASS
+        }
         // The wand takes the click before the chest can open, and links the face.
         helper.assertTrue(click() == net.minecraft.world.InteractionResult.CONSUME, "the wand let the chest have the click")
         helper.assertTrue(be.links.at(abs, Direction.UP)?.name == "chest", "no link was made: ${be.links.names}")

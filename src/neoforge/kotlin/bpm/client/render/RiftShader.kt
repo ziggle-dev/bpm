@@ -29,7 +29,7 @@ import net.neoforged.neoforge.client.event.RegisterShadersEvent
  * All of it is per-vertex on purpose: nothing is a uniform, so every rift on screen batches into one draw
  * call however many there are and whatever they are showing.
  */
-object RiftShader {
+object RiftShader : bpm.platform.client.RiftLook {
 
     private var cube: ShaderInstance? = null
     private var tear: ShaderInstance? = null
@@ -41,9 +41,9 @@ object RiftShader {
     }
 
     /** True once both have loaded; nothing draws a rift before then. */
-    val ready: Boolean get() = cube != null && tear != null
+    override val ready: Boolean get() = cube != null && tear != null
 
-    fun typeFor(style: RiftStyle): RenderType = if (style == RiftStyle.CUBE) CUBE else TEAR
+    override fun typeFor(style: RiftStyle): RenderType = if (style == RiftStyle.CUBE) CUBE else TEAR
 
     /**
      * Additive and unculled, and it DOES write depth.

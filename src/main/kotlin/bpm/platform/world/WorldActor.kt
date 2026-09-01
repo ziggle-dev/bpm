@@ -41,6 +41,28 @@ interface WorldActor {
      * than in shared code doing reflection and hoping.
      */
     fun primeAttackStrength(player: Player)
+
+    /**
+     * Drop whatever experience breaking this block should have dropped.
+     *
+     * Vanilla knows the answer and will not say: `Block.getExpDrop` and `Block.popExperience` are both
+     * protected, and NeoForge widens them and adds a `BlockState.getExpDrop` that consults the tool and
+     * its enchantments (silk touch drops nothing, fortune does not change ore XP). There is no vanilla
+     * route to the same number.
+     *
+     * The default therefore drops nothing, and says so rather than pretending: a `world.mine` on a loader
+     * that has not implemented this yields the block's items but no orbs. That is a visible shortfall and
+     * a small one, and it is better than guessing an amount that would be wrong for every modded block.
+     */
+    fun dropExperience(
+        level: ServerLevel,
+        pos: BlockPos,
+        state: BlockState,
+        blockEntity: net.minecraft.world.level.block.entity.BlockEntity?,
+        player: ServerPlayer,
+        tool: net.minecraft.world.item.ItemStack,
+    ) {
+    }
 }
 
 /** The installed actor. See [bpm.platform.net.Net] for why this is a `lateinit` and not a service lookup. */
@@ -57,4 +79,13 @@ object Actor {
         backend.mayBreak(level, pos, state, player)
 
     fun primeAttackStrength(player: Player) = backend.primeAttackStrength(player)
+
+    fun dropExperience(
+        level: ServerLevel,
+        pos: BlockPos,
+        state: BlockState,
+        blockEntity: net.minecraft.world.level.block.entity.BlockEntity?,
+        player: ServerPlayer,
+        tool: net.minecraft.world.item.ItemStack,
+    ) = backend.dropExperience(level, pos, state, blockEntity, player, tool)
 }

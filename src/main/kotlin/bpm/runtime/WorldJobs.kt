@@ -130,7 +130,9 @@ class BreakBlockJob(private val host: ControllerHost, private val target: Resolv
                 return true
             }
             val be = level.getBlockEntity(pos)
-            val harvest = state.canHarvestBlock(level, pos, player)
+            // Vanilla's own question, which NeoForge merely wraps as BlockState.canHarvestBlock: does the
+            // held tool actually harvest this, or only break it?
+            val harvest = !state.requiresCorrectToolForDrops() || player.hasCorrectToolForDrops(state)
             val drops = if (harvest) Block.getDrops(state, level, pos, be, player, tool) else emptyList()
             val toolCopy = tool.copy()
             val block = state.block
@@ -142,8 +144,7 @@ class BreakBlockJob(private val host: ControllerHost, private val target: Resolv
                 // Durability first (a tool that breaks on this block still harvests it), then the drops.
                 tool.mineBlock(level, state, pos, player)
                 block.playerDestroy(level, player, pos, state, be, toolCopy)
-                val xp = state.getExpDrop(level, pos, be, player, toolCopy)
-                if (xp > 0) block.popExperience(level, pos, xp)
+                bpm.platform.world.Actor.dropExperience(level, pos, state, be, player, toolCopy)
             } else if (removed) {
                 tool.mineBlock(level, state, pos, player)
             }

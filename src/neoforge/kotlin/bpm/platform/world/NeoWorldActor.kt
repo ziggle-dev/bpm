@@ -44,4 +44,20 @@ object NeoWorldActor : WorldActor {
             .onFailure { Bpm.LOGGER.warn("bpm: attackStrengthTicker is out of reach ({}); a controller's swings will be weak", it.toString()) }
             .getOrNull()
     }
+
+    /**
+     * The real amount, which this loader can ask for: `BlockState.getExpDrop` consults the tool and its
+     * enchantments, and `popExperience` is widened so the orbs can actually be spawned.
+     */
+    override fun dropExperience(
+        level: net.minecraft.server.level.ServerLevel,
+        pos: net.minecraft.core.BlockPos,
+        state: net.minecraft.world.level.block.state.BlockState,
+        blockEntity: net.minecraft.world.level.block.entity.BlockEntity?,
+        player: net.minecraft.server.level.ServerPlayer,
+        tool: net.minecraft.world.item.ItemStack,
+    ) {
+        val xp = state.getExpDrop(level, pos, blockEntity, player, tool)
+        if (xp > 0) state.block.popExperience(level, pos, xp)
+    }
 }
