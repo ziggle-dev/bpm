@@ -16,7 +16,7 @@ object FluidLookProvider : FluidLooks {
 
     override fun colour(fluidId: String): Int? = colours.getOrPut(fluidId) { compute(fluidId) }
 
-    override fun labelOf(fluidId: String): String? = RegistryIds.fluid(fluidId)?.fluidType?.description?.string
+    override fun labelOf(fluidId: String): String? = RegistryIds.fluid(fluidId)?.let { bpm.platform.world.Fluids.displayName(it).string }
 
     override fun describe(fluidId: String, amountMb: Int): String? =
         if (fluidId == ModFluids.ID) "${amountMb / ControllerStores.XP_MB_PER_POINT} experience points" else null

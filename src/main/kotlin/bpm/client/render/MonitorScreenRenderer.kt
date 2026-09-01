@@ -185,7 +185,7 @@ object MonitorScreenRenderer {
             }
             Widget.FLUID, Widget.ENERGY, Widget.BAR -> {
                 val fluid = if (w.kind == Widget.FLUID) ResourceLocation.tryParse(w.fluid)?.let { BuiltInRegistries.FLUID.getOptional(it).orElse(null) } else null
-                val label = w.label.ifEmpty { fluid?.let { it.fluidType.description.string } ?: if (w.kind == Widget.ENERGY) "Energy" else "" }
+                val label = w.label.ifEmpty { fluid?.let { bpm.platform.world.Fluids.displayName(it).string } ?: if (w.kind == Widget.ENERGY) "Energy" else "" }
                 val full = MonitorFormat.ratio(w.value, w.max, w.unit)
                 val short = MonitorFormat.shortRatio(w.value, w.max, w.unit)
                 val percent = MonitorFormat.percent(w.value, w.max)

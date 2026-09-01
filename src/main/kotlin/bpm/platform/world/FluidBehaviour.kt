@@ -2,6 +2,7 @@ package bpm.platform.world
 
 import bpm.platform.ports.FluidVolume
 import net.minecraft.core.BlockPos
+import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.sounds.SoundEvent
 import net.minecraft.sounds.SoundEvents
@@ -28,6 +29,19 @@ interface FluidBehaviour {
     fun emptySound(fluid: Fluid): SoundEvent = SoundEvents.BUCKET_EMPTY
 
     fun fillSound(fluid: Fluid): SoundEvent = SoundEvents.BUCKET_FILL
+
+    /**
+     * What to call this fluid on a monitor widget or in a script's `name` field.
+     *
+     * Vanilla has no answer — water and lava are named by their bucket items and nothing else has a name
+     * at all — so both loaders invented one: NeoForge hangs it off `FluidType.description`, Fabric off
+     * `FluidVariantAttributes`. The default follows the same key convention this mod uses for its own
+     * fluid, so an unported loader shows a sensible translated name rather than nothing.
+     */
+    fun displayName(fluid: Fluid): Component {
+        val id = net.minecraft.core.registries.BuiltInRegistries.FLUID.getKey(fluid)
+        return Component.translatable("fluid.${id.namespace}.${id.path}")
+    }
 }
 
 /**
@@ -60,4 +74,6 @@ object Fluids {
     fun emptySound(fluid: Fluid): SoundEvent = backend.emptySound(fluid)
 
     fun fillSound(fluid: Fluid): SoundEvent = backend.fillSound(fluid)
+
+    fun displayName(fluid: Fluid): Component = backend.displayName(fluid)
 }

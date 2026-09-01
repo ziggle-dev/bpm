@@ -101,7 +101,9 @@ object ModCreativeTab {
     val REG: Registrar<CreativeModeTab> = Registrars.of(Registries.CREATIVE_MODE_TAB, Bpm.ID)
 
     val TAB: RegistryRef<CreativeModeTab> = REG.register("bpm") { ->
-        CreativeModeTab.builder()
+        // The vanilla two-argument form, not NeoForge's no-arg overload: this is shared code and Fabric
+        // only has vanilla's. Row and column are what NeoForge's overload passes anyway.
+        CreativeModeTab.builder(CreativeModeTab.Row.TOP, 0)
             .title(Component.translatable("itemGroup.bpm"))
             .icon { ItemStack(ModItems.CONTROLLER.get()) }
             .displayItems { _, out ->

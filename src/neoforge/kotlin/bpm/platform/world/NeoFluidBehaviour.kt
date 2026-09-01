@@ -30,4 +30,12 @@ object NeoFluidBehaviour : FluidBehaviour {
 
     override fun fillSound(fluid: Fluid): SoundEvent =
         fluid.fluidType.getSound(SoundActions.BUCKET_FILL) ?: SoundEvents.BUCKET_FILL
+
+    /**
+     * The real localized name, which on this loader every fluid has: `FluidType.description`. The seam's
+     * default derives a key from the registry id instead, which is right for our own fluid and a
+     * reasonable guess for anyone else's — but here we can simply ask.
+     */
+    override fun displayName(fluid: net.minecraft.world.level.material.Fluid): net.minecraft.network.chat.Component =
+        fluid.fluidType.description
 }

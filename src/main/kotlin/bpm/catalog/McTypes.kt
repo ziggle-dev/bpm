@@ -173,7 +173,7 @@ object McTypes {
         "Fluid",
         listOf(
             HostField("id", STRING, "the registry id") { it?.toString().orEmpty() },
-            HostField("name", STRING, "the display name") { RegistryIds.fluid(it?.toString().orEmpty())?.fluidType?.description?.string.orEmpty() },
+            HostField("name", STRING, "the display name") { RegistryIds.fluid(it?.toString().orEmpty())?.let { f -> bpm.platform.world.Fluids.displayName(f).string }.orEmpty() },
         ),
         "a kind of fluid, by registry id",
         over = STRING,
