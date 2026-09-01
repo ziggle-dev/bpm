@@ -13,9 +13,8 @@ import net.minecraft.world.level.block.LiquidBlockContainer
 import net.minecraft.world.level.gameevent.GameEvent
 import net.minecraft.world.level.material.FlowingFluid
 import net.minecraft.world.level.material.Fluid
-import net.neoforged.neoforge.common.SoundActions
-import net.neoforged.neoforge.fluids.FluidStack
-import net.neoforged.neoforge.fluids.FluidType
+
+import bpm.platform.world.Fluids
 import bpm.platform.ports.Droplets
 import bpm.platform.ports.FluidPort
 import bpm.platform.ports.FluidVolume
@@ -187,7 +186,7 @@ private object Bottomless {
 
 /** Buckets without the bucket: a source block into the tanks and back. */
 internal object FluidWorld {
-    private val BUCKET: Int = FluidType.BUCKET_VOLUME
+    private val BUCKET: Int = Droplets.MB_PER_BUCKET
 
     fun place(host: ControllerHost, linkName: String, fluidId: String?, effects: Boolean = true): Boolean {
         val r = host.link(linkName) ?: return false
@@ -202,15 +201,12 @@ internal object FluidWorld {
         val kind: Fluid = (if (fluidId != null) RegistryIds.fluid(fluidId) else firstBucket(tanks)) ?: return false
         val flowing = kind as? FlowingFluid ?: return false
         val volume = FluidVolume.ofMb(kind, BUCKET)
-        // The tanks speak volumes; the FluidType calls below are NeoForge's own and still want a stack.
-        val stack = FluidStack(kind, BUCKET)
         if (tanks.drain(volume, simulate = true).mb < BUCKET) return false
         val state = level.getBlockState(pos)
         val block = state.block
-        val type = kind.fluidType
         val placed = when {
-            level.dimensionType().ultraWarm() && type.isVaporizedOnPlacement(level, pos, stack) -> {
-                type.onVaporize(null, level, pos, stack)
+            Fluids.vaporizesIn(level, pos, volume) -> {
+                Fluids.vaporize(level, pos, volume)
                 true
             }
             block is LiquidBlockContainer && block.canPlaceLiquid(null, level, pos, state, kind) -> block.placeLiquid(level, pos, state, flowing.defaultFluidState())
@@ -219,9 +215,9 @@ internal object FluidWorld {
         }
         if (!placed) return false
         tanks.drain(volume, simulate = false)
-        level.playSound(null, pos, type.getSound(SoundActions.BUCKET_EMPTY) ?: SoundEvents.BUCKET_EMPTY, SoundSource.BLOCKS, 1f, 1f)
+        level.playSound(null, pos, Fluids.emptySound(kind), SoundSource.BLOCKS, 1f, 1f)
         level.gameEvent(null, GameEvent.FLUID_PLACE, pos)
-        if (effects) host.transferred(ControllerHost.SELF, linkName, BUCKET, bpm.net.EffectKind.FLUID, net.minecraft.core.registries.BuiltInRegistries.FLUID.getKey(stack.fluid).toString())
+        if (effects) host.transferred(ControllerHost.SELF, linkName, BUCKET, bpm.net.EffectKind.FLUID, net.minecraft.core.registries.BuiltInRegistries.FLUID.getKey(kind).toString())
         return true
     }
 
@@ -239,7 +235,7 @@ internal object FluidWorld {
         if (fs.isEmpty || !fs.isSource) return false
         val block = state.block as? BucketPickup ?: return false
         val volume = FluidVolume.ofMb(fs.type, BUCKET)
-        val stack = FluidStack(fs.type, BUCKET)
+
         val tanks = host.selfTanks
         if (Droplets.toMb(tanks.fill(volume, simulate = true)) < BUCKET) return false
         // A big enough body is bottomless: fill from it and leave the block where it is. An ocean or a
@@ -251,7 +247,7 @@ internal object FluidWorld {
             if (got.isEmpty) return false
             tanks.fill(volume, simulate = false)
         }
-        val sound = block.pickupSound.orElse(null) ?: fs.type.fluidType.getSound(SoundActions.BUCKET_FILL) ?: SoundEvents.BUCKET_FILL
+        val sound = block.pickupSound.orElse(null) ?: Fluids.fillSound(fs.type)
         level.playSound(null, pos, sound, SoundSource.BLOCKS, 1f, 1f)
         level.gameEvent(null, GameEvent.FLUID_PICKUP, pos)
         if (effects) host.transferred(linkName, ControllerHost.SELF, BUCKET, bpm.net.EffectKind.FLUID, net.minecraft.core.registries.BuiltInRegistries.FLUID.getKey(fs.type).toString())

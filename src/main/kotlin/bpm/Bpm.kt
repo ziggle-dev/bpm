@@ -32,6 +32,7 @@ object Bpm {
         // one line that decides which one it is.
         bpm.platform.net.Net.install(bpm.platform.net.NeoNet)
         bpm.platform.world.Actor.install(bpm.platform.world.NeoWorldActor)
+        bpm.platform.world.Fluids.install(bpm.platform.world.NeoFluidBehaviour)
         BpmRegistries.install(MOD_BUS)
         // The bridge first: it is what turns this loader's events into the ones the subsystems below
         // listen for, so nothing after this line names a bus.

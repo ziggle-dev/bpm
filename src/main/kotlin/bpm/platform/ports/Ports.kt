@@ -38,6 +38,9 @@ object Droplets {
     const val PER_MB: Long = 81L
     const val PER_BUCKET: Long = 81_000L
 
+    /** A bucket, in the unit the scripting language speaks. Both loaders agree on this one. */
+    const val MB_PER_BUCKET: Int = 1_000
+
     fun ofMb(mb: Int): Long = mb.toLong() * PER_MB
 
     /** Floors, deliberately: reporting fluid you do not have is the worse of the two errors. */
