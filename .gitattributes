@@ -1,0 +1,20 @@
+# Stonecutter rewrites the working tree in place for whichever version is active, so every file here is
+# one a preprocessor may rewrite. Line endings have to be settled before that starts: a checkout that
+# flips CRLF and LF turns a one-line preprocessor change into a whole-file diff, and produces merge
+# conflicts in files nobody touched.
+#
+# The index is already all-LF -- core.autocrlf has been doing that work on this machine. This makes it a
+# property of the repository instead, so it holds for CI and for anyone who clones it. Nothing is staged
+# by adding this: a working-tree file converts on its next checkout, and normalises back to what the
+# index already holds.
+* text=auto eol=lf
+
+# The one consumer that still wants CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Never inspected, never converted. Content detection would catch these anyway; naming the three kinds
+# this repository actually holds is cheaper than discovering that one of them was not caught.
+*.png binary
+*.jar binary
+*.nbt binary
