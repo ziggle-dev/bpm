@@ -30,5 +30,8 @@
   },
   "suggests": {
     "ponder": ">=1.0.69"
-  }
+  },
+  "mixins": [
+    "bpm.mixins.json"
+  ]
 }

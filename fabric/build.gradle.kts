@@ -105,7 +105,27 @@ sourceSets.named("core") {
     resources.setSrcDirs(listOf(rootProject.file("src/core/resources")))
 }
 kotlin.sourceSets.named("main") {
-    kotlin.setSrcDirs(listOf(rootProject.file("src/main/kotlin"), rootProject.file("src/fabric/kotlin")))
+    // The Java directory is listed here TOO, not just under `java` below. Kotlin reads .java sources for
+    // resolution but only from its own source set's dirs, and setSrcDirs replaced what the Kotlin plugin
+    // had added — so without this the Kotlin code cannot see the accessor mixin it calls.
+    kotlin.setSrcDirs(
+        listOf(
+            rootProject.file("src/main/kotlin"),
+            rootProject.file("src/fabric/kotlin"),
+            rootProject.file("src/fabric/java"),
+        ),
+    )
+}
+/*
+ * **The mixins are Java, and they have to be.**
+ *
+ * Mixin's annotation processor is a javac processor: it cannot see Kotlin sources, so a mixin written in
+ * Kotlin gets no refmap generated and then silently fails to apply on any obfuscated build. It would work
+ * in this dev run and nowhere else, which is the worst kind of broken. This directory is the only Java in
+ * the project and exists solely for that reason.
+ */
+sourceSets.named("main") {
+    java.setSrcDirs(listOf(rootProject.file("src/fabric/java")))
 }
 sourceSets.named("main") {
     resources.setSrcDirs(listOf(rootProject.file("src/main/resources"), rootProject.file("src/fabric/resources")))
@@ -121,7 +141,14 @@ sourceSets.named("main") {
 loom {
     runs {
         named("server") { runDir("../../../run-fabric") }
-        named("client") { runDir("../../../run-fabric") }
+        named("client") {
+            runDir("../../../run-fabric")
+            // `gradlew :fabric:1.21.1:runClient -Pframes=120`: open the editor on the title screen, draw N
+            // frames, write a marker, quit. The same harness the NeoForge branch uses, and it works here
+            // only because `Minecraft#setScreen` is mixed into — that is what tells SmokeRun a title
+            // screen appeared.
+            vmArg("-Dbpm.editor.frames=" + (project.findProperty("frames") ?: "0"))
+        }
     }
 }
 
@@ -148,11 +175,31 @@ dependencies {
     for (m in listOf("vscript", "vscript-runtime", "vscript-ui", "vscript-runview", "editor-host", "editor-graph")) {
         implementation("dev.ziggle:$m:$vscriptVersion")
         "coreImplementation"("dev.ziggle:$m:$vscriptVersion")
+        // Loom's `include` is this loader's jar-in-jar, the counterpart of NeoForge's `jarJar`.
+        include("dev.ziggle:$m:$vscriptVersion")
     }
-    implementation("io.github.spair:imgui-java-binding:$imguiVersion")
-    // The GL3 backend and the JNI natives are the host's to supply, and this mod is the host on both
-    // loaders. LWJGL is excluded because the game supplies its own and two copies do not coexist.
+    include("org.commonmark:commonmark:0.22.0")
+    /*
+     * Dear ImGui, and this is the whole list on purpose.
+     *
+     * The binding alone compiles and then fails at runtime with `UnsatisfiedLinkError: no imgui-java64 in
+     * java.library.path`, because the natives live in their own per-platform jars and the host is
+     * expected to supply them. This mod is the host on both loaders, so all three ship, and the editor is
+     * the most visible thing in it — an omission here is not subtle.
+     *
+     * LWJGL is excluded because the game supplies its own and two copies do not coexist.
+     */
+    for (m in listOf(
+        "imgui-java-binding",
+        "imgui-java-natives-windows",
+        "imgui-java-natives-linux",
+        "imgui-java-natives-macos",
+    )) {
+        implementation("io.github.spair:$m:$imguiVersion")
+        include("io.github.spair:$m:$imguiVersion")
+    }
     implementation("io.github.spair:imgui-java-lwjgl3:$imguiVersion") { exclude(group = "org.lwjgl") }
+    include("io.github.spair:imgui-java-lwjgl3:$imguiVersion") { exclude(group = "org.lwjgl") }
     "coreImplementation"("io.github.spair:imgui-java-binding:$imguiVersion")
     "coreCompileOnly"("com.google.code.gson:gson:2.10.1")
 }

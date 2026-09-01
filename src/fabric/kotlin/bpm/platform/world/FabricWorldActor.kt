@@ -41,14 +41,14 @@ object FabricWorldActor : WorldActor {
         PlayerBlockBreakEvents.BEFORE.invoker().beforeBlockBreak(level, player, pos, state, level.getBlockEntity(pos))
 
     /**
-     * FABRIC TODO: `attackStrengthTicker` is private in vanilla and this loader has no widened accessor
-     * for it, so the actor's swing lands at whatever strength it happens to be at.
+     * Through an accessor mixin, not reflection.
      *
-     * The fix is one line in the access widener once there is a mixin or widener for the field —
-     * deliberately not reflection, which is what this seam exists to have removed. Until then a
-     * `world.click` attack on Fabric is weaker than on NeoForge, which is visible and honest; guessing
-     * would be neither.
+     * `attackStrengthTicker` is private in vanilla. NeoForge widens it with an access transformer and the
+     * adapter there still reaches it reflectively; here a one-method `@Accessor` does the job with the
+     * mappings applied at build time, so it cannot quietly stop working on an obfuscated build the way a
+     * reflective lookup does. A thousand is simply far past the point where the swing counts as full.
      */
     override fun primeAttackStrength(player: Player) {
+        (player as bpm.mixin.LivingEntityAccessor).`bpm$setAttackStrengthTicker`(1000)
     }
 }

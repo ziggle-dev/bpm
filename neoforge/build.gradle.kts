@@ -214,6 +214,15 @@ neoForge {
         }
         create("gameTestServer") {
             type = "gameTestServer"
+            /*
+             * Its own directory, NOT the one a person plays in.
+             *
+             * A game-test server opens the world at `run/` and takes its session lock, so running the
+             * tests while someone is playing either fails or interferes — and a run that dies leaves the
+             * lock held, which then reads as a build problem and is not one. Nothing about a test run
+             * wants the player's world, so it should not open it.
+             */
+            gameDirectory = rootProject.layout.projectDirectory.dir("run-gametest")
         }
         configureEach {
             systemProperty("forge.enabledGameTestNamespaces", modId)
@@ -222,11 +231,17 @@ neoForge {
              * The run directory stays at the repository root.
              *
              * MDG defaults it to `project.file("run")`, which under a version node is
-             * `versions/1.21.1/run` — a fresh, empty game directory. That would quietly orphan the world
-             * that is already in `run/`, along with its configs and the dev console's token file. Named
-             * explicitly so that adding a second version node later cannot split them either.
+             * `neoforge/versions/1.21.1/run` — a fresh, empty game directory. That would quietly orphan
+             * the world that is already in `run/`, along with its configs and the dev console's token
+             * file. Named explicitly so that adding a version node later cannot split them either.
+             *
+             * `configureEach` runs after the individual configurations, so this would also overwrite the
+             * game-test server's own directory — hence the check. Its tests must never open the world
+             * someone is playing in.
              */
-            gameDirectory = rootProject.layout.projectDirectory.dir("run")
+            if (name != "gameTestServer") {
+                gameDirectory = rootProject.layout.projectDirectory.dir("run")
+            }
         }
     }
 
