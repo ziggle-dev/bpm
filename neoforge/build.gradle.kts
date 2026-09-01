@@ -143,14 +143,21 @@ dev.compileClasspath += sourceSets.main.get().output + sourceSets.main.get().com
 dev.runtimeClasspath += sourceSets.main.get().output + sourceSets.main.get().runtimeClasspath
 
 /*
- * **There is one source tree, and it is at the repository root.**
+ * **The source tree is at the repository root, and `main` is two directories.**
  *
- * This script's projectDir is `versions/<version>/`, so every source-directory convention now resolves to
- * the wrong place — `versions/1.21.1/src/main/kotlin`, which does not exist. Left alone that is not a
- * build failure, it is an empty compilation: a jar with no classes in it and no error anywhere.
+ * This script's projectDir is `neoforge/versions/<version>/`, so every source-directory convention now
+ * resolves to the wrong place — a path that does not exist. Left alone that is not a build failure, it is
+ * an empty compilation: a jar with no classes in it and no error anywhere. So each one is named
+ * explicitly against rootProject.
  *
- * So each one is named explicitly against rootProject. Stonecutter rewrites this single tree in place for
- * whichever version is active; it does not give each node a copy.
+ * `src/main/kotlin` is the shared tree, compiled by BOTH loaders. `src/neoforge/kotlin` is the fourteen
+ * files that name NeoForge — the platform implementations behind the seam, plus the two loader bridges
+ * and the rift shader — and only this branch compiles them. That is the `:common`/`:neoforge` split the
+ * plan asked for, expressed as source directories rather than Gradle projects, because Stonecutter
+ * compiles one shared tree per node and there is no separate `:common` artifact to build.
+ *
+ * `src/dev` is here rather than shared because all ten of its files are NeoForge: the game tests are
+ * written against NeoForge's GameTest API. Fabric will need its own.
  */
 for (name in listOf("main", "test", "core", "dev")) {
     kotlin.sourceSets.named(name) {
@@ -159,6 +166,9 @@ for (name in listOf("main", "test", "core", "dev")) {
     sourceSets.named(name) {
         resources.setSrcDirs(listOf(rootProject.file("src/$name/resources")))
     }
+}
+kotlin.sourceSets.named("main") {
+    kotlin.srcDir(rootProject.file("src/neoforge/kotlin"))
 }
 
 /*

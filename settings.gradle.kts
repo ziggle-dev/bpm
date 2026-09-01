@@ -4,6 +4,8 @@ pluginManagement {
         gradlePluginPortal()
         maven { url = uri("https://maven.neoforged.net/releases") }
         maven { url = uri("https://maven.kikugie.dev/releases") }
+        maven { url = uri("https://maven.architectury.dev/") }
+        maven { url = uri("https://maven.fabricmc.net/") }
     }
 }
 
@@ -16,25 +18,31 @@ plugins {
 rootProject.name = "bpm"
 
 /*
- * **The version axis.**
+ * **The two axes.**
  *
- * One node today. The point of introducing it now, while there is only one, is that everything which
- * breaks when a build gains version nodes breaks here, with one node to debug, rather than later with
- * seven.
+ * Loader is a Stonecutter BRANCH; Minecraft version is a Stonecutter VERSION. That gives
+ * `:neoforge:1.21.1` and `:fabric:1.21.1` today, and a column per version later.
  *
- * What changes structurally: the root project stops being where the mod is built and becomes a
- * controller (`stonecutter.gradle.kts`, which Stonecutter generates and which holds the active version).
- * Each version becomes a subproject whose projectDir is `versions/<version>/` but which SHARES this
- * repository's one source tree — Stonecutter rewrites that tree in place for whichever version is
- * active. `build.gradle.kts` is that shared script; see the source-directory block in it, which is the
- * one part that cannot be left to convention any more.
+ * The branches matter because **each one has its own build script** -- `neoforge/build.gradle.kts` and
+ * `fabric/build.gradle.kts` -- which is what lets the two loaders use different build backends.
+ * NeoForge stays on ModDevGradle and Fabric takes Architectury Loom.
  *
- * Note the daemon requirement this brings: Stonecutter 0.9.8's plugin is compiled for Java 21, so the
- * Gradle daemon must run on 21+. That is already set in gradle/gradle-daemon-jvm.properties.
+ * That split is a revision of the original plan. Loom was going to be adopted everywhere, on the grounds
+ * that only Loom can hand one compiled `:common` jar to both platforms. But Stonecutter does not work
+ * that way: it compiles ONE SHARED SOURCE TREE per (loader, version) node, so there is no `:common` jar
+ * to hand anyone and the reason Loom was mandatory evaporates. Trying it anyway cost both test
+ * harnesses -- Loom exposes each source set as its own mod file rather than merging them as MDG does, so
+ * FML never scans `src/dev` and every game test disappears, and Loom wires nothing to the
+ * `forgejunitdev` launch target that 64 of the unit tests need. MDG does both correctly on NeoForge;
+ * Loom is the right and only tool on Fabric.
+ *
+ * Stonecutter 0.9.8's plugin is compiled for Java 21, so the Gradle daemon must run on 21+ --
+ * see gradle/gradle-daemon-jvm.properties.
  */
 stonecutter {
     create(rootProject) {
-        versions("1.21.1")
+        branch("neoforge") { versions("1.21.1") }
+        branch("fabric") { versions("1.21.1") }
         vcsVersion = "1.21.1"
     }
 }
