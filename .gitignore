@@ -19,3 +19,7 @@ imgui.ini
 /docs
 /tools
 /art
+# Stonecutter generates these version project directories from settings.gradle.kts, one per branch.
+/versions
+neoforge/versions/
+fabric/versions/

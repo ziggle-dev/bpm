@@ -75,7 +75,9 @@ object BlockPreviewRenderer : BlockPreviews, ItemIcons, IconSource {
         val mc = Minecraft.getInstance()
         val skin = mc.level?.players()?.firstOrNull { it.uuid == uuid }?.skin
             ?: net.minecraft.client.resources.DefaultPlayerSkin.get(uuid)
-        val id = mc.textureManager.getTexture(skin.texture()).id
+        // Widened where it is produced, not where it is drawn: IconRegion takes a Long because from
+        // 1.21.6 the game stops handing out GL names at all. Today this is still one, so it widens here.
+        val id = mc.textureManager.getTexture(skin.texture()).id.toLong()
         // 8/64 .. 16/64 — the face; the hat layer at 40/64 is left off, it reads as noise at this size.
         return IconRegion(id, 0.125f, 0.125f, 0.25f, 0.25f)
     }
@@ -93,7 +95,7 @@ object BlockPreviewRenderer : BlockPreviews, ItemIcons, IconSource {
         slot.wantedAt = System.currentTimeMillis()
         if (!slot.rendered) return null
         // A frame buffer's texture is upside down for a GUI: flip V.
-        return IconRegion(slot.target.colorTextureId, 0f, 1f, 1f, 0f)
+        return IconRegion(slot.target.colorTextureId.toLong(), 0f, 1f, 1f, 0f)
     }
 
     override fun labelOf(itemId: String): String? = slots[itemId]?.label?.ifEmpty { null }
@@ -101,7 +103,7 @@ object BlockPreviewRenderer : BlockPreviews, ItemIcons, IconSource {
 
     // ---- vscript's icon source: the value picker's rows and previews --------------------------------------------
 
-    override fun texture(ref: IconRef): Int? = region(ref)?.texture
+    override fun texture(ref: IconRef): Long? = region(ref)?.texture
 
     override fun region(ref: IconRef): IconRegion? = (ref as? RegistryIcon)?.let { region(it.id) }
 

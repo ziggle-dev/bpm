@@ -16,7 +16,6 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.inventory.InventoryMenu
 import net.minecraft.world.item.ItemDisplayContext
-import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions
 import kotlin.math.atan2
 
 /**
@@ -186,7 +185,7 @@ object MonitorScreenRenderer {
             }
             Widget.FLUID, Widget.ENERGY, Widget.BAR -> {
                 val fluid = if (w.kind == Widget.FLUID) ResourceLocation.tryParse(w.fluid)?.let { BuiltInRegistries.FLUID.getOptional(it).orElse(null) } else null
-                val label = w.label.ifEmpty { fluid?.let { it.fluidType.description.string } ?: if (w.kind == Widget.ENERGY) "Energy" else "" }
+                val label = w.label.ifEmpty { fluid?.let { bpm.platform.world.Fluids.displayName(it).string } ?: if (w.kind == Widget.ENERGY) "Energy" else "" }
                 val full = MonitorFormat.ratio(w.value, w.max, w.unit)
                 val short = MonitorFormat.shortRatio(w.value, w.max, w.unit)
                 val percent = MonitorFormat.percent(w.value, w.max)
@@ -285,9 +284,9 @@ object MonitorScreenRenderer {
     }
 
     private fun fluidQuad(mc: Minecraft, pose: PoseStack, buffers: MultiBufferSource, fluid: net.minecraft.world.level.material.Fluid, x0: Float, y0: Float, x1: Float, y1: Float, light: Int) {
-        val ext = IClientFluidTypeExtensions.of(fluid)
-        val sprite = mc.getTextureAtlas(InventoryMenu.BLOCK_ATLAS).apply(ext.stillTexture)
-        val tint = ext.tintColor
+        val look = bpm.platform.client.FluidVisuals.of(fluid)
+        val sprite = mc.getTextureAtlas(InventoryMenu.BLOCK_ATLAS).apply(look.still)
+        val tint = look.tint
         val r = (tint shr 16 and 0xFF) / 255f
         val g = (tint shr 8 and 0xFF) / 255f
         val bl = (tint and 0xFF) / 255f
@@ -304,7 +303,7 @@ object MonitorScreenRenderer {
         v(x1, y0, u1, sprite.v0)
     }
 
-    private fun fluidTint(fluid: net.minecraft.world.level.material.Fluid): Int = IClientFluidTypeExtensions.of(fluid).tintColor and 0xFFFFFF
+    private fun fluidTint(fluid: net.minecraft.world.level.material.Fluid): Int = bpm.platform.client.FluidVisuals.of(fluid).tint and 0xFFFFFF
 
     private fun lighten(argb: Int): Int = ScreenColours.lighten(argb)
 

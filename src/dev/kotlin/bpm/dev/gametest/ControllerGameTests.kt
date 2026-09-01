@@ -1,5 +1,7 @@
 package bpm.dev.gametest
 
+import bpm.platform.ports.Droplets
+import bpm.platform.ports.FluidVolume
 import bpm.Bpm
 import bpm.dev.SampleDocs
 import bpm.library.BpmLibrary
@@ -105,13 +107,13 @@ class ControllerGameTests {
         helper.setBlock(chest, Blocks.CHEST)
         val be = deploy(helper, SampleDocs.mine(), controller, "stone" to (stone to null), "chest" to (chest to null))
         val pick = ItemStack(Items.IRON_PICKAXE)
-        be.inventory.setStackInSlot(0, pick)
+        be.inventory.setStackIn(0, pick)
         helper.succeedWhen {
             helper.assertTrue(be.lastError == null, "controller error: ${be.lastError}")
             helper.assertBlock(stone, { it == Blocks.AIR }, "stone not broken")
             val c = container(helper, chest)
             helper.assertTrue(c.getItem(0).`is`(Items.COBBLESTONE), "no cobblestone in the chest: ${be.describe()}")
-            val tool = be.inventory.getStackInSlot(0)
+            val tool = be.inventory.stackIn(0)
             helper.assertTrue(tool.`is`(Items.IRON_PICKAXE) && tool.damageValue == 1, "the pickaxe lost ${tool.damageValue} durability, wanted 1")
         }
     }
@@ -128,14 +130,14 @@ class ControllerGameTests {
         helper.setBlock(toggle, Blocks.STONE)
         helper.setBlock(toggle.below(), Blocks.REDSTONE_BLOCK) // powers the toggle block, so the wait passes at once
         val be = deploy(helper, SampleDocs.dumpButTool(), controller, "dump" to (dump to null), "dump toggle" to (toggle to null))
-        be.inventory.setStackInSlot(0, ItemStack(Items.IRON_PICKAXE))
-        be.inventory.setStackInSlot(1, ItemStack(Items.COBBLESTONE, 20))
-        be.inventory.setStackInSlot(2, ItemStack(Items.IRON_INGOT, 5))
+        be.inventory.setStackIn(0, ItemStack(Items.IRON_PICKAXE))
+        be.inventory.setStackIn(1, ItemStack(Items.COBBLESTONE, 20))
+        be.inventory.setStackIn(2, ItemStack(Items.IRON_INGOT, 5))
         helper.succeedWhen {
             helper.assertTrue(be.lastError == null, "controller error: ${be.lastError}")
             helper.assertTrue(count(helper, dump) == 25, "the dump holds ${count(helper, dump)}, wanted the 25 non-tool items")
-            helper.assertTrue(be.inventory.getStackInSlot(0).`is`(Items.IRON_PICKAXE), "the pickaxe was dumped too")
-            helper.assertTrue((1 until be.inventory.slots).all { be.inventory.getStackInSlot(it).isEmpty }, "something besides the tool stayed behind")
+            helper.assertTrue(be.inventory.stackIn(0).`is`(Items.IRON_PICKAXE), "the pickaxe was dumped too")
+            helper.assertTrue((1 until be.inventory.slots).all { be.inventory.stackIn(it).isEmpty }, "something besides the tool stayed behind")
         }
     }
 
@@ -302,7 +304,7 @@ class ControllerGameTests {
         val stone = BlockPos(1, 1, 3)
         helper.setBlock(stone, Blocks.STONE)
         val be = deploy(helper, clicker("click-break", "Link" to "stone", "Button" to "Left", "Slot" to 0L), BlockPos(1, 1, 1), "stone" to (stone to null))
-        be.inventory.setStackInSlot(0, ItemStack(Items.IRON_PICKAXE))
+        be.inventory.setStackIn(0, ItemStack(Items.IRON_PICKAXE))
         helper.succeedWhen {
             helper.assertTrue(be.lastError == null, "controller error: ${be.lastError}")
             helper.assertBlock(stone, { it == Blocks.AIR }, "a Left click did not break the stone")
@@ -316,7 +318,7 @@ class ControllerGameTests {
         val pig = helper.spawn(net.minecraft.world.entity.EntityType.PIG, Vec3(3.5, 0.0, 3.5)).also { it.setNoAi(true) }
         val start = pig.health
         val be = deploy(helper, SampleDocs.guard(), BlockPos(1, 1, 1), "post" to (post to null))
-        be.inventory.setStackInSlot(0, ItemStack(Items.DIAMOND_SWORD))
+        be.inventory.setStackIn(0, ItemStack(Items.DIAMOND_SWORD))
         helper.succeedWhen {
             helper.assertTrue(be.lastError == null, "controller error: ${be.lastError}")
             helper.assertTrue(pig.isDeadOrDying || pig.health < start, "the pig at the post is untouched (${pig.health} of $start)")
@@ -331,7 +333,7 @@ class ControllerGameTests {
         val pig = helper.spawn(net.minecraft.world.entity.EntityType.PIG, Vec3(3.5, 1.0, 3.5)).also { it.setNoAi(true) }
         val start = pig.health
         val be = deploy(helper, SampleDocs.guard(), BlockPos(1, 1, 1), "post" to (post to Direction.UP))
-        be.inventory.setStackInSlot(0, ItemStack(Items.DIAMOND_SWORD))
+        be.inventory.setStackIn(0, ItemStack(Items.DIAMOND_SWORD))
         helper.succeedWhen {
             helper.assertTrue(be.lastError == null, "controller error: ${be.lastError}")
             helper.assertTrue(pig.isDeadOrDying || pig.health < start, "the pig standing on the post is untouched (${pig.health} of $start)")
@@ -348,7 +350,7 @@ class ControllerGameTests {
         val startFirst = first.health
         val startSecond = second.health
         val be = deploy(helper, SampleDocs.guard(), BlockPos(1, 1, 1), "post" to (post to Direction.UP))
-        be.inventory.setStackInSlot(0, ItemStack(Items.DIAMOND_SWORD))
+        be.inventory.setStackIn(0, ItemStack(Items.DIAMOND_SWORD))
         helper.succeedWhen {
             helper.assertTrue(be.lastError == null, "controller error: ${be.lastError}")
             helper.assertTrue(first.isDeadOrDying || first.health < startFirst, "the pig on the post is untouched")
@@ -377,7 +379,7 @@ class ControllerGameTests {
         helper.level.addFreshEntity(ExperienceOrb(helper.level, at.x, at.y, at.z, 7))
         helper.succeedWhen {
             helper.assertTrue(be.lastError == null, "controller error: ${be.lastError}")
-            val mb = be.tanks.amountOf(FluidStack(ModFluids.EXPERIENCE.get(), 1))
+            val mb = Droplets.toMb(be.tanks.amountOf(FluidVolume.ofMb(ModFluids.EXPERIENCE.get(), 1)))
             helper.assertTrue(mb == 7 * ControllerStores.XP_MB_PER_POINT, "the tanks hold $mb mB of experience")
             helper.assertTrue(helper.level.getEntitiesOfClass(ExperienceOrb::class.java, around(helper, spot, 3.0)).isEmpty(), "the orb is still there")
         }
@@ -388,7 +390,7 @@ class ControllerGameTests {
         val controller = BlockPos(1, 1, 1)
         val spot = BlockPos(3, 1, 3)
         val be = deploy(helper, SampleDocs.xpDrop(), controller, "spot" to (spot to null))
-        be.tanks.fill(FluidStack(ModFluids.EXPERIENCE.get(), 5 * ControllerStores.XP_MB_PER_POINT), IFluidHandler.FluidAction.EXECUTE)
+        be.tanks.fill(FluidVolume.ofMb(ModFluids.EXPERIENCE.get(), 5 * ControllerStores.XP_MB_PER_POINT), simulate = false)
         helper.succeedWhen {
             helper.assertTrue(be.lastError == null, "controller error: ${be.lastError}")
             // Orbs are thrown with a random kick and bounce, so the net is cast wide; and equal orbs MERGE —
@@ -396,7 +398,7 @@ class ControllerGameTests {
             val orbs = helper.level.getEntitiesOfClass(ExperienceOrb::class.java, around(helper, spot, 8.0))
             val points = orbs.sumOf { it.value * ORB_COUNT.getInt(it) }
             helper.assertTrue(points == 5, "$points points of orbs on the ground, wanted 5")
-            helper.assertTrue(be.tanks.amountOf(FluidStack(ModFluids.EXPERIENCE.get(), 1)) == 0, "the tanks still hold experience")
+            helper.assertTrue(Droplets.toMb(be.tanks.amountOf(FluidVolume.ofMb(ModFluids.EXPERIENCE.get(), 1))) == 0, "the tanks still hold experience")
         }
     }
 
@@ -421,12 +423,12 @@ class ControllerGameTests {
             ),
         )
         val be = deploy(helper, graph, controller, "spot" to (spot to null))
-        be.inventory.setStackInSlot(0, ItemStack(Items.COBBLESTONE, 3))
+        be.inventory.setStackIn(0, ItemStack(Items.COBBLESTONE, 3))
         helper.succeedWhen {
             helper.assertTrue(be.lastError == null, "controller error: ${be.lastError}")
             val cobble = helper.level.getEntitiesOfClass(ItemEntity::class.java, around(helper, spot, 3.0)).filter { it.item.`is`(Items.COBBLESTONE) }.sumOf { it.item.count }
             helper.assertTrue(cobble == 2, "$cobble cobblestone on the ground, wanted Max = 2")
-            helper.assertTrue(be.inventory.getStackInSlot(0).count == 1, "the buffer holds ${be.inventory.getStackInSlot(0)}, wanted the one left over")
+            helper.assertTrue(be.inventory.stackIn(0).count == 1, "the buffer holds ${be.inventory.stackIn(0)}, wanted the one left over")
             helper.assertTrue(be.signal(Direction.UP) == 2, "Dropped answered ${be.signal(Direction.UP)}, wanted 2")
         }
     }
@@ -436,13 +438,13 @@ class ControllerGameTests {
         val controller = BlockPos(1, 1, 1)
         val spot = BlockPos(3, 1, 3)
         val be = deploy(helper, SampleDocs.dropItems(), controller, "spot" to (spot to null))
-        be.inventory.setStackInSlot(0, ItemStack(Items.COBBLESTONE, 3))
+        be.inventory.setStackIn(0, ItemStack(Items.COBBLESTONE, 3))
         helper.succeedWhen {
             helper.assertTrue(be.lastError == null, "controller error: ${be.lastError}")
             val items = helper.level.getEntitiesOfClass(ItemEntity::class.java, around(helper, spot, 3.0))
             val cobble = items.filter { it.item.`is`(Items.COBBLESTONE) }.sumOf { it.item.count }
             helper.assertTrue(cobble == 3, "$cobble cobblestone on the ground, wanted 3")
-            helper.assertTrue(be.inventory.getStackInSlot(0).isEmpty, "the buffer still holds ${be.inventory.getStackInSlot(0)}")
+            helper.assertTrue(be.inventory.stackIn(0).isEmpty, "the buffer still holds ${be.inventory.stackIn(0)}")
         }
     }
 
@@ -451,11 +453,11 @@ class ControllerGameTests {
         val controller = BlockPos(1, 1, 1)
         val spot = BlockPos(3, 1, 3)
         val be = deploy(helper, SampleDocs.placeFluid(), controller, "spot" to (spot to null))
-        be.tanks.fill(FluidStack(Fluids.WATER, 1000), IFluidHandler.FluidAction.EXECUTE)
+        be.tanks.fill(FluidVolume.ofMb(Fluids.WATER, 1000), simulate = false)
         helper.succeedWhen {
             helper.assertTrue(be.lastError == null, "controller error: ${be.lastError}")
             helper.assertBlock(spot, { it == Blocks.WATER }, "no water at the spot")
-            helper.assertTrue(be.tanks.amountOf(FluidStack(Fluids.WATER, 1)) == 0, "the tanks still hold water")
+            helper.assertTrue(Droplets.toMb(be.tanks.amountOf(FluidVolume.ofMb(Fluids.WATER, 1))) == 0, "the tanks still hold water")
         }
     }
 
@@ -467,7 +469,7 @@ class ControllerGameTests {
         val be = deploy(helper, SampleDocs.pickupFluid(), controller, "spot" to (spot to null))
         helper.succeedWhen {
             helper.assertTrue(be.lastError == null, "controller error: ${be.lastError}")
-            val mb = be.tanks.amountOf(FluidStack(Fluids.WATER, 1))
+            val mb = Droplets.toMb(be.tanks.amountOf(FluidVolume.ofMb(Fluids.WATER, 1)))
             helper.assertTrue(mb == 1000, "the tanks hold $mb mB of water, wanted 1000")
             helper.assertTrue(helper.getBlockState(spot).fluidState.isEmpty, "the water is still there")
         }
@@ -481,15 +483,15 @@ class ControllerGameTests {
         helper.setBlock(stone, Blocks.STONE)
         helper.setBlock(chest, Blocks.CHEST)
         val be = deploy(helper, SampleDocs.toolFromTag(), controller, "stone" to (stone to null), "chest" to (chest to null))
-        be.inventory.setStackInSlot(0, ItemStack(Items.STONE, 4))
-        be.inventory.setStackInSlot(1, ItemStack(Items.IRON_PICKAXE).also { it.damageValue = 5 })
-        be.inventory.setStackInSlot(2, ItemStack(Items.IRON_PICKAXE))
+        be.inventory.setStackIn(0, ItemStack(Items.STONE, 4))
+        be.inventory.setStackIn(1, ItemStack(Items.IRON_PICKAXE).also { it.damageValue = 5 })
+        be.inventory.setStackIn(2, ItemStack(Items.IRON_PICKAXE))
         helper.succeedWhen {
             helper.assertTrue(be.lastError == null, "controller error: ${be.lastError}")
             helper.assertBlock(stone, { it == Blocks.AIR }, "stone not broken")
             helper.assertTrue(container(helper, chest).getItem(0).`is`(Items.COBBLESTONE), "no cobblestone in the chest: ${be.describe()}")
-            helper.assertTrue(be.inventory.getStackInSlot(2).damageValue == 1, "the fresh pickaxe has damage ${be.inventory.getStackInSlot(2).damageValue}, wanted 1")
-            helper.assertTrue(be.inventory.getStackInSlot(1).damageValue == 5, "the worn pickaxe was used")
+            helper.assertTrue(be.inventory.stackIn(2).damageValue == 1, "the fresh pickaxe has damage ${be.inventory.stackIn(2).damageValue}, wanted 1")
+            helper.assertTrue(be.inventory.stackIn(1).damageValue == 5, "the worn pickaxe was used")
         }
     }
 
@@ -517,7 +519,7 @@ class ControllerGameTests {
             .thenWaitUntil { helper.assertBlock(stone, { it == Blocks.AIR }, "stone not broken") }
             .thenExecuteAfter(10) {
                 helper.assertTrue(be.lastError == null, "controller error: ${be.lastError}")
-                val held = (0 until be.inventory.slots).sumOf { be.inventory.getStackInSlot(it).count }
+                val held = (0 until be.inventory.slots).sumOf { be.inventory.stackIn(it).count }
                 helper.assertTrue(held == 0, "a bare hand harvested $held items from stone")
                 helper.assertTrue(helper.level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity::class.java, net.minecraft.world.phys.AABB(helper.absolutePos(stone)).inflate(3.0)).isEmpty(), "stone dropped an item")
             }
@@ -622,7 +624,15 @@ class ControllerGameTests {
         player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, stack)
         val abs = helper.absolutePos(chest)
         val hit = net.minecraft.world.phys.BlockHitResult(Vec3.atCenterOf(abs).add(0.0, 0.5, 0.0), Direction.UP, abs, false)
-        fun click() = stack.item.onItemUseFirst(stack, net.minecraft.world.item.context.UseOnContext(player, net.minecraft.world.InteractionHand.MAIN_HAND, hit))
+        // Fire the seam the way a real click does, rather than calling a loader's own method: the wand
+        // answers `BpmEvents.useOnBlock` now, and this is the path both loaders take to reach it.
+        fun click(): net.minecraft.world.InteractionResult {
+            val e = bpm.platform.events.UseOnBlock(
+                helper.level, player, net.minecraft.world.InteractionHand.MAIN_HAND, hit.blockPos, hit.direction,
+            )
+            bpm.platform.events.BpmEvents.useOnBlock.fire(e)
+            return e.result ?: net.minecraft.world.InteractionResult.PASS
+        }
         // The wand takes the click before the chest can open, and links the face.
         helper.assertTrue(click() == net.minecraft.world.InteractionResult.CONSUME, "the wand let the chest have the click")
         helper.assertTrue(be.links.at(abs, Direction.UP)?.name == "chest", "no link was made: ${be.links.names}")

@@ -1,10 +1,13 @@
 package bpm.world.devices
 
-import bpm.world.ControllerEnergy
+import bpm.platform.ports.Droplets
+import bpm.platform.ports.FluidVolume
+import bpm.platform.ports.EnergyCell
 import bpm.world.DeviceBlockEntities
 import bpm.world.DeviceBlocks
 import bpm.world.ModFluids
-import bpm.world.MultiTank
+import bpm.platform.ports.MultiTank
+import bpm.platform.ports.SlotStore
 import bpm.world.assembly.AssemblyInput
 import bpm.world.assembly.AssemblyRecipe
 import bpm.world.assembly.ModRecipes
@@ -32,9 +35,6 @@ import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.block.state.properties.BooleanProperty
 import net.minecraft.world.phys.BlockHitResult
-import net.neoforged.neoforge.fluids.FluidStack
-import net.neoforged.neoforge.fluids.capability.IFluidHandler
-import net.neoforged.neoforge.items.ItemStackHandler
 import software.bernie.geckolib.animation.AnimatableManager
 import software.bernie.geckolib.animation.AnimationController
 import software.bernie.geckolib.animation.RawAnimation
@@ -123,24 +123,34 @@ class AssemblerBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity
     var catalyst: ItemStack = ItemStack.EMPTY
         private set
 
-    val energy = ControllerEnergy(ENERGY_FE, ENERGY_RATE) { setChanged() }
-    val tanks = MultiTank(1, TANK_MB) { setChanged() }
+    val energy = EnergyCell(ENERGY_FE.toLong(), ENERGY_RATE.toLong()) { setChanged() }
+    val tanks = MultiTank(1, Droplets.ofMb(TANK_MB)) { setChanged() }
 
     /**
      * One slot, the catalyst, so a pipe can feed the machine. There is no output slot: a finished job puts
      * its result on top of the assembler as a real item, so a hopper under it is the way to collect.
      */
-    val items: ItemStackHandler = object : ItemStackHandler(1) {
-        override fun onContentsChanged(slot: Int) {
-            catalyst = getStackInSlot(CATALYST)
+    val items = object : SlotStore(1, {}) {
+        private fun changed() {
+            catalyst = stackIn(CATALYST)
             sync()
+            setChanged()
         }
+
+        override fun setStackIn(slot: Int, stack: ItemStack): Boolean =
+            super.setStackIn(slot, stack).also { if (it) changed() }
+
+        override fun insert(slot: Int, stack: ItemStack, simulate: Boolean): ItemStack =
+            super.insert(slot, stack, simulate).also { if (!simulate) changed() }
+
+        override fun extract(slot: Int, amount: Int, simulate: Boolean): ItemStack =
+            super.extract(slot, amount, simulate).also { if (!simulate) changed() }
 
         /**
          * Only while the machine is actually ready for one — a pipe must not be able to stuff a lens into
          * an assembler whose pedestals are wrong and leave it sitting there doing nothing.
          */
-        override fun isItemValid(slot: Int, stack: ItemStack): Boolean =
+        override fun isValid(slot: Int, stack: ItemStack): Boolean =
             slot == CATALYST && !running && recipeFor(stack) != null
     }
 
@@ -195,7 +205,7 @@ class AssemblerBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity
         val found = recipeFor(catalyst) ?: return "the pedestals do not spell out a recipe for that"
         val recipe = found.value()
         // Spent on starting, not on finishing: the lens is what sets the process going.
-        items.extractItem(CATALYST, 1, false)
+        items.extract(CATALYST, 1, false)
         recipeId = found.id()
         running = true
         ticksDone = 0
@@ -233,7 +243,7 @@ class AssemblerBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity
         //
         // Whatever is in the buffers IS this tick's delivery, because they were emptied at the end of the
         // last one — the machine meters a flow rather than storing it.
-        val gotEnergy = energy.energyStored
+        val gotEnergy = energy.stored.toInt()
         val gotXp = xpStored()
         empty()
         instability = when {
@@ -274,7 +284,7 @@ class AssemblerBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity
         if (!catalyst.isEmpty) return "a catalyst is already in it"
         if (pedestals().none { !it.held.isEmpty }) return "nothing is on the pedestals"
         if (recipeFor(held) == null) return "the pedestals do not spell out a recipe for that"
-        items.setStackInSlot(CATALYST, held.split(1))
+        items.setStackIn(CATALYST, held.split(1))
         start()
         return null
     }
@@ -297,13 +307,13 @@ class AssemblerBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity
      * delivery it is waiting for. Over-feeding therefore wastes the surplus, which is the point.
      */
     private fun empty() {
-        if (energy.energyStored > 0) energy.set(0)
+        if (energy.stored > 0L) energy.set(0L)
         val held = xpStored()
-        if (held > 0) tanks.drain(FluidStack(ModFluids.EXPERIENCE.get(), held), IFluidHandler.FluidAction.EXECUTE)
+        if (held > 0) tanks.drain(FluidVolume.ofMb(ModFluids.EXPERIENCE.get(), held), simulate = false)
     }
 
     /** The liquid experience in the tank right now. */
-    private fun xpStored(): Int = tanks.getFluidInTank(0).amount
+    private fun xpStored(): Int = tanks.inTank(0).mb
 
     /**
      * It held together: the pedestals give up their stacks and the result appears where it was forming.
@@ -378,9 +388,9 @@ class AssemblerBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity
     val progress: Float get() = if (totalTicks <= 0) 0f else (ticksDone.toFloat() / totalTicks).coerceIn(0f, 1f)
 
     override fun saveSynced(tag: CompoundTag, registries: HolderLookup.Provider) {
-        tag.put("items", items.serializeNBT(registries))
-        tag.putInt("energy", energy.energyStored)
-        tag.put("tanks", tanks.save(registries))
+        tag.put("items", items.save(registries))
+        tag.putInt("energy", energy.stored.toInt())
+        tag.put("tanks", tanks.save())
         tag.putBoolean("running", running)
         tag.putInt("ticksDone", ticksDone)
         tag.putInt("totalTicks", totalTicks)
@@ -391,10 +401,10 @@ class AssemblerBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity
     }
 
     override fun loadSynced(tag: CompoundTag, registries: HolderLookup.Provider) {
-        if (tag.contains("items")) items.deserializeNBT(registries, tag.getCompound("items"))
-        catalyst = items.getStackInSlot(CATALYST)
-        energy.set(tag.getInt("energy"))
-        if (tag.contains("tanks")) tanks.load(registries, tag.getList("tanks", net.minecraft.nbt.Tag.TAG_COMPOUND.toInt()))
+        if (tag.contains("items")) items.load(registries, tag.getList("items", net.minecraft.nbt.Tag.TAG_COMPOUND.toInt()))
+        catalyst = items.stackIn(CATALYST)
+        energy.set(tag.getInt("energy").toLong())
+        if (tag.contains("tanks")) tanks.load(tag.getList("tanks", net.minecraft.nbt.Tag.TAG_COMPOUND.toInt()))
         running = tag.getBoolean("running")
         ticksDone = tag.getInt("ticksDone")
         totalTicks = tag.getInt("totalTicks")

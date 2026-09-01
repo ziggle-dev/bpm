@@ -15,8 +15,6 @@ import net.minecraft.commands.arguments.coordinates.BlockPosArgument
 import net.minecraft.core.Direction
 import net.minecraft.network.chat.Component
 import net.minecraft.world.level.block.entity.BlockEntity
-import net.neoforged.fml.loading.FMLPaths
-import net.neoforged.neoforge.event.RegisterCommandsEvent
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.dedicated.DedicatedServer
 import java.nio.file.Files
@@ -30,7 +28,7 @@ import bpm.catalog.BpmCatalog
  * Documents come from `<gamedir>/bpm/graphs/<file>.json` (`GraphDoc` JSON, as the vscript editor saves it).
  */
 object BpmCommands {
-    fun register(event: RegisterCommandsEvent) {
+    fun register(event: bpm.platform.events.CommandRegistration) {
         val root = Commands.literal("bpm").requires { it.hasPermission(2) }
             .then(Commands.literal("stats").executes { ctx -> reply(ctx, RuntimeManager.stats()); 1 })
             .then(Commands.literal("ticks").executes { ctx -> reply(ctx, tickReport(ctx.source.server)); 1 })
@@ -281,7 +279,7 @@ object BpmCommands {
             ctx.source.sendFailure(Component.literal("no fluid called $id"))
             return 0
         }
-        val filled = be.tanks.fill(net.neoforged.neoforge.fluids.FluidStack(fluid, mb), net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction.EXECUTE)
+        val filled = bpm.platform.ports.Droplets.toMb(be.tanks.fill(bpm.platform.ports.FluidVolume.ofMb(fluid, mb), simulate = false))
         reply(ctx, "tanks of ${be.blockPos.toShortString()}: +$filled mB of $id")
         return 1
     }
@@ -289,8 +287,8 @@ object BpmCommands {
     /** `/bpm energy <pos> <fe>`: set the controller's energy cell. */
     private fun energy(ctx: CommandContext<CommandSourceStack>): Int {
         val be = controller(ctx) ?: return 0
-        be.energy.set(com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "fe"))
-        reply(ctx, "energy of ${be.blockPos.toShortString()}: ${be.energy.energyStored} / ${be.energy.maxEnergyStored} FE")
+        be.energy.set(com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "fe").toLong())
+        reply(ctx, "energy of ${be.blockPos.toShortString()}: ${be.energy.stored} / ${be.energy.capacity} FE")
         return 1
     }
 
@@ -299,7 +297,7 @@ object BpmCommands {
         val be = controller(ctx) ?: return 0
         val slot = com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "slot")
         val stack = net.minecraft.commands.arguments.item.ItemArgument.getItem(ctx, "item").createItemStack(count, false)
-        be.inventory.setStackInSlot(slot, stack)
+        be.inventory.setStackIn(slot, stack)
         be.setChanged()
         reply(ctx, "slot $slot of ${be.blockPos.toShortString()}: ${stack.count} × ${stack.hoverName.string}${if (stack.isEnchanted) " (enchanted)" else ""}")
         return 1
@@ -349,7 +347,7 @@ object BpmCommands {
 
     private fun graphFile(name: String): Path {
         val safe = name.replace(Regex("[^A-Za-z0-9._-]"), "_").removeSuffix(".json")
-        return FMLPaths.GAMEDIR.get().resolve("bpm").resolve("graphs").resolve("$safe.json")
+        return bpm.platform.Platform.gameDir.resolve("bpm").resolve("graphs").resolve("$safe.json")
     }
 
     /**

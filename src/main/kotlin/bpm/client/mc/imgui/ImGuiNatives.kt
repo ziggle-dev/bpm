@@ -2,7 +2,6 @@ package bpm.client.mc.imgui
 
 import bpm.Bpm
 import imgui.ImGui
-import net.neoforged.fml.loading.FMLPaths
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicBoolean
@@ -38,7 +37,7 @@ object ImGuiNatives {
         if (booted.getAndSet(true)) return ok
         try {
             val lib = libraryFileName()
-            val dir: Path = FMLPaths.GAMEDIR.get().resolve("bpm").resolve("natives").resolve("imgui-$VERSION")
+            val dir: Path = bpm.platform.Platform.gameDir.resolve("bpm").resolve("natives").resolve("imgui-$VERSION")
             val resource = ImGuiNatives::class.java.classLoader.getResourceAsStream("io/imgui/java/native-bin/$lib")
             if (resource != null) {
                 resource.use { input ->

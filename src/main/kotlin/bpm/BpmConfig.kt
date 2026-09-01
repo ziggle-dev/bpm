@@ -1,55 +1,54 @@
 package bpm
 
-import net.neoforged.fml.ModLoadingContext
-import net.neoforged.fml.config.ModConfig
-import net.neoforged.neoforge.common.ModConfigSpec
+import bpm.platform.Platform
+import bpm.platform.config.ConfigSpec
 
 /**
  * The tunables the mechanics design lists (`docs/DESIGN_MECHANICS.md` §11), as a server config. Read at use,
  * never at registration — a config is only loaded once the server (or the integrated one) starts.
  */
 object BpmConfig {
-    private val B = ModConfigSpec.Builder()
+    private val B = ConfigSpec.Builder()
 
-    val LINK_RANGE: ModConfigSpec.IntValue
-    val RELAY_RANGE: ModConfigSpec.IntValue
+    val LINK_RANGE: ConfigSpec.IntValue
+    val RELAY_RANGE: ConfigSpec.IntValue
 
     /** Per-tier reach and breadth, by [bpm.world.CoreTier.key] — see docs/DESIGN_TIERS_AND_FABRICATION.md §2. */
-    val TIER_RANGE_FACTOR: Map<String, ModConfigSpec.DoubleValue>
-    val TIER_UNLIMITED: Map<String, ModConfigSpec.BooleanValue>
-    val TIER_MAX_LINKS: Map<String, ModConfigSpec.IntValue>
-    val TIER_MAX_PLAYER_LINKS: Map<String, ModConfigSpec.IntValue>
-    val GATE_OPEN_MINUTES: ModConfigSpec.IntValue
-    val GATE_REQUIRE_CORNERS: ModConfigSpec.BooleanValue
-    val CHAMBER_RESET_MINUTES: ModConfigSpec.IntValue
-    val CHAMBER_UNBREAKABLE_WHILE_ALIVE: ModConfigSpec.BooleanValue
-    val CHAMBER_RESET_ON_LEAVE: ModConfigSpec.BooleanValue
-    val WARDEN_HEALTH: ModConfigSpec.DoubleValue
-    val WARDEN_BEAM_DAMAGE: ModConfigSpec.DoubleValue
-    val WARDEN_CAGE_MULTIPLIER: ModConfigSpec.DoubleValue
-    val WARDEN_PLATE_HEALTH: ModConfigSpec.DoubleValue
-    val WARDEN_STATE_HOLD_MINUTES: ModConfigSpec.IntValue
-    val WARDEN_AUTOMATED_KILLS_CAN_ROLL: ModConfigSpec.BooleanValue
-    val WARDEN_TRAIL_DAMAGE: ModConfigSpec.DoubleValue
-    val TRAP_SPIKE_DAMAGE: ModConfigSpec.DoubleValue
-    val TRAP_TURRET_DAMAGE: ModConfigSpec.DoubleValue
-    val TRAP_TURRET_RANGE: ModConfigSpec.IntValue
-    val TRAP_TURRET_TARGETS_PLAYERS_OVERWORLD: ModConfigSpec.BooleanValue
-    val TRAP_TURRET_HEAL: ModConfigSpec.DoubleValue
-    val EFFECTS_MAX_RIFTS: ModConfigSpec.IntValue
-    val FLUID_INFINITE_SOURCES: ModConfigSpec.IntValue
+    val TIER_RANGE_FACTOR: Map<String, ConfigSpec.DoubleValue>
+    val TIER_UNLIMITED: Map<String, ConfigSpec.BoolValue>
+    val TIER_MAX_LINKS: Map<String, ConfigSpec.IntValue>
+    val TIER_MAX_PLAYER_LINKS: Map<String, ConfigSpec.IntValue>
+    val GATE_OPEN_MINUTES: ConfigSpec.IntValue
+    val GATE_REQUIRE_CORNERS: ConfigSpec.BoolValue
+    val CHAMBER_RESET_MINUTES: ConfigSpec.IntValue
+    val CHAMBER_UNBREAKABLE_WHILE_ALIVE: ConfigSpec.BoolValue
+    val CHAMBER_RESET_ON_LEAVE: ConfigSpec.BoolValue
+    val WARDEN_HEALTH: ConfigSpec.DoubleValue
+    val WARDEN_BEAM_DAMAGE: ConfigSpec.DoubleValue
+    val WARDEN_CAGE_MULTIPLIER: ConfigSpec.DoubleValue
+    val WARDEN_PLATE_HEALTH: ConfigSpec.DoubleValue
+    val WARDEN_STATE_HOLD_MINUTES: ConfigSpec.IntValue
+    val WARDEN_AUTOMATED_KILLS_CAN_ROLL: ConfigSpec.BoolValue
+    val WARDEN_TRAIL_DAMAGE: ConfigSpec.DoubleValue
+    val TRAP_SPIKE_DAMAGE: ConfigSpec.DoubleValue
+    val TRAP_TURRET_DAMAGE: ConfigSpec.DoubleValue
+    val TRAP_TURRET_RANGE: ConfigSpec.IntValue
+    val TRAP_TURRET_TARGETS_PLAYERS_OVERWORLD: ConfigSpec.BoolValue
+    val TRAP_TURRET_HEAL: ConfigSpec.DoubleValue
+    val EFFECTS_MAX_RIFTS: ConfigSpec.IntValue
+    val FLUID_INFINITE_SOURCES: ConfigSpec.IntValue
 
-    val SPEC: ModConfigSpec
+    val SPEC: ConfigSpec
 
     init {
         B.push("link")
         LINK_RANGE = B.comment("The base reach of a controller, in blocks; each core tier multiplies it (see [tier])").defineInRange("range", 16, 4, 256)
         B.pop()
         B.push("tier")
-        val factors = LinkedHashMap<String, ModConfigSpec.DoubleValue>()
-        val unlimited = LinkedHashMap<String, ModConfigSpec.BooleanValue>()
-        val maxLinks = LinkedHashMap<String, ModConfigSpec.IntValue>()
-        val maxPlayerLinks = LinkedHashMap<String, ModConfigSpec.IntValue>()
+        val factors = LinkedHashMap<String, ConfigSpec.DoubleValue>()
+        val unlimited = LinkedHashMap<String, ConfigSpec.BoolValue>()
+        val maxLinks = LinkedHashMap<String, ConfigSpec.IntValue>()
+        val maxPlayerLinks = LinkedHashMap<String, ConfigSpec.IntValue>()
         for (tier in bpm.world.CoreTier.entries) {
             B.push(tier.key)
             factors[tier.key] = B.comment("Multiplies link.range for a ${tier.label} core").defineInRange("rangeFactor", tier.defaultRangeFactor, 0.1, 1024.0)
@@ -104,12 +103,17 @@ object BpmConfig {
         SPEC = B.build()
     }
 
+    /**
+     * Read the file. Server-side and global, at `config/bpm-server.toml`, exactly where it was before —
+     * an existing file with hand-edited values keeps working.
+     */
     fun register() {
-        ModLoadingContext.get().activeContainer.registerConfig(ModConfig.Type.SERVER, SPEC)
+        runCatching { SPEC.load(Platform.configDir.resolve("bpm-server.toml")) }
+            .onFailure { Bpm.LOGGER.error("could not read config/bpm-server.toml; defaults are in use", it) }
     }
 
     /** A value, or its default before the config has loaded (registration time, unit tests). */
-    fun <T : Any> ModConfigSpec.ConfigValue<T>.orDefault(): T = if (SPEC.isLoaded) get() else default
+    fun <T : Any> ConfigSpec.Value<T>.orDefault(): T = if (SPEC.isLoaded) get() else default
 
     /** How far [tier] reaches, in blocks — [Double.POSITIVE_INFINITY] when the server lets it off the leash. */
     fun rangeOf(tier: bpm.world.CoreTier): Double =

@@ -1,11 +1,14 @@
 package bpm.world.devices
 
+import bpm.platform.events.BpmEvents
+import bpm.platform.events.ClickPhase
+import bpm.platform.events.Crafted
+import bpm.platform.events.LeftClickBlock
+import bpm.platform.events.AttackEntity
 import net.minecraft.core.BlockPos
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.HitResult
-import net.neoforged.bus.api.IEventBus
-import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent
 import java.util.function.Consumer
 
 /**
@@ -29,27 +32,24 @@ import java.util.function.Consumer
  */
 object MonitorInput {
 
-    fun install(bus: IEventBus) {
-        bus.addListener(PlayerInteractEvent.LeftClickBlock::class.java, Consumer(::onLeftClick))
+    fun install() {
+        BpmEvents.leftClickBlock.listen(::onLeftClick)
     }
 
-    private fun onLeftClick(event: PlayerInteractEvent.LeftClickBlock) {
-        val player = event.entity
-        if (player.isShiftKeyDown) return
-        val action = event.action
-        val start = action == PlayerInteractEvent.LeftClickBlock.Action.START
-        val holding = action == PlayerInteractEvent.LeftClickBlock.Action.CLIENT_HOLD
-        if (!start && !holding) return
+    /** False to swallow the click: pressing a button on the wall is not also mining it. */
+    private fun onLeftClick(event: LeftClickBlock): Boolean {
+        val player = event.player
+        if (player.isShiftKeyDown) return true
+        val start = event.phase == ClickPhase.START
+        val holding = event.phase == ClickPhase.HOLD
+        if (!start && !holding) return true
 
-        val found = hit(player, event.pos) ?: return
+        val found = hit(player, event.pos) ?: return true
         val (origin, f) = found
         val widget = f.widget
 
         // A held mouse must not press a button over and over; only a slider keeps answering.
-        if (holding && !Widget.isDraggable(widget.kind)) {
-            event.isCanceled = true
-            return
-        }
+        if (holding && !Widget.isDraggable(widget.kind)) return false
 
         if (player.level().isClientSide) {
             if (holding) bpm.client.mc.MonitorDrag.send(origin.blockPos, widget.id, f.along.toFloat())
@@ -75,7 +75,7 @@ object MonitorInput {
                 )
             }
         }
-        event.isCanceled = true
+        return false
     }
 
     /**

@@ -77,7 +77,7 @@ object BpmImGui {
             EditorHost.icons = bpm.client.mc.BlockPreviewRenderer
             EditorHost.styles = bpm.client.mc.BpmTypeStyles
             // vscript's own settings and workspace live under the game dir, not the user's home.
-            val home = net.neoforged.fml.loading.FMLPaths.GAMEDIR.get().resolve("bpm").toFile()
+            val home = bpm.platform.Platform.gameDir.resolve("bpm").toFile()
             EditorSettings.home = home
             EditorDoc.workspace = java.io.File(home, "graphs")
             EditorLog.sink = EditorLog.Sink { level, tag, message, error ->

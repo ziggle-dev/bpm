@@ -1,0 +1,84 @@
+pluginManagement {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+        maven { url = uri("https://maven.neoforged.net/releases") }
+        maven { url = uri("https://maven.kikugie.dev/releases") }
+        maven { url = uri("https://maven.architectury.dev/") }
+        maven { url = uri("https://maven.fabricmc.net/") }
+    }
+}
+
+plugins {
+    // Provisions the JDK 21 toolchain Minecraft 1.21 needs, and the JDK 17 one the included vscript build asks for.
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+    id("dev.kikugie.stonecutter") version "0.9.8"
+}
+
+rootProject.name = "bpm"
+
+/*
+ * **The two axes.**
+ *
+ * Loader is a Stonecutter BRANCH; Minecraft version is a Stonecutter VERSION. That gives
+ * `:neoforge:1.21.1` and `:fabric:1.21.1` today, and a column per version later.
+ *
+ * The branches matter because **each one has its own build script** -- `neoforge/build.gradle.kts` and
+ * `fabric/build.gradle.kts` -- which is what lets the two loaders use different build backends.
+ * NeoForge stays on ModDevGradle and Fabric takes Architectury Loom.
+ *
+ * That split is a revision of the original plan. Loom was going to be adopted everywhere, on the grounds
+ * that only Loom can hand one compiled `:common` jar to both platforms. But Stonecutter does not work
+ * that way: it compiles ONE SHARED SOURCE TREE per (loader, version) node, so there is no `:common` jar
+ * to hand anyone and the reason Loom was mandatory evaporates. Trying it anyway cost both test
+ * harnesses -- Loom exposes each source set as its own mod file rather than merging them as MDG does, so
+ * FML never scans `src/dev` and every game test disappears, and Loom wires nothing to the
+ * `forgejunitdev` launch target that 64 of the unit tests need. MDG does both correctly on NeoForge;
+ * Loom is the right and only tool on Fabric.
+ *
+ * Stonecutter 0.9.8's plugin is compiled for Java 21, so the Gradle daemon must run on 21+ --
+ * see gradle/gradle-daemon-jvm.properties.
+ */
+stonecutter {
+    create(rootProject) {
+        branch("neoforge") { versions("1.21.1") }
+        branch("fabric") { versions("1.21.1") }
+        vcsVersion = "1.21.1"
+    }
+}
+
+/*
+ * **vscript is a git submodule (`vscript/`), and by default it is built as part of this build.** Edits to
+ * the language, the runtime or the canvas are picked up on the next `gradlew` run with no publish step.
+ *
+ * `-Pvscript.local=false` resolves it from mavenLocal instead, after `vscript/gradlew publishToMavenLocal`.
+ *
+ * That switch exists for the version ladder. A composite build loads ONE copy of every plugin into a shared
+ * classloader, and at the full ladder that classloader would be shared by roughly two dozen Kotlin projects
+ * plus Loom, architectury-plugin, Shadow and Stonecutter. Worse, `include(project(...))` of a
+ * dependency-substituted composite project is a rough edge in Loom, which wants resolvable coordinates to
+ * generate jar-in-jar metadata from.
+ *
+ * The default stays the composite for now, because that is the inner loop that works today and this build
+ * still has one node. **It flips at the Stonecutter swap** — at which point the fast loop is publishing to
+ * mavenLocal, which is why bpm's repositories now include a content-filtered `mavenLocal()`.
+ *
+ * The substitutions are stated explicitly, and the first one is load-bearing: the language module is
+ * `:vscript-lang` but its artifact is `dev.ziggle:vscript` (see vscript-lang/build.gradle), and
+ * includeBuild's automatic matching goes by the project's own coordinates. Without the line the dependency
+ * silently resolves to whatever stale jar mavenLocal holds and fails as a page of unresolved references.
+ */
+val useVscriptComposite = (providers.gradleProperty("vscript.local").orNull ?: "true").toBoolean()
+
+if (useVscriptComposite) {
+    includeBuild("vscript") {
+        dependencySubstitution {
+            substitute(module("dev.ziggle:vscript")).using(project(":vscript-lang"))
+            substitute(module("dev.ziggle:vscript-runtime")).using(project(":vscript-runtime"))
+            substitute(module("dev.ziggle:vscript-ui")).using(project(":vscript-ui"))
+            substitute(module("dev.ziggle:vscript-runview")).using(project(":vscript-runview"))
+            substitute(module("dev.ziggle:editor-host")).using(project(":editor-host"))
+            substitute(module("dev.ziggle:editor-graph")).using(project(":editor-graph"))
+        }
+    }
+}

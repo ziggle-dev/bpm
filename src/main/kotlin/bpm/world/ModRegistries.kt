@@ -1,5 +1,11 @@
 package bpm.world
 
+import bpm.platform.registry.BlockRegistrar
+import bpm.platform.registry.ComponentRegistrar
+import bpm.platform.registry.ItemRegistrar
+import bpm.platform.registry.Registrar
+import bpm.platform.registry.RegistryRef
+import bpm.platform.registry.Registrars
 import bpm.Bpm
 import net.minecraft.core.GlobalPos
 import net.minecraft.core.registries.Registries
@@ -14,21 +20,15 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.block.SoundType
 import net.minecraft.world.level.block.entity.BlockEntityType
+import bpm.platform.ports.Ports
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.material.MapColor
-import net.neoforged.bus.api.IEventBus
-import net.neoforged.neoforge.capabilities.Capabilities
-import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent
-import net.neoforged.neoforge.registries.DeferredBlock
-import net.neoforged.neoforge.registries.DeferredHolder
-import net.neoforged.neoforge.registries.DeferredItem
-import net.neoforged.neoforge.registries.DeferredRegister
 import java.util.function.Consumer
 
 object ModBlocks {
-    val REG: DeferredRegister.Blocks = DeferredRegister.createBlocks(Bpm.ID)
+    val REG: BlockRegistrar = Registrars.blocks(Bpm.ID)
 
-    val CONTROLLER: DeferredBlock<ControllerBlock> = REG.registerBlock(
+    val CONTROLLER: RegistryRef<ControllerBlock> = REG.registerBlock(
         "quantum_controller",
         ::ControllerBlock,
         BlockBehaviour.Properties.of()
@@ -40,17 +40,17 @@ object ModBlocks {
     )
 
     /** Liquid experience in the world — see [ModFluids]. */
-    val EXPERIENCE: DeferredBlock<LiquidBlock> = REG.register("experience") { ->
+    val EXPERIENCE: RegistryRef<LiquidBlock> = REG.register("experience") { ->
         LiquidBlock(ModFluids.EXPERIENCE.get(), BlockBehaviour.Properties.ofFullCopy(Blocks.WATER).lightLevel { 10 }.noLootTable())
     }
 }
 
 object ModItems {
-    val REG: DeferredRegister.Items = DeferredRegister.createItems(Bpm.ID)
+    val REG: ItemRegistrar = Registrars.items(Bpm.ID)
 
-    val CONTROLLER: DeferredItem<BlockItem> = REG.registerItem("quantum_controller", { p -> ControllerBlockItem(ModBlocks.CONTROLLER.get(), p) }, Item.Properties())
-    val LINKER: DeferredItem<LinkerItem> = REG.registerItem("quantum_linker", ::LinkerItem, Item.Properties().stacksTo(1))
-    val EXPERIENCE_BUCKET: DeferredItem<BucketItem> = REG.registerItem(
+    val CONTROLLER: RegistryRef<BlockItem> = REG.registerItem("quantum_controller", { p -> ControllerBlockItem(ModBlocks.CONTROLLER.get(), p) }, Item.Properties())
+    val LINKER: RegistryRef<LinkerItem> = REG.registerItem("quantum_linker", ::LinkerItem, Item.Properties().stacksTo(1))
+    val EXPERIENCE_BUCKET: RegistryRef<BucketItem> = REG.registerItem(
         "experience_bucket",
         { p -> BucketItem(ModFluids.EXPERIENCE.get(), p) },
         Item.Properties().craftRemainder(Items.BUCKET).stacksTo(1),
@@ -58,16 +58,16 @@ object ModItems {
 }
 
 object ModBlockEntities {
-    val REG: DeferredRegister<BlockEntityType<*>> = DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, Bpm.ID)
+    val REG: Registrar<BlockEntityType<*>> = Registrars.of(Registries.BLOCK_ENTITY_TYPE, Bpm.ID)
 
-    val CONTROLLER: DeferredHolder<BlockEntityType<*>, BlockEntityType<ControllerBlockEntity>> = REG.register("quantum_controller") { ->
+    val CONTROLLER: RegistryRef<BlockEntityType<ControllerBlockEntity>> = REG.register("quantum_controller") { ->
         @Suppress("DataFlowIssue")
         BlockEntityType.Builder.of(::ControllerBlockEntity, ModBlocks.CONTROLLER.get()).build(null)
     }
 }
 
 object ModComponents {
-    val REG: DeferredRegister.DataComponents = DeferredRegister.createDataComponents(Registries.DATA_COMPONENT_TYPE, Bpm.ID)
+    val REG: ComponentRegistrar = Registrars.components(Bpm.ID)
 
     /** The controller a linker is working for. */
     val SELECTED_CONTROLLER = REG.registerComponentType("selected_controller") { b -> b.persistent(GlobalPos.CODEC).networkSynchronized(GlobalPos.STREAM_CODEC) }
@@ -98,10 +98,12 @@ object ModComponents {
 }
 
 object ModCreativeTab {
-    val REG: DeferredRegister<CreativeModeTab> = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, Bpm.ID)
+    val REG: Registrar<CreativeModeTab> = Registrars.of(Registries.CREATIVE_MODE_TAB, Bpm.ID)
 
-    val TAB: DeferredHolder<CreativeModeTab, CreativeModeTab> = REG.register("bpm") { ->
-        CreativeModeTab.builder()
+    val TAB: RegistryRef<CreativeModeTab> = REG.register("bpm") { ->
+        // The vanilla two-argument form, not NeoForge's no-arg overload: this is shared code and Fabric
+        // only has vanilla's. Row and column are what NeoForge's overload passes anyway.
+        CreativeModeTab.builder(CreativeModeTab.Row.TOP, 0)
             .title(Component.translatable("itemGroup.bpm"))
             .icon { ItemStack(ModItems.CONTROLLER.get()) }
             .displayItems { _, out ->
@@ -117,42 +119,55 @@ object ModCreativeTab {
 
 /** Registers everything above on the mod bus, plus the controller's item capability. */
 object BpmRegistries {
-    fun install(bus: IEventBus) {
-        ModBlocks.REG.register(bus)
-        ModItems.REG.register(bus)
-        ModFluids.TYPES.register(bus)
-        ModFluids.REG.register(bus)
-        DeviceBlocks.REG.register(bus)
-        DeviceItems.REG.register(bus)
-        DeviceBlockEntities.REG.register(bus)
-        bpm.world.assembly.ModRecipes.TYPES.register(bus)
-        bpm.world.assembly.ModRecipes.SERIALIZERS.register(bus)
-        ModAttachments.REG.register(bus)
-        bpm.world.entity.ModEntities.REG.register(bus)
-        bus.addListener(net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent::class.java, Consumer(bpm.world.entity.ModEntities::attributes))
-        ContentBlocks.REG.register(bus)
-        ContentItems.REG.register(bus)
-        ModBlockEntities.REG.register(bus)
-        ModComponents.REG.register(bus)
-        ModCreativeTab.REG.register(bus)
-        bus.addListener(RegisterCapabilitiesEvent::class.java, Consumer { event ->
-            event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, ModBlockEntities.CONTROLLER.get()) { be, _ -> be.inventory }
-            event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, ModBlockEntities.CONTROLLER.get()) { be, _ -> be.tanks }
-            event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, ModBlockEntities.CONTROLLER.get()) { be, _ -> be.energy }
+    /**
+     * Fluids go on the bus before blocks and items, because both name them at construction:
+     * [ModBlocks.EXPERIENCE] builds a `LiquidBlock` from `ModFluids.EXPERIENCE.get()` and
+     * [ModItems.EXPERIENCE_BUCKET] a `BucketItem` from the same holder.
+     *
+     * On NeoForge the order is not load-bearing — `DeferredRegister` holds the factory lambda until
+     * its registry event fires, so the `.get()` runs long after everything is registered whatever
+     * sequence we call `register` in. It is written this way for the reader, and for the day the
+     * same registration list is replayed against a registry that resolves eagerly instead.
+     */
+    fun install() {
+        // Touching each object is what creates its registrar and queues its entries; `installAll` then
+        // realises them, in the order they were asked for.
+        ModFluids.declare()
+        ModBlocks.REG
+        ModItems.REG
+        DeviceBlocks.REG
+        DeviceItems.REG
+        DeviceBlockEntities.REG
+        bpm.world.assembly.ModRecipes.TYPES
+        bpm.world.assembly.ModRecipes.SERIALIZERS
+
+        bpm.world.entity.ModEntities.REG
+        bpm.world.entity.ModEntities.attributes()
+        ContentBlocks.REG
+        ContentItems.REG
+        ModBlockEntities.REG
+        ModComponents.REG
+        ModCreativeTab.REG
+        Registrars.installAll()
+        LinkerItem.installHooks()
+        Ports.providers { sink ->
+            sink.items(ModBlockEntities.CONTROLLER.get()) { be, _ -> be.inventory }
+            sink.fluids(ModBlockEntities.CONTROLLER.get()) { be, _ -> be.tanks }
+            sink.energy(ModBlockEntities.CONTROLLER.get()) { be, _ -> be.energy }
             // The assembler takes its catalyst from anywhere, but is FED from underneath only.
             //
             // The machine is meant to be plumbed, not surrounded: power and experience come up into it from
             // below, which keeps its four sides clear for the pedestals that have to see it and stops a
             // build turning into a cube of pipework. Items are the exception because the catalyst is what a
             // player hands it, and reaching under a block to do that would be miserable.
-            event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, DeviceBlockEntities.ASSEMBLER.get()) { be, _ -> be.items }
-            event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, DeviceBlockEntities.ASSEMBLER.get()) { be, side ->
+            sink.items(DeviceBlockEntities.ASSEMBLER.get()) { be, _ -> be.items }
+            sink.fluids(DeviceBlockEntities.ASSEMBLER.get()) { be, side ->
                 if (side == net.minecraft.core.Direction.DOWN) be.tanks else null
             }
-            event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, DeviceBlockEntities.ASSEMBLER.get()) { be, side ->
+            sink.energy(DeviceBlockEntities.ASSEMBLER.get()) { be, side ->
                 if (side == net.minecraft.core.Direction.DOWN) be.energy else null
             }
-            event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, DeviceBlockEntities.PEDESTAL.get()) { be, _ -> bpm.world.devices.PedestalSlot(be) }
-        })
+            sink.items(DeviceBlockEntities.PEDESTAL.get()) { be, _ -> bpm.world.devices.PedestalSlot(be) }
+        }
     }
 }

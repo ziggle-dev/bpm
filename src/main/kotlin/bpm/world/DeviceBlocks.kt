@@ -1,5 +1,11 @@
 package bpm.world
 
+import bpm.platform.registry.BlockRegistrar
+import bpm.platform.registry.ComponentRegistrar
+import bpm.platform.registry.ItemRegistrar
+import bpm.platform.registry.Registrar
+import bpm.platform.registry.RegistryRef
+import bpm.platform.registry.Registrars
 import bpm.Bpm
 import bpm.world.devices.AssemblerBlock
 import bpm.world.devices.AssemblerBlockEntity
@@ -27,11 +33,6 @@ import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.material.MapColor
-import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions
-import net.neoforged.neoforge.registries.DeferredBlock
-import net.neoforged.neoforge.registries.DeferredHolder
-import net.neoforged.neoforge.registries.DeferredItem
-import net.neoforged.neoforge.registries.DeferredRegister
 import software.bernie.geckolib.animatable.GeoItem
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
 import software.bernie.geckolib.animation.AnimatableManager
@@ -46,31 +47,31 @@ import java.util.function.Consumer
  * `bpm.world.devices`, the renderers in `bpm.client.render.DeviceRenderers`.
  */
 object DeviceBlocks {
-    val REG: DeferredRegister.Blocks = DeferredRegister.createBlocks(Bpm.ID)
+    val REG: BlockRegistrar = Registrars.blocks(Bpm.ID)
 
     private fun armour(colour: MapColor = MapColor.COLOR_BLUE, hardness: Float = 4f) =
         BlockBehaviour.Properties.of().mapColor(colour).strength(hardness, 1200f).sound(SoundType.METAL).noOcclusion().requiresCorrectToolForDrops()
 
-    val QUANTUM_GATE: DeferredBlock<GateBlock> = REG.registerBlock("quantum_gate", ::GateBlock, armour().lightLevel { s -> if (s.getValue(GateBlock.OPEN)) 12 else 3 })
-    val CORE_PEDESTAL: DeferredBlock<PedestalBlock> = REG.registerBlock("core_pedestal", ::PedestalBlock, armour().lightLevel { s -> if (s.getValue(PedestalBlock.HAS_CORE)) 9 else 3 })
-    val PHASE_SPIKE: DeferredBlock<TrapBlock> = REG.registerBlock("phase_spike", { p -> TrapBlock(p, ::SpikeBlockEntity, TrapBlock.PLATE) }, armour(MapColor.COLOR_BLACK))
-    val DECOHERENCE_VENT: DeferredBlock<TrapBlock> = REG.registerBlock("decoherence_vent", { p -> TrapBlock(p, ::VentBlockEntity, TrapBlock.GRATE) }, armour(MapColor.COLOR_BLACK).lightLevel { 5 })
-    val OBSERVER_TURRET: DeferredBlock<TurretBlock> = REG.registerBlock("observer_turret", ::TurretBlock, armour().lightLevel { 4 })
-    val PHASE_BLOCK: DeferredBlock<PhaseBlock> = REG.registerBlock("phase_block", ::PhaseBlock, armour().lightLevel { 6 })
+    val QUANTUM_GATE: RegistryRef<GateBlock> = REG.registerBlock("quantum_gate", ::GateBlock, armour().lightLevel { s -> if (s.getValue(GateBlock.OPEN)) 12 else 3 })
+    val CORE_PEDESTAL: RegistryRef<PedestalBlock> = REG.registerBlock("core_pedestal", ::PedestalBlock, armour().lightLevel { s -> if (s.getValue(PedestalBlock.HAS_CORE)) 9 else 3 })
+    val PHASE_SPIKE: RegistryRef<TrapBlock> = REG.registerBlock("phase_spike", { p -> TrapBlock(p, ::SpikeBlockEntity, TrapBlock.PLATE) }, armour(MapColor.COLOR_BLACK))
+    val DECOHERENCE_VENT: RegistryRef<TrapBlock> = REG.registerBlock("decoherence_vent", { p -> TrapBlock(p, ::VentBlockEntity, TrapBlock.GRATE) }, armour(MapColor.COLOR_BLACK).lightLevel { 5 })
+    val OBSERVER_TURRET: RegistryRef<TurretBlock> = REG.registerBlock("observer_turret", ::TurretBlock, armour().lightLevel { 4 })
+    val PHASE_BLOCK: RegistryRef<PhaseBlock> = REG.registerBlock("phase_block", ::PhaseBlock, armour().lightLevel { 6 })
     /** A tiling screen panel (`Monitor.kt`): joins same-facing neighbours into one display. */
-    val QUANTUM_MONITOR: DeferredBlock<MonitorBlock> = REG.registerBlock("quantum_monitor", ::MonitorBlock, armour(MapColor.COLOR_BLACK, 2f).lightLevel { s -> if (s.getValue(MonitorBlock.ON)) 6 else 0 })
+    val QUANTUM_MONITOR: RegistryRef<MonitorBlock> = REG.registerBlock("quantum_monitor", ::MonitorBlock, armour(MapColor.COLOR_BLACK, 2f).lightLevel { s -> if (s.getValue(MonitorBlock.ON)) 6 else 0 })
 
     /** The fabricator (`Assembler.kt`): pedestals feed it, and a job has to be kept supplied to survive. */
-    val QUANTUM_ASSEMBLER: DeferredBlock<AssemblerBlock> = REG.registerBlock("quantum_assembler", ::AssemblerBlock, armour(MapColor.COLOR_BLUE, 5f).lightLevel { s -> if (s.getValue(AssemblerBlock.RUNNING)) 11 else 4 })
+    val QUANTUM_ASSEMBLER: RegistryRef<AssemblerBlock> = REG.registerBlock("quantum_assembler", ::AssemblerBlock, armour(MapColor.COLOR_BLUE, 5f).lightLevel { s -> if (s.getValue(AssemblerBlock.RUNNING)) 11 else 4 })
 
-    val all: List<DeferredBlock<out Block>> get() = listOf(QUANTUM_ASSEMBLER, QUANTUM_GATE, CORE_PEDESTAL, PHASE_SPIKE, DECOHERENCE_VENT, OBSERVER_TURRET, PHASE_BLOCK, QUANTUM_MONITOR)
+    val all: List<RegistryRef<out Block>> get() = listOf(QUANTUM_ASSEMBLER, QUANTUM_GATE, CORE_PEDESTAL, PHASE_SPIKE, DECOHERENCE_VENT, OBSERVER_TURRET, PHASE_BLOCK, QUANTUM_MONITOR)
 }
 
 object DeviceBlockEntities {
-    val REG: DeferredRegister<BlockEntityType<*>> = DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, Bpm.ID)
+    val REG: Registrar<BlockEntityType<*>> = Registrars.of(Registries.BLOCK_ENTITY_TYPE, Bpm.ID)
 
     @Suppress("DataFlowIssue")
-    private fun <T : BlockEntity> type(name: String, block: DeferredBlock<out Block>, factory: (BlockPos, BlockState) -> T): DeferredHolder<BlockEntityType<*>, BlockEntityType<T>> =
+    private fun <T : BlockEntity> type(name: String, block: RegistryRef<out Block>, factory: (BlockPos, BlockState) -> T): RegistryRef<BlockEntityType<T>> =
         REG.register(name) { -> BlockEntityType.Builder.of(factory, block.get()).build(null) }
 
     val GATE = type("quantum_gate", DeviceBlocks.QUANTUM_GATE, ::GateBlockEntity)
@@ -94,15 +95,12 @@ class DeviceBlockItem(block: Block, properties: Properties, val model: String, p
 
     override fun getAnimatableInstanceCache(): AnimatableInstanceCache = animCache
 
-    override fun initializeClient(consumer: Consumer<IClientItemExtensions>) {
-        consumer.accept(bpm.client.render.DeviceItemExtensions.of(model))
-    }
 }
 
 object DeviceItems {
-    val REG: DeferredRegister.Items = DeferredRegister.createItems(Bpm.ID)
+    val REG: ItemRegistrar = Registrars.items(Bpm.ID)
 
-    private fun device(name: String, block: DeferredBlock<out Block>, rest: String): DeferredItem<DeviceBlockItem> =
+    private fun device(name: String, block: RegistryRef<out Block>, rest: String): RegistryRef<DeviceBlockItem> =
         REG.registerItem(name, { p -> DeviceBlockItem(block.get(), p, name, rest) }, Item.Properties())
 
     val QUANTUM_GATE = device("quantum_gate", DeviceBlocks.QUANTUM_GATE, "animation.quantum_gate.idle")
@@ -114,6 +112,6 @@ object DeviceItems {
     val QUANTUM_MONITOR = device("quantum_monitor", DeviceBlocks.QUANTUM_MONITOR, "animation.quantum_monitor.idle")
     val QUANTUM_ASSEMBLER = device("quantum_assembler", DeviceBlocks.QUANTUM_ASSEMBLER, "animation.quantum_assembler.idle")
 
-    val all: List<DeferredItem<out Item>> get() = listOf(QUANTUM_ASSEMBLER, QUANTUM_GATE, CORE_PEDESTAL, PHASE_SPIKE, DECOHERENCE_VENT, OBSERVER_TURRET, PHASE_BLOCK, QUANTUM_MONITOR)
+    val all: List<RegistryRef<out Item>> get() = listOf(QUANTUM_ASSEMBLER, QUANTUM_GATE, CORE_PEDESTAL, PHASE_SPIKE, DECOHERENCE_VENT, OBSERVER_TURRET, PHASE_BLOCK, QUANTUM_MONITOR)
 }
 

@@ -11,11 +11,10 @@ import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.Level
-import net.neoforged.neoforge.capabilities.BlockCapabilityCache
-import net.neoforged.neoforge.capabilities.Capabilities
-import net.neoforged.neoforge.energy.IEnergyStorage
-import net.neoforged.neoforge.fluids.capability.IFluidHandler
-import net.neoforged.neoforge.items.IItemHandler
+import bpm.platform.ports.EnergyPort
+import bpm.platform.ports.Ports
+import bpm.platform.ports.FluidPort
+import bpm.platform.ports.ItemPort
 
 /**
  * One face in the world a controller may talk to, by name — or one person, when [player] is set.
@@ -265,11 +264,9 @@ class LinkTable(private val capsOf: () -> LinkCaps = { LinkCaps.UNLIMITED }) {
 open class ResolvedLink(open val link: Link, val level: ServerLevel, val capped: Boolean = false) {
     open val loaded: Boolean get() = !capped && level.hasChunkAt(link.pos)
 
-    private val itemCache by lazy { BlockCapabilityCache.create(Capabilities.ItemHandler.BLOCK, level, link.pos, link.side) }
-    private val fluidCache by lazy { BlockCapabilityCache.create(Capabilities.FluidHandler.BLOCK, level, link.pos, link.side) }
-    private val energyCache by lazy { BlockCapabilityCache.create(Capabilities.EnergyStorage.BLOCK, level, link.pos, link.side) }
+    private val ports by lazy { Ports.cache(level, link.pos, link.side) }
 
-    open fun items(): IItemHandler? = if (loaded) itemCache.capability else null
-    open fun fluids(): IFluidHandler? = if (loaded) fluidCache.capability else null
-    open fun energy(): IEnergyStorage? = if (loaded) energyCache.capability else null
+    open fun items(): ItemPort? = if (loaded) ports.items else null
+    open fun fluids(): FluidPort? = if (loaded) ports.fluids else null
+    open fun energy(): EnergyPort? = if (loaded) ports.energy else null
 }

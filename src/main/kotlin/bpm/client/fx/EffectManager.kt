@@ -3,7 +3,6 @@ package bpm.client.fx
 import bpm.client.render.BoneAnchors
 import bpm.client.render.ControllerRenderer
 import bpm.client.render.RiftRenderer
-import bpm.client.render.RiftShader
 import bpm.net.EffectKind
 import bpm.net.EffectOp
 import bpm.net.EffectPayload
@@ -24,8 +23,6 @@ import net.minecraft.world.entity.Entity
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.Level
 import net.minecraft.world.phys.Vec3
-import net.neoforged.neoforge.client.event.RenderLevelStageEvent
-import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions
 import org.joml.Vector3f
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -393,24 +390,23 @@ object EffectManager {
         }
     }
 
-    fun render(event: RenderLevelStageEvent) {
-        if (event.stage != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) return
+    fun render(event: bpm.platform.events.WorldRender) {
         // Block entities have all drawn by this stage, so the bone positions they published are this frame's.
         BoneAnchors.endFrame()
         if (effects.isEmpty()) return
         val mc = Minecraft.getInstance()
         val level = mc.level ?: return
         val buffers = mc.renderBuffers().bufferSource()
-        val cam = event.camera.position
-        val partial = event.partialTick.getGameTimeDeltaPartialTick(false)
+        val cam = event.eye
+        val partial = event.delta.getGameTimeDeltaPartialTick(false)
         // Two passes, energy second.
         //
         // The liquid writes depth, as it should — it is a solid column and a wall ought to hide it. The arc
         // does not, so at the same link the two sit at effectively the same depth and whichever is drawn
         // last blends over the other. Left to the map's insertion order that was a coin toss; energy going
         // second makes the current read over the column it runs beside.
-        for (e in effects.values) if (!e.drawsLast) e.render(level, event.poseStack, buffers, cam, partial)
-        for (e in effects.values) if (e.drawsLast) e.render(level, event.poseStack, buffers, cam, partial)
+        for (e in effects.values) if (!e.drawsLast) e.render(level, event.pose, buffers, cam, partial)
+        for (e in effects.values) if (e.drawsLast) e.render(level, event.pose, buffers, cam, partial)
         buffers.endBatch()
     }
 
@@ -448,7 +444,7 @@ object EffectManager {
      * Off for the rest of the session once the rift has thrown once.
      *
      * The rift is decoration for a transfer that has already happened — it is never worth a crash, and it
-     * draws from inside a `RenderLevelStageEvent` listener, where a throw is not caught by anything before
+     * draws from inside the world-render hook, where a throw is not caught by anything before
      * it reaches `Minecraft.run` and takes the client down. That is not hypothetical: a buffer swapped
      * during the glow layer's re-render pass crashed on the first frame a rift existed, which on a world
      * with a running graph is the moment you log in. The flyers and the dust do not go through here, so a
@@ -458,7 +454,7 @@ object EffectManager {
 
     /** The rift sits where things vanish and appear — [Anchor.far]. It is billboarded, so it has no facing. */
     private fun drawRift(level: Level, rift: Rift, a: Anchor, pose: PoseStack, buffers: MultiBufferSource, cam: Vec3, partial: Float) {
-        if (riftsBroken || !RiftShader.ready || hidden(level, a, partial)) return
+        if (riftsBroken || !bpm.platform.client.RiftLooks.ready || hidden(level, a, partial)) return
         try {
             RiftRenderer.draw(rift, a.far(partial).subtract(cam), a.cell(partial), a.facing, RIFT_SCALE, buffers, pose, partial)
         } catch (t: Throwable) {
@@ -526,11 +522,11 @@ object EffectManager {
         age: Float,
     ) {
         if (size <= 0.001f) return
-        val ext = IClientFluidTypeExtensions.of(fluid)
+        val look = bpm.platform.client.FluidVisuals.of(fluid)
         val sprite = Minecraft.getInstance()
             .getTextureAtlas(net.minecraft.world.inventory.InventoryMenu.BLOCK_ATLAS)
-            .apply(ext.stillTexture)
-        val tint = ext.tintColor
+            .apply(look.still)
+        val tint = look.tint
         val r = ((tint shr 16) and 0xFF) / 255f
         val g = ((tint shr 8) and 0xFF) / 255f
         val b = (tint and 0xFF) / 255f
@@ -640,11 +636,11 @@ object EffectManager {
             from.add(span.scale(t)).add(u.scale(a * amp * taper)).add(v.scale(b * amp * taper)).subtract(cam)
         }
 
-        val ext = IClientFluidTypeExtensions.of(fluid)
+        val look = bpm.platform.client.FluidVisuals.of(fluid)
         val sprite = Minecraft.getInstance()
             .getTextureAtlas(net.minecraft.world.inventory.InventoryMenu.BLOCK_ATLAS)
-            .apply(ext.flowingTexture ?: ext.stillTexture)
-        val tint = ext.tintColor
+            .apply(look.flowing)
+        val tint = look.tint
         val r = ((tint shr 16) and 0xFF) / 255f
         val g = ((tint shr 8) and 0xFF) / 255f
         val b = (tint and 0xFF) / 255f
@@ -790,7 +786,7 @@ object EffectManager {
         // current running between two boxes is not a bpm thing, it is electricity.
         EffectKind.ENERGY -> 0xFF4438
         EffectKind.XP -> 0xA8F04A
-        EffectKind.FLUID -> ResourceLocation.tryParse(item)?.let { BuiltInRegistries.FLUID.get(it) }?.let { IClientFluidTypeExtensions.of(it).tintColor and 0xFFFFFF } ?: 0x3F76E4
+        EffectKind.FLUID -> ResourceLocation.tryParse(item)?.let { BuiltInRegistries.FLUID.get(it) }?.let { bpm.platform.client.FluidVisuals.of(it).tint and 0xFFFFFF } ?: 0x3F76E4
         else -> 0x8AB4F8
     }
 

@@ -1,5 +1,7 @@
 package bpm.chamber
 
+import bpm.platform.store.PlayerStore
+import bpm.platform.events.BpmEvents
 import bpm.Bpm
 import bpm.BpmConfig
 import bpm.BpmConfig.orDefault
@@ -31,10 +33,7 @@ import net.minecraft.world.level.storage.loot.LootParams
 import net.minecraft.world.level.storage.loot.LootTable
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets
 import net.minecraft.world.phys.AABB
-import net.neoforged.bus.api.IEventBus
-import net.neoforged.neoforge.event.tick.ServerTickEvent
 import java.util.UUID
-import java.util.function.Consumer
 import kotlin.math.atan2
 import kotlin.math.sqrt
 
@@ -89,8 +88,8 @@ object ChamberFight {
     const val HOP_JITTER = 300
     private const val FAST_STAGE3_TICKS = 1200L
 
-    fun install(bus: IEventBus) {
-        bus.addListener(ServerTickEvent.Post::class.java, Consumer { tick(it.server) })
+    fun install() {
+        BpmEvents.serverTickEnd.listen(::tick)
         PedestalHooks.onUse = ::onPedestalUse
         PedestalHooks.awaken = ::awaken
         PedestalHooks.claim = ::claim
@@ -501,13 +500,13 @@ object ChamberFight {
 
     /** The pity extra: each claim without it adds two percent, capped at sixteen; a hit resets it. */
     private fun pity(level: ServerLevel, player: ServerPlayer) {
-        val pity = player.getData(ModAttachments.WARDEN_PITY.get())
+        val pity = PlayerStore.get(player, ModAttachments.WARDEN_PITY)
         if (level.random.nextDouble() < pity / 100.0) {
             for (extra in roll(level, PITY)) give(player, extra)
-            player.setData(ModAttachments.WARDEN_PITY.get(), 0)
+            PlayerStore.set(player, ModAttachments.WARDEN_PITY, 0)
             say(player, "the Warden's remains give up something more")
         } else {
-            player.setData(ModAttachments.WARDEN_PITY.get(), (pity + 2).coerceAtMost(16))
+            PlayerStore.set(player, ModAttachments.WARDEN_PITY, (pity + 2).coerceAtMost(16))
         }
     }
 

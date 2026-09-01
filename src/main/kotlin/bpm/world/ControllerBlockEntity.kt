@@ -14,10 +14,14 @@ import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientGamePacketListener
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.state.BlockState
-import net.neoforged.neoforge.items.ItemStackHandler
+import bpm.platform.ports.Droplets
+import bpm.platform.ports.EnergyCell
+import bpm.platform.ports.MultiTank
+import bpm.platform.ports.SlotStore
 import software.bernie.geckolib.animatable.GeoBlockEntity
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
 import software.bernie.geckolib.animation.AnimatableManager
@@ -71,11 +75,9 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
     /** Breakpoints by node id (armed or not); applied to every run of the program. */
     val breakpoints = LinkedHashMap<Int, Boolean>()
 
-    val inventory: ItemStackHandler = object : ItemStackHandler(ControllerStores.ITEM_SLOTS) {
-        override fun onContentsChanged(slot: Int) = setChanged()
-    }
-    val tanks: MultiTank = MultiTank(ControllerStores.TANKS, ControllerStores.TANK_MB) { setChanged() }
-    val energy: ControllerEnergy = ControllerEnergy(ControllerStores.ENERGY_FE, ControllerStores.ENERGY_RATE) { setChanged() }
+    val inventory = SlotStore(ControllerStores.ITEM_SLOTS) { setChanged() }
+    val tanks = MultiTank(ControllerStores.TANKS, Droplets.ofMb(ControllerStores.TANK_MB)) { setChanged() }
+    val energy = EnergyCell(ControllerStores.ENERGY_FE.toLong(), ControllerStores.ENERGY_RATE.toLong()) { setChanged() }
 
     var runtime: ControllerRuntime? = null
         private set
@@ -129,9 +131,9 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
         tag.put("links", links.save())
         tag.put("data", scriptData.copy())
         tag.putIntArray("signals", signals.copyOf())
-        tag.put("inventory", inventory.serializeNBT(registries))
-        tag.put("tanks", tanks.save(registries))
-        tag.put("energy", energy.save(registries))
+        tag.put("inventory", inventory.save(registries))
+        tag.put("tanks", tanks.save())
+        tag.put("energy", energy.save())
         lastError?.let { tag.putString("lastError", it) }
         tag.put("breakpoints", net.minecraft.nbt.ListTag().also { list -> breakpoints.forEach { (id, on) -> list.add(CompoundTag().also { it.putInt("node", id); it.putBoolean("on", on) }) } })
     }
@@ -148,9 +150,9 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
         scriptData = tag.getCompound("data")
         val s = tag.getIntArray("signals")
         if (s.size == 6) s.copyInto(signals) else signals.fill(0)
-        if (tag.contains("inventory")) inventory.deserializeNBT(registries, tag.getCompound("inventory"))
-        if (tag.contains("tanks")) tanks.load(registries, tag.getList("tanks", Tag.TAG_COMPOUND.toInt()))
-        tag.get("energy")?.let { energy.load(registries, it) }
+        if (tag.contains("inventory")) inventory.load(registries, tag.getList("inventory", Tag.TAG_COMPOUND.toInt()))
+        if (tag.contains("tanks")) tanks.load(tag.getList("tanks", Tag.TAG_COMPOUND.toInt()))
+        tag.get("energy")?.let { energy.load(it) }
         lastError = if (tag.contains("lastError")) tag.getString("lastError") else null
         breakpoints.clear()
         val bps = tag.getList("breakpoints", Tag.TAG_COMPOUND.toInt())
@@ -192,8 +194,17 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
 
     // ---- lifecycle --------------------------------------------------------------------------------------
 
-    override fun onLoad() {
-        super.onLoad()
+    /**
+     * Vanilla's `setLevel`, not NeoForge's `onLoad`.
+     *
+     * The two fire at the same moment for our purposes, and only one of them exists on both loaders.
+     * The ordering that matters is that this runs AFTER the NBT: a chunk restores a block entity with
+     * `loadStatic`, which reads the tag, and only then hands it to the chunk, which is what calls
+     * `setLevel`. So `enabled` and `docId` are already the saved ones by the time they are read here —
+     * which they would not be if this had been hung on the constructor.
+     */
+    override fun setLevel(level: Level) {
+        super.setLevel(level)
         if (level is ServerLevel) {
             RuntimeManager.register(this)
             if (enabled && docId != null) RuntimeManager.queueRestart(this)
@@ -205,10 +216,12 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
         super.setRemoved()
     }
 
-    override fun onChunkUnloaded() {
-        shutdown()
-        super.onChunkUnloaded()
-    }
+    /*
+     * There is no `onChunkUnloaded` override any more, and none is needed. NeoForge added that method to
+     * tell "the chunk went away" apart from "the block was broken", but this class did the same thing in
+     * both cases, and vanilla already calls `setRemoved` on every block entity in a chunk it unloads
+     * (`LevelChunk.clearAllBlockEntities`). So the override above covers both, on both loaders.
+     */
 
     private fun shutdown() {
         if (level !is ServerLevel) return

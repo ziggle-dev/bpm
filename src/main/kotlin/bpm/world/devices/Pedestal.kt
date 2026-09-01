@@ -8,7 +8,7 @@ import net.minecraft.network.chat.Component
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.ItemStack
-import net.neoforged.neoforge.items.IItemHandler
+import bpm.platform.ports.ItemPort
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.EntityBlock
@@ -84,21 +84,21 @@ class PedestalBlock(properties: Properties) : Block(properties), EntityBlock {
  * A chamber altar ([PedestalBlockEntity.slotOwner]) refuses everything: the Warden fight's state machine owns
  * what sits on it, and a hopper must not be able to take the core off the altar mid-fight.
  */
-class PedestalSlot(private val be: PedestalBlockEntity) : IItemHandler {
+class PedestalSlot(private val be: PedestalBlockEntity) : ItemPort {
 
     private val open: Boolean get() = be.slotOwner == null
 
-    override fun getSlots(): Int = 1
+    override val slots: Int get() = 1
 
-    override fun getStackInSlot(slot: Int): ItemStack = if (slot == 0) be.held else ItemStack.EMPTY
+    override fun stackIn(slot: Int): ItemStack = if (slot == 0) be.held else ItemStack.EMPTY
 
-    override fun insertItem(slot: Int, stack: ItemStack, simulate: Boolean): ItemStack {
+    override fun insert(slot: Int, stack: ItemStack, simulate: Boolean): ItemStack {
         if (slot != 0 || stack.isEmpty || !open || !be.held.isEmpty) return stack
         if (!simulate) be.put(stack.copyWithCount(1))
         return stack.copy().also { it.shrink(1) }
     }
 
-    override fun extractItem(slot: Int, amount: Int, simulate: Boolean): ItemStack {
+    override fun extract(slot: Int, amount: Int, simulate: Boolean): ItemStack {
         if (slot != 0 || amount <= 0 || !open || be.held.isEmpty) return ItemStack.EMPTY
         val out = be.held.copy()
         if (!simulate) be.take()
@@ -106,9 +106,9 @@ class PedestalSlot(private val be: PedestalBlockEntity) : IItemHandler {
     }
 
     /** A plinth displays one thing. That is what makes "move one" mean one. */
-    override fun getSlotLimit(slot: Int): Int = 1
+    override fun slotLimit(slot: Int): Int = 1
 
-    override fun isItemValid(slot: Int, stack: ItemStack): Boolean = slot == 0 && open && be.held.isEmpty
+    override fun isValid(slot: Int, stack: ItemStack): Boolean = slot == 0 && open && be.held.isEmpty
 }
 
 class PedestalBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(DeviceBlockEntities.PEDESTAL.get(), pos, state) {

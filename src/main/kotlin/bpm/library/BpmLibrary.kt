@@ -19,20 +19,20 @@ import java.util.zip.GZIPOutputStream
 
 /** One graph document in the world's library. The bytes are the gzip of the `GraphDoc` JSON. */
 class DocumentRecord(
-    val id: UUID,
+    override val id: UUID,
     var name: String,
-    var version: Int,
+    override var version: Int,
     var format: Int,
     var gz: ByteArray,
-    var sha256: String,
+    override var sha256: String,
     var rawSize: Int,
     var owner: UUID?,
     val createdAt: Long,
     var updatedAt: Long,
-    var hasErrors: Boolean,
+    override var hasErrors: Boolean,
     /** A library graph: global, importable by controller graphs, listed in the editor. Otherwise a controller's own graph. */
     var isLibrary: Boolean = false,
-) {
+) : bpm.library.DocumentInfo {
     fun save(): CompoundTag = CompoundTag().also { t ->
         t.putUUID("id", id)
         t.putString("name", name)
@@ -70,38 +70,6 @@ class DocumentRecord(
 }
 
 /** gzip + sha-256 of document text; the same code packs commits on the wire. */
-object DocumentCodec {
-    const val MAX_RAW_BYTES = 1 shl 20
-
-    fun gzip(text: String): ByteArray {
-        val out = ByteArrayOutputStream()
-        GZIPOutputStream(out).use { it.write(text.toByteArray(Charsets.UTF_8)) }
-        return out.toByteArray()
-    }
-
-    /** Inflates at most [maxRaw] bytes; anything past that is a malformed or hostile document. */
-    fun gunzip(bytes: ByteArray, maxRaw: Int = MAX_RAW_BYTES): String {
-        GZIPInputStream(bytes.inputStream()).use { input ->
-            val out = ByteArrayOutputStream()
-            val buf = ByteArray(8192)
-            while (true) {
-                val n = input.read(buf)
-                if (n < 0) break
-                if (out.size() + n > maxRaw) throw IllegalArgumentException("document exceeds $maxRaw bytes")
-                out.write(buf, 0, n)
-            }
-            return out.toString(Charsets.UTF_8)
-        }
-    }
-
-    fun sha256(text: String): String =
-        MessageDigest.getInstance("SHA-256").digest(text.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
-
-    /** The `format` field of a document's JSON, or 0 when it has none. */
-    fun formatOf(text: String): Int = runCatching {
-        JsonParser.parseString(text).asJsonObject.get("format")?.asInt ?: 0
-    }.getOrDefault(0)
-}
 
 /**
  * The world's graph documents — one per world, stored with the overworld's saved data, so that blueprints
@@ -113,7 +81,7 @@ object DocumentCodec {
  * an older `GraphDoc` format is re-encoded the first time it is read ([graph]), bumping its version like any
  * other edit; a document from a *newer* format is left alone and reported unreadable.
  */
-class BpmLibrary : SavedData() {
+class BpmLibrary : SavedData(), bpm.library.DocumentStore {
     private val docs = LinkedHashMap<UUID, DocumentRecord>()
     private val graphs = HashMap<UUID, Pair<Int, Graph>>()
 
@@ -122,7 +90,7 @@ class BpmLibrary : SavedData() {
 
     val all: List<DocumentRecord> get() = docs.values.toList()
 
-    operator fun get(id: UUID): DocumentRecord? = docs[id]
+    override operator fun get(id: UUID): DocumentRecord? = docs[id]
 
     fun byName(name: String): DocumentRecord? = docs.values.firstOrNull { it.name.equals(name, ignoreCase = true) }
 
@@ -144,7 +112,7 @@ class BpmLibrary : SavedData() {
     }
 
     /** Replaces the text of [id]; returns null when there is no such document. */
-    fun store(id: UUID, json: String, hasErrors: Boolean = false): DocumentRecord? {
+    override fun store(id: UUID, json: String, hasErrors: Boolean): DocumentRecord? {
         val record = docs[id] ?: return null
         record.gz = DocumentCodec.gzip(json)
         record.sha256 = DocumentCodec.sha256(json)
@@ -209,7 +177,7 @@ class BpmLibrary : SavedData() {
     }
 
     /** `import` resolution for validators and compilers: by document id first, then by name. */
-    fun graphSource(): GraphSource = GraphSource { imp ->
+    override fun graphSource(): GraphSource = GraphSource { imp ->
         val byId = imp.docId?.let { runCatching { UUID.fromString(it) }.getOrNull() }?.let(::graph)
         byId ?: byName(imp.ref)?.let { graph(it.id) }
     }

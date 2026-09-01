@@ -19,9 +19,9 @@ import net.minecraft.nbt.CompoundTag
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.Entity
-import net.neoforged.neoforge.energy.IEnergyStorage
-import net.neoforged.neoforge.fluids.capability.IFluidHandler
-import net.neoforged.neoforge.items.IItemHandler
+import bpm.platform.ports.EnergyPort
+import bpm.platform.ports.FluidPort
+import bpm.platform.ports.ItemPort
 
 /**
  * One controller's running program: the [ControllerHost] its nodes call into, the vscript [ScriptRuntime]
@@ -42,9 +42,14 @@ class ControllerRuntime(private val be: ControllerBlockEntity, private val manag
     override val links: LinkTable get() = be.links
     override val jobs = TickJobs()
     override val tickCount: Long get() = manager.clock.ticks
-    override val selfInventory: IItemHandler get() = be.inventory
-    override val selfTanks: IFluidHandler get() = be.tanks
-    override val selfEnergy: IEnergyStorage get() = be.energy
+    /**
+     * No wrapping any more: the block entity's own stores are ports. They are still published to other
+     * mods as capabilities, but that conversion now happens once at the publishing site rather than on
+     * every access here.
+     */
+    override val selfInventory: ItemPort get() = be.inventory
+    override val selfTanks: FluidPort get() = be.tanks
+    override val selfEnergy: EnergyPort get() = be.energy
 
     /** Links made from coordinates, most recently used last; the table's version does not touch these. */
     private val adHocLinks = object : LinkedHashMap<String, ResolvedLink>(64, 0.75f, true) {
@@ -108,13 +113,13 @@ class ControllerRuntime(private val be: ControllerBlockEntity, private val manag
         return r.also { resolved[name] = it }
     }
 
-    override fun items(name: String): IItemHandler? =
+    override fun items(name: String): ItemPort? =
         if (name == ControllerHost.SELF) selfInventory else link(name)?.let { r -> r.items().also { if (it == null) unavailable(name, r, "items") } }
 
-    override fun fluids(name: String): IFluidHandler? =
+    override fun fluids(name: String): FluidPort? =
         if (name == ControllerHost.SELF) selfTanks else link(name)?.let { r -> r.fluids().also { if (it == null) unavailable(name, r, "fluids") } }
 
-    override fun energy(name: String): IEnergyStorage? =
+    override fun energy(name: String): EnergyPort? =
         if (name == ControllerHost.SELF) selfEnergy else link(name)?.let { r -> r.energy().also { if (it == null) unavailable(name, r, "energy") } }
 
     private fun adHoc(name: String): ResolvedLink? {
@@ -195,7 +200,7 @@ class ControllerRuntime(private val be: ControllerBlockEntity, private val manag
     override fun clearPanel(player: java.util.UUID): Boolean {
         if (!hud.clear(player)) return false
         (level.server.playerList.getPlayer(player))?.let { p ->
-            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(
+            bpm.platform.net.Net.sendToPlayer(
                 p,
                 bpm.net.HudPanelPayload(be.blockPos, "TopRight", 0, 0, 0, 1f, net.minecraft.nbt.ListTag()),
             )
@@ -219,7 +224,7 @@ class ControllerRuntime(private val be: ControllerBlockEntity, private val manag
 
     private fun sendPanel(player: net.minecraft.server.level.ServerPlayer, panel: bpm.runtime.HudPanels.Panel) {
         val tags = bpm.world.devices.Widget.saveAll(panel.widgets, level.registryAccess())
-        net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(
+        bpm.platform.net.Net.sendToPlayer(
             player,
             bpm.net.HudPanelPayload(be.blockPos, panel.anchor, panel.offsetX, panel.offsetY, panel.width, panel.scale.toFloat(), tags),
         )
@@ -321,7 +326,7 @@ class ControllerRuntime(private val be: ControllerBlockEntity, private val manag
         val l = be.level as? ServerLevel ?: return
         val players = LinkedHashSet<net.minecraft.server.level.ServerPlayer>()
         for (pos in listOf(p.controller, p.origin, p.target)) players += l.chunkSource.chunkMap.getPlayers(net.minecraft.world.level.ChunkPos(pos), false)
-        for (player in players) net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player, p)
+        for (player in players) bpm.platform.net.Net.sendToPlayer(player, p)
     }
 
     override fun transferred(from: String, to: String, amount: Int, kind: bpm.net.EffectKind, item: String) {

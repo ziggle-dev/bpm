@@ -1,0 +1,63 @@
+package bpm.platform.net
+
+import net.minecraft.network.RegistryFriendlyByteBuf
+import net.minecraft.network.codec.StreamCodec
+import net.minecraft.network.protocol.PacketFlow
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload
+import net.minecraft.server.level.ServerPlayer
+import net.neoforged.neoforge.network.PacketDistributor
+import net.neoforged.neoforge.network.registration.PayloadRegistrar
+
+/**
+ * NeoForge's payload registration and `PacketDistributor`.
+ *
+ * Registrations are collected as they arrive and replayed against the registrar when
+ * `RegisterPayloadHandlersEvent` fires, because that event is not open while the mod is wiring itself
+ * up. Handlers run on the main thread of their side, which is the server thread for anything
+ * server-bound and the render thread on the client — so nothing here needs a lock.
+ */
+object NeoNet : PlatformNet {
+
+    private val pending = ArrayList<(PayloadRegistrar) -> Unit>()
+
+    override fun <P : CustomPacketPayload> toServer(
+        type: CustomPacketPayload.Type<P>,
+        codec: StreamCodec<in RegistryFriendlyByteBuf, P>,
+        handler: (P, ServerPlayer) -> Unit,
+    ) {
+        pending += { r ->
+            r.playToServer(type, codec) { p, ctx -> (ctx.player() as? ServerPlayer)?.let { handler(p, it) } }
+        }
+    }
+
+    override fun <P : CustomPacketPayload> toClient(
+        type: CustomPacketPayload.Type<P>,
+        codec: StreamCodec<in RegistryFriendlyByteBuf, P>,
+        handler: (P) -> Unit,
+    ) {
+        pending += { r -> r.playToClient(type, codec) { p, _ -> handler(p) } }
+    }
+
+    override fun <P : CustomPacketPayload> bidirectional(
+        type: CustomPacketPayload.Type<P>,
+        codec: StreamCodec<in RegistryFriendlyByteBuf, P>,
+        onServer: (P, ServerPlayer) -> Unit,
+        onClient: (P) -> Unit,
+    ) {
+        pending += { r ->
+            r.playBidirectional(type, codec) { p, ctx ->
+                if (ctx.flow() == PacketFlow.SERVERBOUND) (ctx.player() as? ServerPlayer)?.let { onServer(p, it) } else onClient(p)
+            }
+        }
+    }
+
+    override fun sendToServer(payload: CustomPacketPayload) = PacketDistributor.sendToServer(payload)
+
+    override fun sendToPlayer(player: ServerPlayer, payload: CustomPacketPayload) =
+        PacketDistributor.sendToPlayer(player, payload)
+
+    fun onRegisterPayloads(event: net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent) {
+        val registrar = event.registrar(bpm.Bpm.ID).versioned(bpm.net.BpmNetwork.VERSION)
+        for (block in pending) block(registrar)
+    }
+}

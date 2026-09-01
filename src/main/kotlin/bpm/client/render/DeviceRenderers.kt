@@ -19,8 +19,6 @@ import net.minecraft.client.renderer.RenderType
 import net.minecraft.core.Direction
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.phys.AABB
-import net.neoforged.neoforge.client.event.EntityRenderersEvent
-import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions
 import software.bernie.geckolib.animatable.GeoAnimatable
 import software.bernie.geckolib.cache.`object`.GeoBone
 import software.bernie.geckolib.renderer.GeoBlockRenderer
@@ -41,7 +39,16 @@ open class DeviceRenderer<T : DeviceBlockEntity>(name: String, private val box: 
         addRenderLayer(GlowLayer(this))
     }
 
-    override fun getRenderBoundingBox(blockEntity: T): AABB = box(blockEntity)
+    /*
+     * Vanilla's `shouldRenderOffScreen`, not NeoForge's `getRenderBoundingBox`.
+     *
+     * Both exist to stop a model being culled when the block it belongs to leaves the frustum but the
+     * model still pokes into view. NeoForge lets you name the real box; vanilla only lets you opt out of
+     * the check, and vanilla is what both loaders have. The cost of opting out is one skipped frustum
+     * test for three block-entity types that are almost always on screen when their chunk is; the cost of
+     * the precise box was a method that does not exist on Fabric.
+     */
+    override fun shouldRenderOffScreen(blockEntity: T): Boolean = true
 
     override fun getRenderType(animatable: T, texture: ResourceLocation, bufferSource: MultiBufferSource?, partialTick: Float): RenderType =
         RenderType.entityTranslucent(texture)
@@ -156,9 +163,13 @@ class MonitorRenderer : GeoBlockRenderer<bpm.world.devices.MonitorBlockEntity>(M
         addRenderLayer(GlowLayer(this))
     }
 
-    /** A wall's content is drawn from its origin tile across every tile, so the origin must not be culled while any of the wall is in view. */
-    override fun getRenderBoundingBox(blockEntity: bpm.world.devices.MonitorBlockEntity): AABB =
-        if (blockEntity.widgets.isEmpty()) AABB(blockEntity.blockPos) else AABB(blockEntity.blockPos).inflate(bpm.world.devices.MonitorWall.MAX.toDouble())
+    /**
+     * A wall's content is drawn from its origin tile across every tile, so the origin must not be culled
+     * while any of the wall is in view. See the note above on why this is `shouldRenderOffScreen` rather
+     * than a bounding box: only one of the two exists on both loaders. A monitor with no widgets draws
+     * nothing anyway, so opting out of the frustum test costs nothing there either.
+     */
+    override fun shouldRenderOffScreen(blockEntity: bpm.world.devices.MonitorBlockEntity): Boolean = true
     override fun getFacing(animatable: bpm.world.devices.MonitorBlockEntity): Direction = animatable.facing
 
     /** After the panel: the screen's content, for the wall's origin tile. */
@@ -203,7 +214,7 @@ class MonitorRenderer : GeoBlockRenderer<bpm.world.devices.MonitorBlockEntity>(M
 
 /** Device items drawn with their block's model at rest, one renderer per model, made on first use. */
 object DeviceItemExtensions {
-    private val cache = HashMap<String, IClientItemExtensions>()
+    private val cache = HashMap<String, BlockEntityWithoutLevelRenderer>()
 
     /** Bones a model leaves out when drawn as an item (world-only parts that would dwarf the block). */
     private val HIDDEN_IN_ITEM: Map<String, Set<String>> = mapOf(
@@ -212,9 +223,9 @@ object DeviceItemExtensions {
         "quantum_monitor" to setOf("bezel_up_l", "bezel_up_r", "bezel_down_l", "bezel_down_r", "bezel_left_u", "bezel_left_d", "bezel_right_u", "bezel_right_d"),
     )
 
-    fun of(model: String): IClientItemExtensions = cache.getOrPut(model) {
-        object : IClientItemExtensions {
-            private val renderer by lazy {
+    fun of(model: String): BlockEntityWithoutLevelRenderer = cache.getOrPut(model) {
+        run {
+            run {
                 object : GeoItemRenderer<DeviceBlockItem>(DeviceModel(model)) {
                     init {
                         addRenderLayer(GlowLayer(this))
@@ -234,21 +245,19 @@ object DeviceItemExtensions {
                     }
                 }
             }
-
-            override fun getCustomRenderer(): BlockEntityWithoutLevelRenderer = renderer
         }
     }
 }
 
 object DeviceRenderers {
-    fun register(event: EntityRenderersEvent.RegisterRenderers) {
-        event.registerBlockEntityRenderer(DeviceBlockEntities.GATE.get()) { GateRenderer() }
-        event.registerBlockEntityRenderer(DeviceBlockEntities.PEDESTAL.get()) { PedestalRenderer() }
-        event.registerBlockEntityRenderer(DeviceBlockEntities.ASSEMBLER.get()) { AssemblerRenderer() }
-        event.registerBlockEntityRenderer(DeviceBlockEntities.SPIKE.get()) { DeviceRenderer<SpikeBlockEntity>("phase_spike") { be -> AABB(be.blockPos).expandTowards(0.0, 1.2, 0.0) } }
-        event.registerBlockEntityRenderer(DeviceBlockEntities.VENT.get()) { DeviceRenderer<VentBlockEntity>("decoherence_vent") { be -> AABB(be.blockPos).expandTowards(0.0, 1.7, 0.0) } }
-        event.registerBlockEntityRenderer(DeviceBlockEntities.TURRET.get()) { TurretRenderer() }
-        event.registerBlockEntityRenderer(DeviceBlockEntities.PHASE.get()) { DeviceRenderer<PhaseBlockEntity>("phase_block") { be -> AABB(be.blockPos) } }
-        event.registerBlockEntityRenderer(DeviceBlockEntities.MONITOR.get()) { MonitorRenderer() }
+    fun register(sink: bpm.platform.client.RendererSink) {
+        sink.blockEntity(DeviceBlockEntities.GATE.get()) { GateRenderer() }
+        sink.blockEntity(DeviceBlockEntities.PEDESTAL.get()) { PedestalRenderer() }
+        sink.blockEntity(DeviceBlockEntities.ASSEMBLER.get()) { AssemblerRenderer() }
+        sink.blockEntity(DeviceBlockEntities.SPIKE.get()) { DeviceRenderer<SpikeBlockEntity>("phase_spike") { be -> AABB(be.blockPos).expandTowards(0.0, 1.2, 0.0) } }
+        sink.blockEntity(DeviceBlockEntities.VENT.get()) { DeviceRenderer<VentBlockEntity>("decoherence_vent") { be -> AABB(be.blockPos).expandTowards(0.0, 1.7, 0.0) } }
+        sink.blockEntity(DeviceBlockEntities.TURRET.get()) { TurretRenderer() }
+        sink.blockEntity(DeviceBlockEntities.PHASE.get()) { DeviceRenderer<PhaseBlockEntity>("phase_block") { be -> AABB(be.blockPos) } }
+        sink.blockEntity(DeviceBlockEntities.MONITOR.get()) { MonitorRenderer() }
     }
 }

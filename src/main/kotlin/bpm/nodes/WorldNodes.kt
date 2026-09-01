@@ -2,7 +2,7 @@ package bpm.nodes
 
 import bpm.catalog.values.ItemStackValue
 
-import net.neoforged.neoforge.items.ItemHandlerHelper
+import bpm.platform.ports.insertStacked
 
 import bpm.catalog.McTypes
 import bpm.catalog.McVs
@@ -451,7 +451,7 @@ object WorldNodes {
                     if (stack.isEmpty || !matcher.matches(stack)) continue
                     // Taken from the entity and given to the buffer within the one tick: there is never a
                     // moment where both hold it, which is the only reason this cannot duplicate.
-                    val left = ItemHandlerHelper.insertItemStacked(inv, stack.copy(), false)
+                    val left = inv.insertStacked(stack.copy(), false)
                     val taken = stack.count - left.count
                     if (taken <= 0) continue
                     collected += taken

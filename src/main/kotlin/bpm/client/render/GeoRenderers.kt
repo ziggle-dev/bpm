@@ -19,8 +19,8 @@ import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import org.joml.Vector3f
 import software.bernie.geckolib.cache.`object`.GeoBone
-import net.neoforged.neoforge.client.event.EntityRenderersEvent
-import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions
+import bpm.platform.client.RendererSink
+import bpm.platform.client.ClientRenderers
 import software.bernie.geckolib.animatable.GeoAnimatable
 import software.bernie.geckolib.constant.DataTickets
 import software.bernie.geckolib.loading.math.MolangQueries
@@ -61,9 +61,17 @@ class ControllerRenderer : GeoBlockRenderer<ControllerBlockEntity>(ControllerMod
         addRenderLayer(GlowLayer(this))
     }
 
-    /** The model reaches 1.33 blocks up and the flanges poke half a block out. */
-    override fun getRenderBoundingBox(blockEntity: ControllerBlockEntity): AABB =
-        AABB(blockEntity.blockPos).inflate(0.5, 0.0, 0.5).expandTowards(0.0, 0.75, 0.0)
+    /** The model reaches 1.33 blocks up and the flanges poke half a block out, so it must not be culled. */
+    /*
+     * Vanilla's `shouldRenderOffScreen`, not NeoForge's `getRenderBoundingBox`.
+     *
+     * Both exist to stop a model being culled when the block it belongs to leaves the frustum but the
+     * model still pokes into view. NeoForge lets you name the real box; vanilla only lets you opt out of
+     * the check, and vanilla is what both loaders have. The cost of opting out is one skipped frustum
+     * test for three block-entity types that are almost always on screen when their chunk is; the cost of
+     * the precise box was a method that does not exist on Fabric.
+     */
+    override fun shouldRenderOffScreen(blockEntity: ControllerBlockEntity): Boolean = true
 
     override fun getRenderType(animatable: ControllerBlockEntity, texture: ResourceLocation, bufferSource: MultiBufferSource?, partialTick: Float): RenderType =
         RenderType.entityTranslucent(texture)
@@ -110,21 +118,25 @@ class LinkerRenderer : GeoItemRenderer<LinkerItem>(LinkerModel()) {
     }
 }
 
-object ControllerItemExtensions : IClientItemExtensions {
-    private val renderer by lazy { ControllerItemRenderer() }
-    override fun getCustomRenderer(): BlockEntityWithoutLevelRenderer = renderer
-}
-
-object LinkerItemExtensions : IClientItemExtensions {
-    private val renderer by lazy { LinkerRenderer() }
-    override fun getCustomRenderer(): BlockEntityWithoutLevelRenderer = renderer
-}
-
 class TetherRenderer : GeoItemRenderer<bpm.world.items.QuantumTetherItem>(TetherModel())
 
-object TetherItemExtensions : IClientItemExtensions {
-    private val renderer by lazy { TetherRenderer() }
-    override fun getCustomRenderer(): BlockEntityWithoutLevelRenderer = renderer
+/**
+ * Which item draws with which renderer.
+ *
+ * This used to live as an `initializeClient` override on each of the four item classes, which made four
+ * otherwise plain items name a client class. One table on the client side says the same thing and is
+ * where you would look for it.
+ */
+object BpmItemRenderers {
+    fun install() = ClientRenderers.items { sink ->
+        sink.register(bpm.world.ModItems.CONTROLLER.get()) { ControllerItemRenderer() }
+        sink.register(bpm.world.ModItems.LINKER.get()) { LinkerRenderer() }
+        sink.register(bpm.world.ContentItems.QUANTUM_TETHER.get()) { TetherRenderer() }
+        for (item in bpm.world.DeviceItems.all) {
+            val device = item.get() as? bpm.world.DeviceBlockItem ?: continue
+            sink.register(device) { DeviceItemExtensions.of(device.model) }
+        }
+    }
 }
 
 /**
@@ -134,12 +146,12 @@ object TetherItemExtensions : IClientItemExtensions {
  * freezes the core, so every variable each model reads is set here from the animatable being rendered.
  */
 object GeoRenderers {
-    fun registerRenderers(event: EntityRenderersEvent.RegisterRenderers) {
-        event.registerBlockEntityRenderer(ModBlockEntities.CONTROLLER.get()) { ControllerRenderer() }
-        DeviceRenderers.register(event)
-        event.registerEntityRenderer(bpm.world.entity.ModEntities.WARDEN.get()) { WardenRenderer(it) }
-        event.registerEntityRenderer(bpm.world.entity.ModEntities.BOLT.get()) { WardenBoltRenderer(it) }
-        event.registerEntityRenderer(bpm.world.entity.ModEntities.PULSE.get()) { LinkerPulseRenderer(it) }
+    fun registerRenderers() = ClientRenderers.renderers { sink ->
+        sink.blockEntity(ModBlockEntities.CONTROLLER.get()) { ControllerRenderer() }
+        DeviceRenderers.register(sink)
+        sink.entity(bpm.world.entity.ModEntities.WARDEN.get()) { WardenRenderer(it) }
+        sink.entity(bpm.world.entity.ModEntities.BOLT.get()) { WardenBoltRenderer(it) }
+        sink.entity(bpm.world.entity.ModEntities.PULSE.get()) { LinkerPulseRenderer(it) }
     }
 
     fun installMolang() {

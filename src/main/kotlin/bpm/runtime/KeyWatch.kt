@@ -4,7 +4,7 @@ import bpm.net.KeyWatchDto
 import bpm.net.KeyWatchPayload
 import bpm.world.KeyNames
 import net.minecraft.server.level.ServerPlayer
-import net.neoforged.neoforge.network.PacketDistributor
+import bpm.platform.net.Net
 import java.util.UUID
 
 /**
@@ -43,7 +43,7 @@ object KeyWatch {
         val want = union.map { (name, f) -> Triple(name, f[0], f[1]) }
         if (sent[player.uuid] == want) return
         sent[player.uuid] = want
-        PacketDistributor.sendToPlayer(player, KeyWatchPayload(want.map { KeyWatchDto(it.first, it.second, it.third) }))
+        Net.sendToPlayer(player, KeyWatchPayload(want.map { KeyWatchDto(it.first, it.second, it.third) }))
     }
 
     /** A player left, or a controller stopped: drop what we think they know so the next push is unconditional. */

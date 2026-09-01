@@ -78,7 +78,7 @@ class ControllerBlock(properties: Properties) : Block(properties), EntityBlock {
             (level.getBlockEntity(pos) as? ControllerBlockEntity)?.let { be ->
                 val inv = be.inventory
                 for (i in 0 until inv.slots) {
-                    val stack = inv.getStackInSlot(i)
+                    val stack = inv.stackIn(i)
                     if (!stack.isEmpty) Containers.dropItemStack(level, pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, stack)
                 }
                 // The controller's own graph goes with it; a library it happened to run stays.

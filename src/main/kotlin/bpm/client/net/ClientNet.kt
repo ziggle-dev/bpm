@@ -47,7 +47,7 @@ import dev.ziggle.vscript.runtime.EditorDoc
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
-import net.neoforged.neoforge.network.PacketDistributor
+import bpm.platform.net.Net
 import java.util.UUID
 
 /** A document as the client holds it: the editor's copy plus what the server last said about it. */
@@ -194,7 +194,7 @@ object ClientNet {
     private val connected: Boolean get() = Minecraft.getInstance().connection != null
 
     private fun send(payload: CustomPacketPayload) {
-        if (connected) PacketDistributor.sendToServer(payload)
+        if (connected) Net.sendToServer(payload)
     }
 
     /** The linker's sneak + attack on air. */
@@ -202,7 +202,7 @@ object ClientNet {
 
     private fun sendBig(inner: String, bytes: ByteArray) {
         if (!connected) return
-        for (c in Chunker.split(inner, bytes)) PacketDistributor.sendToServer(ChunkPayload(c))
+        for (c in Chunker.split(inner, bytes)) Net.sendToServer(ChunkPayload(c))
     }
 
     fun requestLibrary() {

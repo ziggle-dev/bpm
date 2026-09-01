@@ -1,5 +1,7 @@
 package bpm.runtime
 
+import bpm.platform.world.Actor
+import bpm.platform.world.WorldActor
 import bpm.Bpm
 import bpm.net.EffectKind
 import bpm.net.EffectOp
@@ -7,9 +9,9 @@ import bpm.catalog.values.ItemStackValue
 import bpm.catalog.values.RegistryIds
 import bpm.nodes.ControllerHost
 import bpm.world.ResolvedLink
-import com.mojang.authlib.GameProfile
 import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.server.level.ServerPlayer
 import net.minecraft.commands.arguments.EntityAnchorArgument
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Holder
@@ -27,16 +29,10 @@ import net.minecraft.tags.BlockTags
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.Vec3
-import net.neoforged.neoforge.common.util.FakePlayer
-import net.neoforged.neoforge.common.util.FakePlayerFactory
-import net.neoforged.neoforge.items.ItemHandlerHelper
-import java.util.UUID
 
-/** The one fake player every controller acts through: breaking, using, placing. */
+/** The one pseudo-player every controller acts through: breaking, using, placing. */
 object BpmFakePlayer {
-    val PROFILE: GameProfile = GameProfile(UUID.nameUUIDFromBytes("bpm-controller".toByteArray()), "[bpm]")
-
-    fun get(level: ServerLevel): FakePlayer = FakePlayerFactory.get(level, PROFILE)
+    fun get(level: ServerLevel): ServerPlayer = Actor.player(level)
 
     /** A breaker id for the crack overlay that can never collide with an entity's. */
     fun breakerId(host: ControllerHost): Int = -((host.pos.hashCode() and 0x3fffffff) + 1)
@@ -50,11 +46,11 @@ object BpmFakePlayer {
 internal object Hand {
     fun take(host: ControllerHost, slot: Int): ItemStack {
         if (slot < 0 || slot >= host.selfInventory.slots) return ItemStack.EMPTY
-        return host.selfInventory.getStackInSlot(slot)
+        return host.selfInventory.stackIn(slot)
     }
 
     /** Puts back whatever is in the hand after the action; a stack the world used up leaves the slot empty. */
-    fun release(host: ControllerHost, player: FakePlayer, slot: Int) {
+    fun release(host: ControllerHost, player: ServerPlayer, slot: Int) {
         val left = player.getItemInHand(InteractionHand.MAIN_HAND)
         player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY)
         val inv = host.selfInventory
@@ -62,7 +58,10 @@ internal object Hand {
             if (!left.isEmpty) Block.popResource(host.level, host.pos, left)
             return
         }
-        (inv as? net.neoforged.neoforge.items.IItemHandlerModifiable)?.setStackInSlot(slot, left)
+        // A store that will not be written wholesale says so, and then the tool goes on the floor rather
+        // than nowhere. The cast this replaces returned null for a read-only handler and did nothing,
+        // so whatever was in the hand was simply gone.
+        if (!inv.setStackIn(slot, left) && !left.isEmpty) Block.popResource(host.level, host.pos, left)
     }
 }
 
@@ -124,15 +123,16 @@ class BreakBlockJob(private val host: ControllerHost, private val target: Resolv
             // The vanilla player sequence (ServerPlayerGameMode.destroyBlock), minus spawn protection:
             // the break event other mods listen to, the block's own farewell, removal, then the drops if
             // this hand can harvest it — from the loot table, with the tool's enchantments.
-            val event = net.neoforged.neoforge.common.CommonHooks.fireBlockBreak(level, net.minecraft.world.level.GameType.SURVIVAL, player, pos, state)
-            if (event.isCanceled) {
+            if (!Actor.mayBreak(level, pos, state, player)) {
                 clearCracks(level, pos)
                 show(EffectOp.END, tool)
                 fail("breaking '${target.link.name}' was refused")
                 return true
             }
             val be = level.getBlockEntity(pos)
-            val harvest = state.canHarvestBlock(level, pos, player)
+            // Vanilla's own question, which NeoForge merely wraps as BlockState.canHarvestBlock: does the
+            // held tool actually harvest this, or only break it?
+            val harvest = !state.requiresCorrectToolForDrops() || player.hasCorrectToolForDrops(state)
             val drops = if (harvest) Block.getDrops(state, level, pos, be, player, tool) else emptyList()
             val toolCopy = tool.copy()
             val block = state.block
@@ -144,8 +144,7 @@ class BreakBlockJob(private val host: ControllerHost, private val target: Resolv
                 // Durability first (a tool that breaks on this block still harvests it), then the drops.
                 tool.mineBlock(level, state, pos, player)
                 block.playerDestroy(level, player, pos, state, be, toolCopy)
-                val xp = state.getExpDrop(level, pos, be, player, toolCopy)
-                if (xp > 0) block.popExperience(level, pos, xp)
+                bpm.platform.world.Actor.dropExperience(level, pos, state, be, player, toolCopy)
             } else if (removed) {
                 tool.mineBlock(level, state, pos, player)
             }
@@ -396,7 +395,7 @@ class ClickJob(
         return false
     }
 
-    private fun arm(player: FakePlayer, stack: ItemStack): List<Pair<Holder<Attribute>, AttributeModifier>> {
+    private fun arm(player: ServerPlayer, stack: ItemStack): List<Pair<Holder<Attribute>, AttributeModifier>> {
         val applied = ArrayList<Pair<Holder<Attribute>, AttributeModifier>>()
         stack.forEachModifier(EquipmentSlot.MAINHAND) { attribute, modifier ->
             val instance = player.attributes.getInstance(attribute) ?: return@forEachModifier
@@ -406,21 +405,19 @@ class ClickJob(
         return applied
     }
 
-    private fun disarm(player: FakePlayer, applied: List<Pair<Holder<Attribute>, AttributeModifier>>) {
+    private fun disarm(player: ServerPlayer, applied: List<Pair<Holder<Attribute>, AttributeModifier>>) {
         for ((attribute, modifier) in applied) player.attributes.getInstance(attribute)?.removeModifier(modifier.id())
     }
 
     companion object {
-        private val ticker: java.lang.reflect.Field? by lazy {
-            runCatching { LivingEntity::class.java.getDeclaredField("attackStrengthTicker").also { it.isAccessible = true } }
-                .onFailure { Bpm.LOGGER.warn("bpm: attackStrengthTicker is out of reach ({}); a controller's swings will be weak", it.toString()) }
-                .getOrNull()
-        }
-
-        /** As if the player had stood still a long while: the next swing is a full one. */
-        fun fullStrength(player: Player) {
-            ticker?.setInt(player, 1000)
-        }
+        /**
+         * As if the player had stood still a long while: the next swing is a full one.
+         *
+         * How that is achieved is the loader's business — the counter is private in vanilla, so it takes
+         * either reflection against known mappings or a mixin accessor, and which of those is correct
+         * depends on what the runtime is named. See [WorldActor.primeAttackStrength].
+         */
+        fun fullStrength(player: Player) = Actor.primeAttackStrength(player)
     }
 }
 

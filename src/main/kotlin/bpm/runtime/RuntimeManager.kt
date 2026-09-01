@@ -1,16 +1,12 @@
 package bpm.runtime
 
+import bpm.platform.events.BpmEvents
 import bpm.Bpm
 import bpm.library.BpmLibrary
 import bpm.world.ControllerBlockEntity
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
-import net.neoforged.bus.api.IEventBus
-import net.neoforged.neoforge.event.server.ServerAboutToStartEvent
-import net.neoforged.neoforge.event.server.ServerStoppingEvent
-import net.neoforged.neoforge.event.tick.ServerTickEvent
-import java.util.function.Consumer
 
 /**
  * Ticks every loaded controller's program from one place, so that they share one budget fairly instead of
@@ -49,10 +45,10 @@ object RuntimeManager {
     val size: Int get() = controllers.size
     val live: Int get() = controllers.count { it.runtime != null }
 
-    fun install(bus: IEventBus) {
-        bus.addListener(ServerAboutToStartEvent::class.java, Consumer { reset() })
-        bus.addListener(ServerTickEvent.Post::class.java, Consumer { onTick() })
-        bus.addListener(ServerStoppingEvent::class.java, Consumer { onStopping() })
+    fun install() {
+        BpmEvents.serverStarting.listen { reset() }
+        BpmEvents.serverTickEnd.listen { onTick() }
+        BpmEvents.serverStopping.listen { onStopping() }
     }
 
     fun library(level: ServerLevel): BpmLibrary = BpmLibrary.get(level.server)

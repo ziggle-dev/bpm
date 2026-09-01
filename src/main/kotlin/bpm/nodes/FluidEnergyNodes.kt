@@ -13,10 +13,11 @@ import net.minecraft.world.level.block.LiquidBlockContainer
 import net.minecraft.world.level.gameevent.GameEvent
 import net.minecraft.world.level.material.FlowingFluid
 import net.minecraft.world.level.material.Fluid
-import net.neoforged.neoforge.common.SoundActions
-import net.neoforged.neoforge.fluids.FluidStack
-import net.neoforged.neoforge.fluids.FluidType
-import net.neoforged.neoforge.fluids.capability.IFluidHandler
+
+import bpm.platform.world.Fluids
+import bpm.platform.ports.Droplets
+import bpm.platform.ports.FluidPort
+import bpm.platform.ports.FluidVolume
 
 /** `fluids.*` — tanks reached through links. Amounts are millibuckets. */
 object FluidNodes {
@@ -32,9 +33,9 @@ object FluidNodes {
                 val want = fluid()?.takeIf { it.isNotBlank() }
                 var total = 0L
                 for (i in 0 until h.tanks) {
-                    val s = h.getFluidInTank(i)
+                    val s = h.inTank(i)
                     if (s.isEmpty) continue
-                    if (want == null || RegistryIds.of(s.fluid) == want) total += s.amount
+                    if (want == null || RegistryIds.of(s.fluid) == want) total += s.mb
                 }
                 total
             }
@@ -46,7 +47,7 @@ object FluidNodes {
             result("Tanks", McVs.fluidStack.list())
             query {
                 val h = host.fluids(link()) ?: return@query emptyList<Any?>()
-                (0 until h.tanks).map { h.getFluidInTank(it) }.filter { !it.isEmpty }.map(FluidStackValue::record)
+                (0 until h.tanks).map { h.inTank(it) }.filter { !it.isEmpty }.map(FluidStackValue::record)
             }
         }
         func("capacity") {
@@ -54,7 +55,7 @@ object FluidNodes {
             doc("How much a link's tanks can hold in total, in millibuckets.")
             val link = param("Link", McVs.link, "which tank")
             result("Capacity", McVs.int)
-            query { host.fluids(link())?.let { h -> (0 until h.tanks).sumOf { h.getTankCapacity(it).toLong() } } ?: 0L }
+            query { host.fluids(link())?.let { h -> (0 until h.tanks).sumOf { Droplets.toMb(h.tankCapacity(it)).toLong() } } ?: 0L }
         }
         func("move") {
             title("Move Fluid")
@@ -83,9 +84,9 @@ object FluidNodes {
             result("Fluid", McVs.fluidStack.orNull())
             command {
                 val h = host.fluids(from()) ?: return@command null
-                val action = if (simulate()) IFluidHandler.FluidAction.SIMULATE else IFluidHandler.FluidAction.EXECUTE
                 val want = fluid()?.takeIf { it.isNotBlank() }?.let(RegistryIds::fluid)
-                val out = if (want == null) h.drain(max().toInt(), action) else h.drain(FluidStack(want, max().toInt()), action)
+                val cap = Droplets.ofMb(max().toInt())
+                val out = if (want == null) h.drain(cap, simulate()) else h.drain(FluidVolume(want, cap), simulate())
                 FluidStackValue.record(out)
             }
         }
@@ -98,8 +99,7 @@ object FluidNodes {
             result("Filled", McVs.int)
             command {
                 val h = host.fluids(to()) ?: return@command 0L
-                val action = if (simulate()) IFluidHandler.FluidAction.SIMULATE else IFluidHandler.FluidAction.EXECUTE
-                h.fill(FluidStackValue.stack(stack()), action).toLong()
+                Droplets.toMb(h.fill(FluidStackValue.volume(stack()), simulate())).toLong()
             }
         }
         func("place") {
@@ -186,7 +186,7 @@ private object Bottomless {
 
 /** Buckets without the bucket: a source block into the tanks and back. */
 internal object FluidWorld {
-    private val BUCKET: Int = FluidType.BUCKET_VOLUME
+    private val BUCKET: Int = Droplets.MB_PER_BUCKET
 
     fun place(host: ControllerHost, linkName: String, fluidId: String?, effects: Boolean = true): Boolean {
         val r = host.link(linkName) ?: return false
@@ -200,14 +200,13 @@ internal object FluidWorld {
         val tanks = host.selfTanks
         val kind: Fluid = (if (fluidId != null) RegistryIds.fluid(fluidId) else firstBucket(tanks)) ?: return false
         val flowing = kind as? FlowingFluid ?: return false
-        val stack = FluidStack(kind, BUCKET)
-        if (tanks.drain(stack, IFluidHandler.FluidAction.SIMULATE).amount < BUCKET) return false
+        val volume = FluidVolume.ofMb(kind, BUCKET)
+        if (tanks.drain(volume, simulate = true).mb < BUCKET) return false
         val state = level.getBlockState(pos)
         val block = state.block
-        val type = kind.fluidType
         val placed = when {
-            level.dimensionType().ultraWarm() && type.isVaporizedOnPlacement(level, pos, stack) -> {
-                type.onVaporize(null, level, pos, stack)
+            Fluids.vaporizesIn(level, pos, volume) -> {
+                Fluids.vaporize(level, pos, volume)
                 true
             }
             block is LiquidBlockContainer && block.canPlaceLiquid(null, level, pos, state, kind) -> block.placeLiquid(level, pos, state, flowing.defaultFluidState())
@@ -215,10 +214,10 @@ internal object FluidWorld {
             else -> false
         }
         if (!placed) return false
-        tanks.drain(stack, IFluidHandler.FluidAction.EXECUTE)
-        level.playSound(null, pos, type.getSound(SoundActions.BUCKET_EMPTY) ?: SoundEvents.BUCKET_EMPTY, SoundSource.BLOCKS, 1f, 1f)
+        tanks.drain(volume, simulate = false)
+        level.playSound(null, pos, Fluids.emptySound(kind), SoundSource.BLOCKS, 1f, 1f)
         level.gameEvent(null, GameEvent.FLUID_PLACE, pos)
-        if (effects) host.transferred(ControllerHost.SELF, linkName, BUCKET, bpm.net.EffectKind.FLUID, net.minecraft.core.registries.BuiltInRegistries.FLUID.getKey(stack.fluid).toString())
+        if (effects) host.transferred(ControllerHost.SELF, linkName, BUCKET, bpm.net.EffectKind.FLUID, net.minecraft.core.registries.BuiltInRegistries.FLUID.getKey(kind).toString())
         return true
     }
 
@@ -235,19 +234,20 @@ internal object FluidWorld {
         val fs = state.fluidState
         if (fs.isEmpty || !fs.isSource) return false
         val block = state.block as? BucketPickup ?: return false
-        val stack = FluidStack(fs.type, BUCKET)
+        val volume = FluidVolume.ofMb(fs.type, BUCKET)
+
         val tanks = host.selfTanks
-        if (tanks.fill(stack, IFluidHandler.FluidAction.SIMULATE) < BUCKET) return false
+        if (Droplets.toMb(tanks.fill(volume, simulate = true)) < BUCKET) return false
         // A big enough body is bottomless: fill from it and leave the block where it is. An ocean or a
         // nether lava sea qualifies; a pond does not, and gets drained a block at a time as before.
         if (Bottomless.covers(level, pos, fs.type)) {
-            tanks.fill(stack, IFluidHandler.FluidAction.EXECUTE)
+            tanks.fill(volume, simulate = false)
         } else {
             val got = block.pickupBlock(null, level, pos, state)
             if (got.isEmpty) return false
-            tanks.fill(stack, IFluidHandler.FluidAction.EXECUTE)
+            tanks.fill(volume, simulate = false)
         }
-        val sound = block.pickupSound.orElse(null) ?: fs.type.fluidType.getSound(SoundActions.BUCKET_FILL) ?: SoundEvents.BUCKET_FILL
+        val sound = block.pickupSound.orElse(null) ?: Fluids.fillSound(fs.type)
         level.playSound(null, pos, sound, SoundSource.BLOCKS, 1f, 1f)
         level.gameEvent(null, GameEvent.FLUID_PICKUP, pos)
         if (effects) host.transferred(linkName, ControllerHost.SELF, BUCKET, bpm.net.EffectKind.FLUID, net.minecraft.core.registries.BuiltInRegistries.FLUID.getKey(fs.type).toString())
@@ -272,10 +272,10 @@ internal object FluidWorld {
         return listOf(r.link.pos, r.link.pos.relative(side))
     }
 
-    private fun firstBucket(tanks: IFluidHandler): Fluid? {
+    private fun firstBucket(tanks: FluidPort): Fluid? {
         for (i in 0 until tanks.tanks) {
-            val s = tanks.getFluidInTank(i)
-            if (!s.isEmpty && s.amount >= BUCKET && s.fluid is FlowingFluid) return s.fluid
+            val s = tanks.inTank(i)
+            if (!s.isEmpty && s.mb >= BUCKET && s.fluid is FlowingFluid) return s.fluid
         }
         return null
     }
@@ -289,14 +289,14 @@ object EnergyNodes {
             doc("How much energy a link holds.")
             val link = param("Link", McVs.link, "which store")
             result("Stored", McVs.int)
-            query { (host.energy(link())?.energyStored ?: 0).toLong() }
+            query { host.energy(link())?.stored ?: 0L }
         }
         func("capacity") {
             title("Energy Capacity")
             doc("How much energy a link can hold.")
             val link = param("Link", McVs.link, "which store")
             result("Capacity", McVs.int)
-            query { (host.energy(link())?.maxEnergyStored ?: 0).toLong() }
+            query { host.energy(link())?.capacity ?: 0L }
         }
         func("canReceive") {
             title("Can Receive Energy")
@@ -316,9 +316,9 @@ object EnergyNodes {
             command {
                 val a = host.energy(from()) ?: return@command 0L
                 val b = host.energy(to()) ?: return@command 0L
-                val moved = Transfer.energy(a, b, max().toInt().coerceAtLeast(0))
-                if (moved > 0 && fx()) host.transferred(from(), to(), moved, bpm.net.EffectKind.ENERGY)
-                moved.toLong()
+                val moved = Transfer.energy(a, b, max().coerceAtLeast(0L))
+                if (moved > 0L && fx()) host.transferred(from(), to(), moved.toInt(), bpm.net.EffectKind.ENERGY)
+                moved
             }
         }
     }

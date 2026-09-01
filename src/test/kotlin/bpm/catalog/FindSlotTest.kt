@@ -1,5 +1,6 @@
 package bpm.catalog
 
+import bpm.platform.ports.HandlerPort
 import bpm.catalog.values.FilterValue
 import bpm.nodes.ControllerHost
 import bpm.nodes.DetachedHost
@@ -27,9 +28,9 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
-import net.neoforged.neoforge.energy.IEnergyStorage
-import net.neoforged.neoforge.fluids.capability.IFluidHandler
-import net.neoforged.neoforge.items.IItemHandler
+import bpm.platform.ports.EnergyPort
+import bpm.platform.ports.FluidPort
+import bpm.platform.ports.ItemPort
 import net.neoforged.neoforge.items.ItemStackHandler
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -44,7 +45,7 @@ import kotlin.test.assertTrue
 class FindSlotTest {
 
     /** A host with nothing but an inventory; every other member is the client's throwing one. */
-    private class InventoryHost(private val inv: IItemHandler) : ControllerHost {
+    private class InventoryHost(private val inv: ItemPort) : ControllerHost {
         override val level: ServerLevel get() = DetachedHost.level
         override val pos: BlockPos get() = BlockPos.ZERO
         override val links: LinkTable get() = DetachedHost.links
@@ -52,12 +53,12 @@ class FindSlotTest {
         override val tickCount: Long get() = 0
         override val registries: RegistryAccess get() = RegistryAccess.EMPTY
         override fun link(name: String): ResolvedLink? = null
-        override fun items(name: String): IItemHandler? = if (name == ControllerHost.SELF) inv else null
-        override fun fluids(name: String): IFluidHandler? = null
-        override fun energy(name: String): IEnergyStorage? = null
-        override val selfInventory: IItemHandler get() = inv
-        override val selfTanks: IFluidHandler get() = DetachedHost.selfTanks
-        override val selfEnergy: IEnergyStorage get() = DetachedHost.selfEnergy
+        override fun items(name: String): ItemPort? = if (name == ControllerHost.SELF) inv else null
+        override fun fluids(name: String): FluidPort? = null
+        override fun energy(name: String): EnergyPort? = null
+        override val selfInventory: ItemPort get() = inv
+        override val selfTanks: FluidPort get() = DetachedHost.selfTanks
+        override val selfEnergy: EnergyPort get() = DetachedHost.selfEnergy
         override fun entity(handle: Any?): Entity? = null
         override fun emitSignal(side: Direction, strength: Int) {}
         override fun emitted(side: Direction): Int = 0
@@ -74,7 +75,7 @@ class FindSlotTest {
         inv.setStackInSlot(0, ItemStack(Items.STONE, 4))
         inv.setStackInSlot(1, ItemStack(Items.IRON_PICKAXE).also { it.damageValue = 5 })
         inv.setStackInSlot(2, ItemStack(Items.IRON_PICKAXE))
-        val library = BpmCatalog.library(InventoryHost(inv))
+        val library = BpmCatalog.library(InventoryHost(HandlerPort(inv)))
         val hosts = library.install(BuiltinHosts.registry(), McValueOut)
         val runtime = ScriptRuntime(BpmCatalog.catalog, hosts)
 

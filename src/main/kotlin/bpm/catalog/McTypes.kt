@@ -173,7 +173,7 @@ object McTypes {
         "Fluid",
         listOf(
             HostField("id", STRING, "the registry id") { it?.toString().orEmpty() },
-            HostField("name", STRING, "the display name") { RegistryIds.fluid(it?.toString().orEmpty())?.fluidType?.description?.string.orEmpty() },
+            HostField("name", STRING, "the display name") { RegistryIds.fluid(it?.toString().orEmpty())?.let { f -> bpm.platform.world.Fluids.displayName(f).string }.orEmpty() },
         ),
         "a kind of fluid, by registry id",
         over = STRING,
@@ -216,7 +216,7 @@ object McTypes {
 
     val ENTITY: TypeRef = TypeRef.named("Entity")
     val PLAYER: TypeRef = TypeRef.named("Player")
-    val LINK: TypeRef = TypeRef.named("Link")
+    val LINK: TypeRef = TypeRef.named(bpm.BpmTypeNames.LINK)
 
     /** `Entity` and `Player` resolve through the controller that holds the handle — built per host. */
     fun entityRecords(host: ControllerHost): List<HostRecord> = listOf(

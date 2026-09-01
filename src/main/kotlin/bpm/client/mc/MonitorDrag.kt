@@ -9,7 +9,7 @@ import net.minecraft.client.gui.components.EditBox
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
-import net.neoforged.neoforge.network.PacketDistributor
+import bpm.platform.net.Net
 
 /**
  * The two things a monitor's controls need a client for.
@@ -35,7 +35,7 @@ object MonitorDrag {
         if (id == lastId && kotlin.math.abs(along - lastAlong) < STEP) return
         lastId = id
         lastAlong = along
-        PacketDistributor.sendToServer(MonitorDragPayload(origin, id, along))
+        Net.sendToServer(MonitorDragPayload(origin, id, along))
     }
 
     fun forget() {
@@ -45,7 +45,7 @@ object MonitorDrag {
 
     /** Open the box for a monitor's text field; the string goes back when it is confirmed. */
     fun editField(origin: BlockPos, widget: Widget) {
-        FieldScreen.open(widget) { text -> PacketDistributor.sendToServer(MonitorTextPayload(origin, widget.id, text)) }
+        FieldScreen.open(widget) { text -> Net.sendToServer(MonitorTextPayload(origin, widget.id, text)) }
     }
 
     private const val STEP = 0.004f

@@ -3,26 +3,27 @@ package bpm.nodes
 import bpm.catalog.values.FilterValue
 import bpm.catalog.values.RegistryIds
 import net.minecraft.world.item.ItemStack
-import net.neoforged.neoforge.energy.IEnergyStorage
-import net.neoforged.neoforge.fluids.FluidStack
-import net.neoforged.neoforge.fluids.capability.IFluidHandler
-import net.neoforged.neoforge.items.IItemHandler
-import net.neoforged.neoforge.items.ItemHandlerHelper
+import bpm.platform.ports.EnergyPort
+import bpm.platform.ports.Droplets
+import bpm.platform.ports.FluidPort
+import bpm.platform.ports.FluidVolume
+import bpm.platform.ports.ItemPort
+import bpm.platform.ports.insertStacked
 
 /** The capability dances, written once: simulate out, simulate in, then do it for the amount both agreed. */
 object Transfer {
 
-    fun count(h: IItemHandler, matcher: FilterValue.Matcher): Int {
+    fun count(h: ItemPort, matcher: FilterValue.Matcher): Int {
         var n = 0
         for (slot in 0 until h.slots) {
-            val s = h.getStackInSlot(slot)
+            val s = h.stackIn(slot)
             if (matcher.matches(s)) n += s.count
         }
         return n
     }
 
-    fun stacks(h: IItemHandler, matcher: FilterValue.Matcher): List<ItemStack> =
-        (0 until h.slots).map { h.getStackInSlot(it) }.filter { matcher.matches(it) }
+    fun stacks(h: ItemPort, matcher: FilterValue.Matcher): List<ItemStack> =
+        (0 until h.slots).map { h.stackIn(it) }.filter { matcher.matches(it) }
 
     /**
      * What a move actually did: how many items, and one of the stacks that really went.
@@ -43,12 +44,12 @@ object Transfer {
     }
 
     /** Move up to [max] matching items from [from] to [to]. */
-    fun items(from: IItemHandler, to: IItemHandler, matcher: FilterValue.Matcher, max: Int): Moved {
+    fun items(from: ItemPort, to: ItemPort, matcher: FilterValue.Matcher, max: Int): Moved {
         var moved = 0
         var sample = ItemStack.EMPTY
         for (slot in 0 until from.slots) {
             if (moved >= max) break
-            val peek = from.getStackInSlot(slot)
+            val peek = from.stackIn(slot)
             if (!matcher.matches(peek)) continue
             val step = moveSlot(from, slot, to, max - moved)
             moved += step.count
@@ -58,65 +59,69 @@ object Transfer {
     }
 
     /** Move up to [max] items out of one slot of [from] into [to]. Answers how many moved. */
-    fun moveSlot(from: IItemHandler, slot: Int, to: IItemHandler, max: Int): Moved {
+    fun moveSlot(from: ItemPort, slot: Int, to: ItemPort, max: Int): Moved {
         if (slot < 0 || slot >= from.slots || max <= 0) return Moved.NOTHING
-        val offered = from.extractItem(slot, max, true)
+        val offered = from.extract(slot, max, true)
         if (offered.isEmpty) return Moved.NOTHING
-        val accepted = offered.count - ItemHandlerHelper.insertItemStacked(to, offered, true).count
+        val accepted = offered.count - to.insertStacked(offered, true).count
         if (accepted <= 0) return Moved.NOTHING
-        val taken = from.extractItem(slot, accepted, false)
+        val taken = from.extract(slot, accepted, false)
         if (taken.isEmpty) return Moved.NOTHING
         // What it is, before insertion is allowed to touch the stack.
         val what = taken.copy()
-        val left = ItemHandlerHelper.insertItemStacked(to, taken, false)
+        val left = to.insertStacked(taken, false)
         // The simulation said it would fit; if a handler changed its mind, the items go back.
-        if (!left.isEmpty) ItemHandlerHelper.insertItemStacked(from, left, false)
+        if (!left.isEmpty) from.insertStacked(left, false)
         val count = what.count - left.count
         return if (count <= 0) Moved.NOTHING else Moved(count, what)
     }
 
     /** Take up to [max] matching items out of [from] as one stack (one slot's worth). */
-    fun extract(from: IItemHandler, matcher: FilterValue.Matcher, max: Int, simulate: Boolean): ItemStack {
+    fun extract(from: ItemPort, matcher: FilterValue.Matcher, max: Int, simulate: Boolean): ItemStack {
         for (slot in 0 until from.slots) {
-            if (!matcher.matches(from.getStackInSlot(slot))) continue
-            val out = from.extractItem(slot, max, simulate)
+            if (!matcher.matches(from.stackIn(slot))) continue
+            val out = from.extract(slot, max, simulate)
             if (!out.isEmpty) return out
         }
         return ItemStack.EMPTY
     }
 
-    fun insert(to: IItemHandler, stack: ItemStack, simulate: Boolean): ItemStack =
-        if (stack.isEmpty) ItemStack.EMPTY else ItemHandlerHelper.insertItemStacked(to, stack, simulate)
+    fun insert(to: ItemPort, stack: ItemStack, simulate: Boolean): ItemStack =
+        if (stack.isEmpty) ItemStack.EMPTY else to.insertStacked(stack, simulate)
 
     /** Move up to [maxMb] of [fluidId] (empty = whatever is first) from one tank to another. Answers the mB moved. */
-    fun fluids(from: IFluidHandler, to: IFluidHandler, fluidId: String?, maxMb: Int): Int {
+    fun fluids(from: FluidPort, to: FluidPort, fluidId: String?, maxMb: Int): Int {
         val want = fluidId?.takeIf { it.isNotBlank() }
-        val drained: FluidStack = if (want == null) {
-            from.drain(maxMb, IFluidHandler.FluidAction.SIMULATE)
+        val cap = Droplets.ofMb(maxMb)
+        val drained: FluidVolume = if (want == null) {
+            from.drain(cap, simulate = true)
         } else {
             val kind = RegistryIds.fluid(want) ?: return 0
-            from.drain(FluidStack(kind, maxMb), IFluidHandler.FluidAction.SIMULATE)
+            from.drain(FluidVolume(kind, cap), simulate = true)
         }
         if (drained.isEmpty) return 0
-        val accepted = to.fill(drained, IFluidHandler.FluidAction.SIMULATE)
-        if (accepted <= 0) return 0
-        val real = from.drain(drained.copyWithAmount(accepted), IFluidHandler.FluidAction.EXECUTE)
+        val accepted = to.fill(drained, simulate = true)
+        if (accepted <= 0L) return 0
+        val real = from.drain(drained.withDroplets(accepted), simulate = false)
         if (real.isEmpty) return 0
-        val filled = to.fill(real, IFluidHandler.FluidAction.EXECUTE)
-        if (filled < real.amount) from.fill(real.copyWithAmount(real.amount - filled), IFluidHandler.FluidAction.EXECUTE)
-        return filled
+        val filled = to.fill(real, simulate = false)
+        // The simulation said it would fit; if a tank changed its mind, the fluid goes back.
+        if (filled < real.droplets) from.fill(real.withDroplets(real.droplets - filled), simulate = false)
+        // Droplets throughout, millibuckets only here, where the scripting contract is.
+        return Droplets.toMb(filled)
     }
 
     /** Move up to [max] FE from one store to another. Answers the FE moved. */
-    fun energy(from: IEnergyStorage, to: IEnergyStorage, max: Int): Int {
-        if (!from.canExtract() || !to.canReceive()) return 0
-        val offered = from.extractEnergy(max, true)
-        if (offered <= 0) return 0
-        val accepted = to.receiveEnergy(offered, true)
-        if (accepted <= 0) return 0
-        val taken = from.extractEnergy(accepted, false)
-        val received = to.receiveEnergy(taken, false)
-        if (received < taken) from.receiveEnergy(taken - received, false)
+    fun energy(from: EnergyPort, to: EnergyPort, max: Long): Long {
+        if (!from.canExtract() || !to.canReceive()) return 0L
+        val offered = from.extract(max, true)
+        if (offered <= 0L) return 0L
+        val accepted = to.receive(offered, true)
+        if (accepted <= 0L) return 0L
+        val taken = from.extract(accepted, false)
+        val received = to.receive(taken, false)
+        // The store changed its mind between the simulation and the deed; put back what it would not take.
+        if (received < taken) from.receive(taken - received, false)
         return received
     }
 }

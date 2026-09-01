@@ -15,7 +15,6 @@ import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.TooltipFlag
 import net.minecraft.world.item.context.UseOnContext
 import net.minecraft.world.level.Level
-import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions
 import software.bernie.geckolib.animatable.GeoItem
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
 import software.bernie.geckolib.animation.AnimatableManager
@@ -45,14 +44,20 @@ class LinkerItem(properties: Properties) : Item(properties), GeoItem {
      * a sneak-use skips the block anyway and comes through [useOn], and a plain use on a controller still
      * opens the editor.
      */
-    override fun onItemUseFirst(stack: ItemStack, ctx: UseOnContext): InteractionResult {
-        val level = ctx.level
-        val player = ctx.player ?: return InteractionResult.PASS
+    /*
+     * Not an override any more.
+     *
+     * This used to be NeoForge's `Item.onItemUseFirst`, a method that loader adds so a held item can
+     * answer a click on a block before the block does. Vanilla has no such method and Fabric offers the
+     * same thing as an event, so it is reached through [bpm.platform.events.BpmEvents.useOnBlock] now and
+     * the listener is installed in [installHooks]. The behaviour below is unchanged.
+     */
+    internal fun useFirst(level: Level, player: Player, stack: ItemStack, pos: BlockPos, face: Direction): InteractionResult {
         if (bpm.chamber.ChamberDimension.isChamber(level) || player.isShiftKeyDown) return InteractionResult.PASS
         if (!stack.has(ModComponents.SELECTED_CONTROLLER.get())) return InteractionResult.PASS
-        if (level.getBlockEntity(ctx.clickedPos) is ControllerBlockEntity) return InteractionResult.PASS
+        if (level.getBlockEntity(pos) is ControllerBlockEntity) return InteractionResult.PASS
         if (level.isClientSide) return InteractionResult.SUCCESS
-        return link(level, player, stack, ctx.clickedPos, ctx.clickedFace)
+        return link(level, player, stack, pos, face)
     }
 
     override fun useOn(ctx: UseOnContext): InteractionResult {
@@ -295,12 +300,26 @@ class LinkerItem(properties: Properties) : Item(properties), GeoItem {
 
     override fun getAnimatableInstanceCache(): AnimatableInstanceCache = animCache
 
-    override fun initializeClient(consumer: Consumer<IClientItemExtensions>) {
-        // Only ever called on the client; the class named here draws with GeckoLib.
-        consumer.accept(bpm.client.render.LinkerItemExtensions)
-    }
 
     companion object {
+        /**
+         * Offer a use-click on a block to the linker before the block gets it.
+         *
+         * Installed once, from `BpmRegistries.install`. The click is only claimed when the held item is
+         * actually a linker with a controller selected — everything else falls through to the block, which
+         * is what makes "a plain use on a chest still opens the chest" true.
+         */
+        fun installHooks() {
+            bpm.platform.events.BpmEvents.useOnBlock.listen { e ->
+                val stack = e.player.getItemInHand(e.hand)
+                val item = stack.item
+                if (item is LinkerItem) {
+                    val r = item.useFirst(e.level, e.player, stack, e.pos, e.face)
+                    if (r != InteractionResult.PASS) e.result = r
+                }
+            }
+        }
+
         const val RANGE = 32.0
         const val PULSE_COOLDOWN = 16
         const val TRACK_COOLDOWN = 400L

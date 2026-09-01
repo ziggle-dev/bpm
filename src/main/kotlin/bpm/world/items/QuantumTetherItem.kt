@@ -23,7 +23,6 @@ import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.TooltipFlag
 import net.minecraft.world.item.context.UseOnContext
 import net.minecraft.world.level.Level
-import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions
 import software.bernie.geckolib.animatable.GeoItem
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
 import software.bernie.geckolib.animation.AnimatableManager
@@ -189,10 +188,6 @@ class QuantumTetherItem(properties: Properties) : TooltipItem(properties), GeoIt
 
     override fun getAnimatableInstanceCache(): AnimatableInstanceCache = animCache
 
-    override fun initializeClient(consumer: Consumer<IClientItemExtensions>) {
-        // Only ever called on the client; the class named here draws with GeckoLib.
-        consumer.accept(bpm.client.render.TetherItemExtensions)
-    }
 
     companion object {
         /** A second sneak-use inside this many ticks releases the tether instead of cycling it. */
