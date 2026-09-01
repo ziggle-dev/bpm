@@ -60,14 +60,49 @@ private class FabricPortCache(
         get() = FluidStorage.SIDED.find(level, pos, side)?.let(::StorageFluidPort)
 
     /**
-     * FABRIC TODO: energy.
-     *
-     * Fabric API has no energy storage of its own — Team Reborn's Energy API is what every Fabric mod
-     * that moves power actually uses, and adding it is a dependency decision rather than a line of code.
-     * Until then `energy.move` finds nothing on this loader, which is a visible gap and not a silent
-     * wrong answer.
+     * Energy, through Team Reborn's API rather than Fabric's — Fabric has none of its own, and this is
+     * what every mod on this loader that moves power actually implements.
      */
-    override val energy: EnergyPort? get() = null
+    override val energy: EnergyPort?
+        get() = team.reborn.energy.api.EnergyStorage.SIDED.find(level, pos, side)?.let(::StorageEnergyPort)
+}
+
+/**
+ * An `EnergyStorage` seen as an [EnergyPort].
+ *
+ * The two line up almost exactly — amount, capacity, and an insert and extract that return what moved.
+ * The only translation is the one the whole transfer API needs: `simulate` is a transaction that is
+ * opened and never committed.
+ *
+ * This is where the seam's choice of `Long` pays for itself. NeoForge's energy is an `int`; this API
+ * counts in longs, and a port that had narrowed at the boundary would have reported a large buffer
+ * wrongly rather than merely differently.
+ */
+private class StorageEnergyPort(private val storage: team.reborn.energy.api.EnergyStorage) : EnergyPort {
+
+    override val stored: Long get() = storage.amount
+    override val capacity: Long get() = storage.capacity
+
+    override fun canReceive(): Boolean = storage.supportsInsertion()
+    override fun canExtract(): Boolean = storage.supportsExtraction()
+
+    override fun receive(amount: Long, simulate: Boolean): Long {
+        if (amount <= 0) return 0
+        Transaction.openOuter().use { tx ->
+            val moved = storage.insert(amount, tx)
+            if (!simulate) tx.commit()
+            return moved
+        }
+    }
+
+    override fun extract(amount: Long, simulate: Boolean): Long {
+        if (amount <= 0) return 0
+        Transaction.openOuter().use { tx ->
+            val moved = storage.extract(amount, tx)
+            if (!simulate) tx.commit()
+            return moved
+        }
+    }
 }
 
 /** A `Storage<ItemVariant>` presented as numbered slots. */
