@@ -79,11 +79,18 @@ interface PlatformRegistries {
     fun entityAttributes(block: (AttributeSink) -> Unit)
 }
 
-/** Where entity attributes go. Deliberately not a map: on NeoForge these arrive during an event. */
+/**
+ * Where entity attributes go. Deliberately not a map: on NeoForge these arrive during an event.
+ *
+ * The BUILDER rather than the built supplier, because Fabric's
+ * `FabricDefaultAttributeRegistry.register` only accepts a builder while NeoForge's event wants the
+ * finished thing. Building is one call and unbuilding is none, so the seam carries whichever one both
+ * can reach.
+ */
 fun interface AttributeSink {
     fun put(
         type: RegistryRef<out net.minecraft.world.entity.EntityType<*>>,
-        attributes: net.minecraft.world.entity.ai.attributes.AttributeSupplier,
+        attributes: net.minecraft.world.entity.ai.attributes.AttributeSupplier.Builder,
     )
 }
 

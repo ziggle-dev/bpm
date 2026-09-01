@@ -27,6 +27,6 @@ object ModEntities {
     }
 
     fun attributes() = Registrars.entityAttributes { sink ->
-        sink.put(WARDEN, QuantumWardenEntity.attributes().build())
+        sink.put(WARDEN, QuantumWardenEntity.attributes())
     }
 }
