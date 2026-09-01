@@ -33,7 +33,6 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.block.state.properties.BooleanProperty
-import net.minecraft.world.level.block.state.properties.DirectionProperty
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
@@ -383,7 +382,7 @@ class TurretBlock(properties: Properties) : Block(properties), EntityBlock {
         DeviceBlockEntity.ticker(level, type, DeviceBlockEntities.TURRET.get())
 
     companion object {
-        val FACING: DirectionProperty = BlockStateProperties.FACING
+        val FACING: net.minecraft.world.level.block.state.properties.EnumProperty<net.minecraft.core.Direction> = BlockStateProperties.FACING
     }
 }
 

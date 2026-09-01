@@ -285,13 +285,13 @@ object MonitorScreenRenderer {
 
     private fun fluidQuad(mc: Minecraft, pose: PoseStack, buffers: MultiBufferSource, fluid: net.minecraft.world.level.material.Fluid, x0: Float, y0: Float, x1: Float, y1: Float, light: Int) {
         val look = bpm.platform.client.FluidVisuals.of(fluid)
-        val sprite = mc.getTextureAtlas(InventoryMenu.BLOCK_ATLAS).apply(look.still)
+        val sprite = mc.getTextureAtlas(net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS).apply(look.still)
         val tint = look.tint
         val r = (tint shr 16 and 0xFF) / 255f
         val g = (tint shr 8 and 0xFF) / 255f
         val bl = (tint and 0xFF) / 255f
         val m = pose.last().pose()
-        val b = buffers.getBuffer(RenderType.entityTranslucentCull(InventoryMenu.BLOCK_ATLAS))
+        val b = buffers.getBuffer(RenderType.entityTranslucentCull(net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS))
         val u1 = sprite.u0 + (sprite.u1 - sprite.u0) * ((x1 - x0) / 16f).coerceIn(0.05f, 1f)
         val v1 = sprite.v0 + (sprite.v1 - sprite.v0) * ((y1 - y0) / 16f).coerceIn(0.05f, 1f)
         fun v(x: Float, y: Float, u: Float, vv: Float) {

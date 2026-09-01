@@ -47,6 +47,14 @@ object BlockUse {
 
     fun sidedSuccess(isClientSide: Boolean): BlockUseResult = InteractionResult.SUCCESS
 }
+
+/**
+ * A plain `InteractionResult`, for `useWithoutItem` and friends, which never took the other two types.
+ * `sidedSuccess` went away with them at 1.21.2 — the newer answer is simply SUCCESS.
+ */
+object Interact {
+    fun sided(isClientSide: Boolean): InteractionResult = InteractionResult.SUCCESS
+}
 *///?} else {
 typealias UseResult = net.minecraft.world.InteractionResultHolder<ItemStack>
 typealias BlockUseResult = net.minecraft.world.ItemInteractionResult
@@ -69,5 +77,9 @@ object BlockUse {
 
     fun sidedSuccess(isClientSide: Boolean): BlockUseResult =
         net.minecraft.world.ItemInteractionResult.sidedSuccess(isClientSide)
+}
+
+object Interact {
+    fun sided(isClientSide: Boolean): InteractionResult = InteractionResult.sidedSuccess(isClientSide)
 }
 //?}

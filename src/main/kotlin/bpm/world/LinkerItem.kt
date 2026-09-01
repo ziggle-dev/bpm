@@ -65,7 +65,7 @@ class LinkerItem(properties: Properties) : Item(properties), GeoItem {
         if (bpm.chamber.ChamberDimension.isChamber(level)) {
             if (player.isShiftKeyDown) {
                 if (player is net.minecraft.server.level.ServerPlayer) trackingPulse(player, ctx.hand)
-                return InteractionResult.sidedSuccess(level.isClientSide)
+                return bpm.platform.Interact.sided(level.isClientSide)
             }
             return pulse(level, player, ctx.hand)
         }

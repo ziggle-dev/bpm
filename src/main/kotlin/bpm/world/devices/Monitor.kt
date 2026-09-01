@@ -23,7 +23,6 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.block.state.properties.BooleanProperty
-import net.minecraft.world.level.block.state.properties.DirectionProperty
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.shapes.CollisionContext
 import net.minecraft.world.phys.shapes.VoxelShape
@@ -93,7 +92,7 @@ class MonitorBlock(properties: Properties) : Block(properties), EntityBlock {
         state.rotate(mirror.getRotation(state.getValue(FACING))).setValue(LEFT, state.getValue(RIGHT)).setValue(RIGHT, state.getValue(LEFT))
 
     companion object {
-        val FACING: DirectionProperty = BlockStateProperties.HORIZONTAL_FACING
+        val FACING: net.minecraft.world.level.block.state.properties.EnumProperty<net.minecraft.core.Direction> = BlockStateProperties.HORIZONTAL_FACING
         val UP: BooleanProperty = BooleanProperty.create("up")
         val DOWN: BooleanProperty = BooleanProperty.create("down")
         /** The viewer's left: `facing.clockWise` (a north-facing screen's left edge is its east side). */

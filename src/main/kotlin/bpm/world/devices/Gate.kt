@@ -32,7 +32,6 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.block.state.properties.BooleanProperty
-import net.minecraft.world.level.block.state.properties.DirectionProperty
 import net.minecraft.world.level.block.state.properties.EnumProperty
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.BlockHitResult
@@ -99,7 +98,7 @@ class GateBlock(properties: Properties) : Block(properties), EntityBlock {
 
     companion object {
         /** The side the oval faces (where you approach from); the spine of three frames runs the other way. */
-        val FACING: DirectionProperty = BlockStateProperties.HORIZONTAL_FACING
+        val FACING: net.minecraft.world.level.block.state.properties.EnumProperty<net.minecraft.core.Direction> = BlockStateProperties.HORIZONTAL_FACING
         val OPEN: BooleanProperty = BlockStateProperties.OPEN
 
         /** The horizontal axis the ring spans: a north-facing gate stretches east–west. */

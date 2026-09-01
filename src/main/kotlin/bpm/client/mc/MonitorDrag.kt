@@ -96,7 +96,7 @@ class FieldScreen private constructor(private val widget: Widget, private val se
         /** Open the box for [widget]; [send] carries the string wherever it belongs. */
         fun open(widget: Widget, send: (String) -> Unit) {
             val mc = Minecraft.getInstance()
-            mc.tell { mc.setScreen(FieldScreen(widget, send)) }
+            mc.execute { mc.setScreen(FieldScreen(widget, send)) }
         }
     }
 }

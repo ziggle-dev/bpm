@@ -70,7 +70,7 @@ class ControllerBlock(properties: Properties) : Block(properties), EntityBlock {
         }
         // The editor is a client screen; the class named here is only ever loaded on the client.
         if (level.isClientSide) bpm.client.ClientHooks.openWorkbench(pos)
-        return InteractionResult.sidedSuccess(level.isClientSide)
+        return bpm.platform.Interact.sided(level.isClientSide)
     }
 
     override fun onRemove(state: BlockState, level: Level, pos: BlockPos, newState: BlockState, movedByPiston: Boolean) {

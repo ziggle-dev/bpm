@@ -524,7 +524,7 @@ object EffectManager {
         if (size <= 0.001f) return
         val look = bpm.platform.client.FluidVisuals.of(fluid)
         val sprite = Minecraft.getInstance()
-            .getTextureAtlas(net.minecraft.world.inventory.InventoryMenu.BLOCK_ATLAS)
+            .getTextureAtlas(net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS)
             .apply(look.still)
         val tint = look.tint
         val r = ((tint shr 16) and 0xFF) / 255f
@@ -537,7 +537,7 @@ object EffectManager {
         pose.mulPose(Axis.XP.rotationDegrees(age * 2.7f + seed * 0.61f))
 
         val last = pose.last()
-        val buffer = buffers.getBuffer(RenderType.entityTranslucentCull(net.minecraft.world.inventory.InventoryMenu.BLOCK_ATLAS))
+        val buffer = buffers.getBuffer(RenderType.entityTranslucentCull(net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS))
         solid(last, buffer, size, size * 1.35f, size, sprite, r, g, b, a, light)
     }
 
@@ -638,7 +638,7 @@ object EffectManager {
 
         val look = bpm.platform.client.FluidVisuals.of(fluid)
         val sprite = Minecraft.getInstance()
-            .getTextureAtlas(net.minecraft.world.inventory.InventoryMenu.BLOCK_ATLAS)
+            .getTextureAtlas(net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS)
             .apply(look.flowing)
         val tint = look.tint
         val r = ((tint shr 16) and 0xFF) / 255f
@@ -648,7 +648,7 @@ object EffectManager {
         val half = STREAM_WIDTH * (0.55 + 0.5 * flow) * life.coerceIn(0f, 1f)
         val light = LevelRenderer.getLightColor(level, cell)
 
-        val buffer = buffers.getBuffer(RenderType.entityTranslucentCull(net.minecraft.world.inventory.InventoryMenu.BLOCK_ATLAS))
+        val buffer = buffers.getBuffer(RenderType.entityTranslucentCull(net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS))
         val last = pose.last()
         val m = last.pose()
         val u0 = sprite.getU(0.18f)

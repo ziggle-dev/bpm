@@ -23,7 +23,7 @@ import net.minecraft.world.level.block.Block
  * `EditorHost.values`; vscript then gives every pin of those types a searchable catalogue editor.
  */
 object BpmCatalogs : ValueCatalogs {
-    private val items = RegistryCatalog(BuiltInRegistries.ITEM) { (it as Item).description.string }
+    private val items = RegistryCatalog(BuiltInRegistries.ITEM) { net.minecraft.network.chat.Component.translatable((it as Item).descriptionId).string }
     private val blocks = RegistryCatalog(BuiltInRegistries.BLOCK) { (it as Block).name.string }
     private val fluids = RegistryCatalog(BuiltInRegistries.FLUID) { null }
     private val tags = TagCatalog()
