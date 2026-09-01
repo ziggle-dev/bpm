@@ -1,0 +1,57 @@
+package bpm.platform.events
+
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.server.level.ServerPlayer
+import net.neoforged.bus.api.IEventBus
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent
+import net.neoforged.neoforge.event.entity.living.LivingDropsEvent
+import net.neoforged.neoforge.event.entity.player.PlayerEvent
+import net.neoforged.neoforge.event.level.BlockEvent
+import net.neoforged.neoforge.event.server.ServerAboutToStartEvent
+import net.neoforged.neoforge.event.server.ServerStoppingEvent
+import net.neoforged.neoforge.event.tick.ServerTickEvent
+import java.util.function.Consumer
+
+/**
+ * NeoForge's game bus, wired to [BpmEvents].
+ *
+ * One place that knows this loader's event names, so that nothing else has to. The filtering that every
+ * handler used to repeat — "is this entity actually a player" — happens here once, which is why
+ * [BpmEvents.playerDeath] can be typed as a player rather than as a living thing.
+ */
+object NeoEventBridge {
+
+    fun install(bus: IEventBus) {
+        bus.addListener(ServerAboutToStartEvent::class.java, Consumer { BpmEvents.serverStarting.fire(it.server) })
+        bus.addListener(ServerTickEvent.Post::class.java, Consumer { BpmEvents.serverTickEnd.fire(it.server) })
+        bus.addListener(ServerStoppingEvent::class.java, Consumer { BpmEvents.serverStopping.fire(it.server) })
+
+        bus.addListener(PlayerEvent.PlayerLoggedInEvent::class.java, Consumer { e ->
+            (e.entity as? ServerPlayer)?.let(BpmEvents.playerJoin::fire)
+        })
+        bus.addListener(PlayerEvent.PlayerLoggedOutEvent::class.java, Consumer { e ->
+            (e.entity as? ServerPlayer)?.let(BpmEvents.playerLeave::fire)
+        })
+        bus.addListener(PlayerEvent.PlayerRespawnEvent::class.java, Consumer { e ->
+            (e.entity as? ServerPlayer)?.let { BpmEvents.playerRespawn.fire(Respawn(it, e.isEndConquered)) }
+        })
+        bus.addListener(LivingDeathEvent::class.java, Consumer { e ->
+            (e.entity as? ServerPlayer)?.let(BpmEvents.playerDeath::fire)
+        })
+
+        bus.addListener(BlockEvent.BreakEvent::class.java, Consumer { e ->
+            val level = e.level as? ServerLevel ?: return@Consumer
+            if (!BpmEvents.blockBreak.fire(BlockBreak(level, e.pos, e.state, e.player))) e.isCanceled = true
+        })
+
+        bus.addListener(LivingDropsEvent::class.java, Consumer { e ->
+            val player = e.entity as? ServerPlayer ?: return@Consumer
+            // The stacks are copied here rather than in the listener: cancelling the event is what stops
+            // the originals being spawned, and a listener that stashed the live ItemStacks would be
+            // holding objects the event still owns.
+            val stacks = e.drops.map { it.item.copy() }.filter { !it.isEmpty }
+            if (stacks.isEmpty()) return@Consumer
+            if (!BpmEvents.playerDrops.fire(Drops(player, stacks))) e.isCanceled = true
+        })
+    }
+}

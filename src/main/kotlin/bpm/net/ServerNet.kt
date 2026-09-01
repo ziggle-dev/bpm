@@ -1,5 +1,6 @@
 package bpm.net
 
+import bpm.platform.events.BpmEvents
 import bpm.Bpm
 import bpm.catalog.BpmCatalog
 import bpm.library.BpmLibrary
@@ -27,10 +28,6 @@ import net.minecraft.network.chat.Component
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
-import net.neoforged.bus.api.IEventBus
-import net.neoforged.neoforge.event.entity.player.PlayerEvent
-import net.neoforged.neoforge.event.server.ServerAboutToStartEvent
-import net.neoforged.neoforge.event.tick.ServerTickEvent
 import net.neoforged.neoforge.network.PacketDistributor
 import net.neoforged.neoforge.network.handling.IPayloadContext
 import java.util.UUID
@@ -52,10 +49,10 @@ object ServerNet {
     const val STATUS_EVERY_TICKS = 20
     const val CONTROL_RANGE = 64.0
 
-    fun install(bus: IEventBus) {
-        bus.addListener(ServerAboutToStartEvent::class.java, Consumer { reset() })
-        bus.addListener(ServerTickEvent.Post::class.java, Consumer { tick(it.server) })
-        bus.addListener(PlayerEvent.PlayerLoggedOutEvent::class.java, Consumer { (it.entity as? ServerPlayer)?.let(::onLogout) })
+    fun install() {
+        BpmEvents.serverStarting.listen { reset() }
+        BpmEvents.serverTickEnd.listen(::tick)
+        BpmEvents.playerLeave.listen(::onLogout)
     }
 
     private fun reset() {

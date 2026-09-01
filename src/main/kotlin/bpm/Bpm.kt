@@ -29,14 +29,17 @@ object Bpm {
         McTypes.registerAll()
         BpmConfig.register()
         BpmRegistries.install(MOD_BUS)
-        bpm.chamber.ChamberEvents.install(NeoForge.EVENT_BUS)
-        bpm.chamber.ChamberFight.install(NeoForge.EVENT_BUS)
+        // The bridge first: it is what turns this loader's events into the ones the subsystems below
+        // listen for, so nothing after this line names a bus.
+        bpm.platform.events.NeoEventBridge.install(NeoForge.EVENT_BUS)
+        bpm.chamber.ChamberEvents.install()
+        bpm.chamber.ChamberFight.install()
         bpm.world.CoreTiers.install(NeoForge.EVENT_BUS)
         bpm.world.LinkerCombat.install(NeoForge.EVENT_BUS)
         bpm.world.devices.MonitorInput.install(NeoForge.EVENT_BUS)
-        RuntimeManager.install(NeoForge.EVENT_BUS)
+        RuntimeManager.install()
         BpmNetwork.install(MOD_BUS)
-        ServerNet.install(NeoForge.EVENT_BUS)
+        ServerNet.install()
         NeoForge.EVENT_BUS.addListener(RegisterCommandsEvent::class.java, Consumer(BpmCommands::register))
         // The client class is only ever touched on the client, so a dedicated server never loads it.
         if (FMLEnvironment.dist.isClient) bpm.client.BpmClient.init(MOD_BUS)

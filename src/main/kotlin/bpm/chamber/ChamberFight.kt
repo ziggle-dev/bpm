@@ -1,5 +1,6 @@
 package bpm.chamber
 
+import bpm.platform.events.BpmEvents
 import bpm.Bpm
 import bpm.BpmConfig
 import bpm.BpmConfig.orDefault
@@ -31,10 +32,7 @@ import net.minecraft.world.level.storage.loot.LootParams
 import net.minecraft.world.level.storage.loot.LootTable
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets
 import net.minecraft.world.phys.AABB
-import net.neoforged.bus.api.IEventBus
-import net.neoforged.neoforge.event.tick.ServerTickEvent
 import java.util.UUID
-import java.util.function.Consumer
 import kotlin.math.atan2
 import kotlin.math.sqrt
 
@@ -89,8 +87,8 @@ object ChamberFight {
     const val HOP_JITTER = 300
     private const val FAST_STAGE3_TICKS = 1200L
 
-    fun install(bus: IEventBus) {
-        bus.addListener(ServerTickEvent.Post::class.java, Consumer { tick(it.server) })
+    fun install() {
+        BpmEvents.serverTickEnd.listen(::tick)
         PedestalHooks.onUse = ::onPedestalUse
         PedestalHooks.awaken = ::awaken
         PedestalHooks.claim = ::claim
