@@ -6,18 +6,26 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
  * bpm: a NeoForge 1.21.1 mod that hosts the vscript language, VM and canvas editor. See docs/ for the design.
  */
 plugins {
+    id("dev.kikugie.stonecutter")
     id("net.neoforged.moddev") version "2.0.144"
     // The SAME Kotlin plugin version as the included vscript build: a composite loads one copy of a plugin,
     // and two versions of the Kotlin plugin in one build fail to load at all.
     kotlin("jvm") version "2.3.21"
 }
 
+/*
+ * This script is shared by every version node, and its projectDir is `versions/<version>/`, not the
+ * repository root. Anything that used to rely on a path convention has to be named against rootProject
+ * from here on.
+ */
+
 // gradle.properties, read once and named. Kotlin has no dynamic property access, which is the one real cost
 // of this DSL — and also the reason a typo here is a build failure rather than a null two hundred lines later.
 val modId = property("mod_id") as String
 val modVersion = property("mod_version") as String
 val neoVersion = property("neo_version") as String
-val minecraftVersion = property("minecraft_version") as String
+// The node IS the Minecraft version: no separate property to keep in step with the version list.
+val minecraftVersion: String = stonecutter.current.version
 val kffVersion = property("kff_version") as String
 val kotlinRuntimeVersion = property("kotlin_runtime_version") as String
 val vscriptVersion = property("vscript_version") as String
@@ -110,8 +118,6 @@ repositories {
  * bitten (see the processDevResources comment below).
  *
  * It stays part of the bpm mod, so nothing about packaging or dev runs changes.
- *
- * No explicit srcDir: `src/core/kotlin` is already what the Kotlin plugin gives a source set called `core`.
  */
 val core by sourceSets.creating
 
@@ -135,6 +141,25 @@ sourceSets {
 
 dev.compileClasspath += sourceSets.main.get().output + sourceSets.main.get().compileClasspath
 dev.runtimeClasspath += sourceSets.main.get().output + sourceSets.main.get().runtimeClasspath
+
+/*
+ * **There is one source tree, and it is at the repository root.**
+ *
+ * This script's projectDir is `versions/<version>/`, so every source-directory convention now resolves to
+ * the wrong place — `versions/1.21.1/src/main/kotlin`, which does not exist. Left alone that is not a
+ * build failure, it is an empty compilation: a jar with no classes in it and no error anywhere.
+ *
+ * So each one is named explicitly against rootProject. Stonecutter rewrites this single tree in place for
+ * whichever version is active; it does not give each node a copy.
+ */
+for (name in listOf("main", "test", "core", "dev")) {
+    kotlin.sourceSets.named(name) {
+        kotlin.setSrcDirs(listOf(rootProject.file("src/$name/kotlin")))
+    }
+    sourceSets.named(name) {
+        resources.setSrcDirs(listOf(rootProject.file("src/$name/resources")))
+    }
+}
 
 /*
  * `gameLibraries` is the bundled list as a resolvable set (used by tooling); `devLibraries` holds the dev-only
@@ -175,6 +200,15 @@ neoForge {
         configureEach {
             systemProperty("forge.enabledGameTestNamespaces", modId)
             logLevel = org.slf4j.event.Level.INFO
+            /*
+             * The run directory stays at the repository root.
+             *
+             * MDG defaults it to `project.file("run")`, which under a version node is
+             * `versions/1.21.1/run` — a fresh, empty game directory. That would quietly orphan the world
+             * that is already in `run/`, along with its configs and the dev console's token file. Named
+             * explicitly so that adding a second version node later cannot split them either.
+             */
+            gameDirectory = rootProject.layout.projectDirectory.dir("run")
         }
     }
 
@@ -238,7 +272,21 @@ dependencies {
     compileOnly("net.createmod.ponder:Ponder-NeoForge-$minecraftVersion:$ponderVersion") { isTransitive = false }
     compileOnly("net.createmod.ponder:Ponder-Common-$minecraftVersion:$ponderVersion") { isTransitive = false }
     runtimeOnly("net.createmod.ponder:Ponder-NeoForge-$minecraftVersion:$ponderVersion") { isTransitive = false }
-    runtimeOnly("net.createmod.ponder:Ponder-Common-$minecraftVersion:$ponderVersion") { isTransitive = false }
+    /*
+     * Ponder-Common is compileOnly and deliberately NOT runtimeOnly.
+     *
+     * The NeoForge jar is self-contained -- 274 catnip classes, including both the
+     * `catnip.platform.services.PlatformHelper` interface and its `NeoForgePlatformHelper`
+     * implementation, plus the META-INF/services files that bind them. The common jar carries a SECOND
+     * copy of that interface, and having it on the runtime classpath puts one copy in the plain
+     * classpath and one in FML's transforming layer.
+     *
+     * Catnip resolves its platform helper with `ServiceLoader.findFirst`, which walks the classpath. With
+     * two copies present that fails as "NeoForgePlatformHelper not a subtype" -- Ponder dies in common
+     * setup, and because that is a broken mod state rather than a crash, the client hangs on the loading
+     * bar with no crash screen. It was latent for as long as both jars were listed; introducing the
+     * version node reordered the classpath enough to expose it.
+     */
     runtimeOnly("dev.engine-room.flywheel:flywheel-neoforge-$minecraftVersion:$flywheelVersion") { isTransitive = false }
     // JEI (recipes and item lookup while testing) and Just Dire Things (more machines, tools and goo to link).
     runtimeOnly("mezz.jei:jei-$minecraftVersion-neoforge:$jeiVersion")
