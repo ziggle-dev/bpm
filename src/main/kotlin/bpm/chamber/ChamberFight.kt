@@ -1,5 +1,6 @@
 package bpm.chamber
 
+import bpm.platform.store.PlayerStore
 import bpm.platform.events.BpmEvents
 import bpm.Bpm
 import bpm.BpmConfig
@@ -499,13 +500,13 @@ object ChamberFight {
 
     /** The pity extra: each claim without it adds two percent, capped at sixteen; a hit resets it. */
     private fun pity(level: ServerLevel, player: ServerPlayer) {
-        val pity = player.getData(ModAttachments.WARDEN_PITY.get())
+        val pity = PlayerStore.get(player, ModAttachments.WARDEN_PITY)
         if (level.random.nextDouble() < pity / 100.0) {
             for (extra in roll(level, PITY)) give(player, extra)
-            player.setData(ModAttachments.WARDEN_PITY.get(), 0)
+            PlayerStore.set(player, ModAttachments.WARDEN_PITY, 0)
             say(player, "the Warden's remains give up something more")
         } else {
-            player.setData(ModAttachments.WARDEN_PITY.get(), (pity + 2).coerceAtMost(16))
+            PlayerStore.set(player, ModAttachments.WARDEN_PITY, (pity + 2).coerceAtMost(16))
         }
     }
 

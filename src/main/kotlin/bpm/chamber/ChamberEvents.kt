@@ -1,5 +1,6 @@
 package bpm.chamber
 
+import bpm.platform.store.PlayerStore
 import bpm.platform.events.BlockBreak
 import bpm.platform.events.BpmEvents
 import bpm.platform.events.Drops
@@ -50,7 +51,7 @@ object ChamberEvents {
 
     private fun onDeath(player: ServerPlayer) {
         if (!ChamberDimension.isChamber(player.level())) return
-        player.setData(ModAttachments.RESPAWN_AT_GATE.get(), true)
+        PlayerStore.set(player, ModAttachments.RESPAWN_AT_GATE, true)
         if (!BpmConfig.CHAMBER_RESET_ON_LEAVE.orDefault()) return
         val slot = Chambers.get(player.server).slotAt(player.blockPosition()) ?: return
         if (Chambers.closeGate(player.server, slot)) player.sendSystemMessage(Component.literal("[bpm] the gate closes behind you — it takes another lens to open"))
@@ -79,8 +80,8 @@ object ChamberEvents {
 
     private fun onRespawn(event: Respawn) {
         val player = event.player
-        if (event.endConquered || !player.getData(ModAttachments.RESPAWN_AT_GATE.get())) return
-        player.setData(ModAttachments.RESPAWN_AT_GATE.get(), false)
+        if (event.endConquered || !PlayerStore.get(player, ModAttachments.RESPAWN_AT_GATE)) return
+        PlayerStore.set(player, ModAttachments.RESPAWN_AT_GATE, false)
         Chambers.leave(player)
     }
 }

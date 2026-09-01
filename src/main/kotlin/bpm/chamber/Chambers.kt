@@ -1,5 +1,6 @@
 package bpm.chamber
 
+import bpm.platform.store.PlayerStore
 import bpm.Bpm
 import bpm.world.ModAttachments
 import bpm.world.devices.GateBlockEntity
@@ -217,7 +218,7 @@ class Chambers : SavedData() {
 
         /** Where [player] goes when they leave: the spot outside the gate they came through, or the world spawn if that is lost. */
         fun returnPoint(server: MinecraftServer, player: ServerPlayer): Pair<ServerLevel, Vec3> {
-            val tag = player.getData(ModAttachments.CHAMBER_RETURN.get())
+            val tag = PlayerStore.get(player, ModAttachments.CHAMBER_RETURN)
             val key = ResourceLocation.tryParse(tag.getString("dim"))?.let { ResourceKey.create(Registries.DIMENSION, it) }
             val target = key?.let { server.getLevel(it) } ?: server.overworld()
             if (tag.contains("x")) return target to Vec3(tag.getDouble("x"), tag.getDouble("y"), tag.getDouble("z"))
@@ -284,8 +285,9 @@ class Chambers : SavedData() {
                 slot.gatePos = from.blockPos
             }
             val back = from?.outsideOf(player) ?: player.position()
-            player.setData(
-                ModAttachments.CHAMBER_RETURN.get(),
+            PlayerStore.set(
+                player,
+                ModAttachments.CHAMBER_RETURN,
                 CompoundTag().also { t ->
                     t.putString("dim", player.level().dimension().location().toString())
                     t.putDouble("x", back.x)
@@ -305,7 +307,7 @@ class Chambers : SavedData() {
         /** Sends [player] back to where they came in — or to the world spawn if that is lost. */
         fun leave(player: ServerPlayer) {
             val (target, at) = returnPoint(player.server, player)
-            val yaw = player.getData(ModAttachments.CHAMBER_RETURN.get()).getFloat("yaw")
+            val yaw = PlayerStore.get(player, ModAttachments.CHAMBER_RETURN).getFloat("yaw")
             player.teleportTo(target, at.x, at.y, at.z, yaw, 0f)
             player.setPortalCooldown(ARRIVAL_COOLDOWN)
         }

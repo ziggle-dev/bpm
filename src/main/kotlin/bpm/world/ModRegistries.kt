@@ -141,7 +141,7 @@ object BpmRegistries {
         DeviceBlockEntities.REG
         bpm.world.assembly.ModRecipes.TYPES
         bpm.world.assembly.ModRecipes.SERIALIZERS
-        ModAttachments.REG
+
         bpm.world.entity.ModEntities.REG
         bus.addListener(net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent::class.java, Consumer(bpm.world.entity.ModEntities::attributes))
         ContentBlocks.REG
