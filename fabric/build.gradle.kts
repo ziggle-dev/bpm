@@ -111,6 +111,20 @@ sourceSets.named("main") {
     resources.setSrcDirs(listOf(rootProject.file("src/main/resources"), rootProject.file("src/fabric/resources")))
 }
 
+/*
+ * Runs land in their own directory, not the one a person plays in.
+ *
+ * THREE levels up, not two: `runDir` is resolved against the project directory, and with a loader
+ * branch that is `fabric/versions/<version>/`. Two levels lands in `fabric/`, which is how this was
+ * first written and why the server could not find the eula.txt sitting at the repository root.
+ */
+loom {
+    runs {
+        named("server") { runDir("../../../run-fabric") }
+        named("client") { runDir("../../../run-fabric") }
+    }
+}
+
 dependencies {
     minecraft("com.mojang:minecraft:$minecraftVersion")
     mappings(loom.officialMojangMappings())
