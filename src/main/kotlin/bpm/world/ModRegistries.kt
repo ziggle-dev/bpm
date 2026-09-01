@@ -170,7 +170,7 @@ object BpmRegistries {
             event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, DeviceBlockEntities.ASSEMBLER.get()) { be, side ->
                 if (side == net.minecraft.core.Direction.DOWN) PortStorage(be.energy) else null
             }
-            event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, DeviceBlockEntities.PEDESTAL.get()) { be, _ -> bpm.world.devices.PedestalSlot(be) }
+            event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, DeviceBlockEntities.PEDESTAL.get()) { be, _ -> PortHandler(bpm.world.devices.PedestalSlot(be)) }
         })
     }
 }

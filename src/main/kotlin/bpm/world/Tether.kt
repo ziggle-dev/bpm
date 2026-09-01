@@ -3,7 +3,6 @@ package bpm.world
 import net.minecraft.core.GlobalPos
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.ItemStack
-import net.neoforged.neoforge.capabilities.Capabilities
 
 /**
  * What a tether lets a controller do to the person carrying it — see `docs/DESIGN_PLAYER_LINK.md` §2.2.
@@ -103,8 +102,8 @@ object TetherSources {
 
     /** Every stack [player] is keeping, as far as bpm can see. */
     fun stacks(player: Player): Sequence<ItemStack> = sequence {
-        val own = player.getCapability(Capabilities.ItemHandler.ENTITY)
-        if (own != null) for (i in 0 until own.slots) yield(own.getStackInSlot(i))
+        val own = bpm.platform.ports.Ports.playerInventory(player)
+        if (own != null) for (i in 0 until own.slots) yield(own.stackIn(i))
         for (source in extra) yieldAll(source(player))
     }
 }

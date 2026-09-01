@@ -11,12 +11,8 @@ import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.Level
-import net.neoforged.neoforge.capabilities.BlockCapabilityCache
-import net.neoforged.neoforge.capabilities.Capabilities
 import bpm.platform.ports.EnergyPort
-import bpm.platform.ports.HandlerFluidPort
-import bpm.platform.ports.HandlerPort
-import bpm.platform.ports.StoragePort
+import bpm.platform.ports.Ports
 import bpm.platform.ports.FluidPort
 import bpm.platform.ports.ItemPort
 
@@ -268,12 +264,9 @@ class LinkTable(private val capsOf: () -> LinkCaps = { LinkCaps.UNLIMITED }) {
 open class ResolvedLink(open val link: Link, val level: ServerLevel, val capped: Boolean = false) {
     open val loaded: Boolean get() = !capped && level.hasChunkAt(link.pos)
 
-    private val itemCache by lazy { BlockCapabilityCache.create(Capabilities.ItemHandler.BLOCK, level, link.pos, link.side) }
-    private val fluidCache by lazy { BlockCapabilityCache.create(Capabilities.FluidHandler.BLOCK, level, link.pos, link.side) }
-    private val energyCache by lazy { BlockCapabilityCache.create(Capabilities.EnergyStorage.BLOCK, level, link.pos, link.side) }
+    private val ports by lazy { Ports.cache(level, link.pos, link.side) }
 
-    open fun items(): ItemPort? = if (loaded) itemCache.capability?.let(::HandlerPort) else null
-    open fun fluids(): FluidPort? = if (loaded) fluidCache.capability?.let(::HandlerFluidPort) else null
-    open fun energy(): EnergyPort? =
-        if (loaded) energyCache.capability?.let(::StoragePort) else null
+    open fun items(): ItemPort? = if (loaded) ports.items else null
+    open fun fluids(): FluidPort? = if (loaded) ports.fluids else null
+    open fun energy(): EnergyPort? = if (loaded) ports.energy else null
 }

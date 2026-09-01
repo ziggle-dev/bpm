@@ -31,6 +31,7 @@ object Bpm {
         // Before anything that might send: a missing backend fails at the first send, and this is the
         // one line that decides which one it is.
         bpm.platform.net.Net.install(bpm.platform.net.NeoNet)
+        bpm.platform.ports.Ports.install(bpm.platform.ports.NeoPorts)
         bpm.platform.world.Actor.install(bpm.platform.world.NeoWorldActor)
         bpm.platform.world.Fluids.install(bpm.platform.world.NeoFluidBehaviour)
         // Strictly before BpmRegistries: touching ModBlocks and friends is what creates their registrars,
