@@ -12,6 +12,12 @@
         "adapter": "kotlin",
         "value": "bpm.BpmFabric"
       }
+    ],
+    "client": [
+      {
+        "adapter": "kotlin",
+        "value": "bpm.BpmFabricClient"
+      }
     ]
   },
   "accessWidener": "bpm.accesswidener",

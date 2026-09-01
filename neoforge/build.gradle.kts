@@ -170,6 +170,14 @@ for (name in listOf("main", "test", "core", "dev")) {
 kotlin.sourceSets.named("main") {
     kotlin.srcDir(rootProject.file("src/neoforge/kotlin"))
 }
+/*
+ * ...and this loader's own resources. Currently one file: the experience bucket's model, which NeoForge
+ * composites at runtime from an empty bucket and a tinted fluid overlay. Fabric has no equivalent model
+ * loader and carries a static model of its own.
+ */
+sourceSets.named("main") {
+    resources.srcDir(rootProject.file("src/neoforge/resources"))
+}
 
 /*
  * `gameLibraries` is the bundled list as a resolvable set (used by tooling); `devLibraries` holds the dev-only

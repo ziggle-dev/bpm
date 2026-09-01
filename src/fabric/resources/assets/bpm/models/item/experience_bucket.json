@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "NeoForge composites this model at runtime from an empty bucket and a tinted overlay of the",
+    "fluid (loader 'neoforge:fluid_container'), which is why the shared tree has no bucket texture",
+    "at all. Fabric has no equivalent model loader, so this is vanilla's water bucket.",
+    "FABRIC TODO: the liquid reads blue instead of experience green. The fix is a purpose-drawn",
+    "texture, or a two-layer model with an item colour provider tinting only the fluid layer --",
+    "tinting this single-layer sprite would take the metal with it."
+  ],
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "minecraft:item/water_bucket"
+  }
+}
