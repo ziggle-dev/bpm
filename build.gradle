@@ -78,6 +78,28 @@ repositories {
  * left out of the jar. `main` reaches it only reflectively, by name, so a build without it is complete.
  */
 sourceSets {
+    /*
+     * The loader-free, Minecraft-free core.
+     *
+     * Its compile classpath is deliberately NOT built from main's: it gets the bundled libraries and
+     * nothing else, so a `net.minecraft` or `net.neoforged` import here is a compile error rather than a
+     * convention. That is the whole point of the source set — the same boundary a `:core` Gradle project
+     * would enforce, without yet taking on jar-in-jar and FML's module layers, which is where the build
+     * has historically bitten (see the processDevResources comment below).
+     *
+     * It stays part of the bpm mod, so nothing about packaging or dev runs changes.
+     */
+    core {
+        kotlin.srcDir 'src/core/kotlin'
+    }
+    main {
+        compileClasspath += sourceSets.core.output
+        runtimeClasspath += sourceSets.core.output
+    }
+    test {
+        compileClasspath += sourceSets.core.output
+        runtimeClasspath += sourceSets.core.output
+    }
     dev {
         kotlin.srcDir 'src/dev/kotlin'
         compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
@@ -121,6 +143,7 @@ neoForge {
 
     mods {
         bpm {
+            sourceSet sourceSets.core
             sourceSet sourceSets.main
             sourceSet sourceSets.dev
         }
@@ -183,8 +206,10 @@ dependencies {
     // Tag & Component Tooltips: every item's tags and data components on its tooltip — the ids the filters take.
     runtimeOnly "maven.modrinth:tag-and-component-tooltips:${tact_version}"
 
+    // `coreImplementation` too: the core compiles against the bundled libraries (vscript, imgui) and
+    // against nothing else. Minecraft is absent from its classpath by construction.
     bundled.each { b ->
-        ['implementation', 'jarJar', 'gameLibraries'].each { conf ->
+        ['implementation', 'coreImplementation', 'jarJar', 'gameLibraries'].each { conf ->
             add(conf, b.notation) {
                 version { prefer b.prefer }
                 if (b.excludeLwjgl) exclude group: 'org.lwjgl'

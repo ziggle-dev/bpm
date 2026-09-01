@@ -12,10 +12,10 @@ import kotlin.test.fail
 /**
  * The packages that must stay free of Minecraft, NeoForge, Mojang and LWJGL types.
  *
- * `bpm.client.editor` is the workbench: ImGui + vscript only, so that it runs under the headless
- * harness and could move to another host. `bpm.session` and `bpm.net.chunk` are pure logic that the
- * editor and the commit pipeline share. Together they are the seed of a future loader-free module,
- * and this test is what keeps them that way.
+ * The `src/core` source set is compiled without Minecraft on its classpath at all, so for that one the
+ * compiler is the real guard and this is belt and braces — it catches a fully-qualified name in a
+ * comment or a string, which the compiler would not. `bpm.client.editor` and `bpm.session` are still in
+ * the main source set, where only this test stands between them and a stray import.
  *
  * Two things this guard learned the hard way, both worth keeping:
  *
@@ -39,9 +39,12 @@ class ArchitectureTest {
         val FORBIDDEN = Regex("""(?<![A-Za-z0-9_.])(net\.minecraft|net\.neoforged|com\.mojang|org\.lwjgl)\.""")
 
         val PLATFORM_FREE = listOf(
+            // The core source set, in its entirety. Its compile classpath has no Minecraft on it, so this
+            // is belt and braces — but it also catches a fully-qualified name in a comment or a string,
+            // which the compiler would not.
+            "src/core/kotlin",
             "src/main/kotlin/bpm/client/editor",
             "src/main/kotlin/bpm/session",
-            "src/main/kotlin/bpm/net/chunk",
         )
 
         /**
