@@ -133,8 +133,7 @@ object BpmRegistries {
     fun install() {
         // Touching each object is what creates its registrar and queues its entries; `installAll` then
         // realises them, in the order they were asked for.
-        ModFluids.TYPES
-        ModFluids.REG
+        ModFluids.declare()
         ModBlocks.REG
         ModItems.REG
         DeviceBlocks.REG

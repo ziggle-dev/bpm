@@ -103,3 +103,26 @@ object Registrars {
 
     fun entityAttributes(block: (AttributeSink) -> Unit) = backend.entityAttributes(block)
 }
+
+/**
+ * The installed fluid registrar.
+ *
+ * Its own holder rather than a method on [Registrars] because fluids are the one registry where the
+ * loaders disagree about the *shape* of the thing being registered, not merely about the mechanism for
+ * registering it — see [FluidSpec]. Named `FluidRegistry` and not `Fluids` because
+ * `bpm.platform.world.Fluids` is already the seam for what a fluid DOES in the world; this one is only
+ * about bringing one into existence.
+ */
+object FluidRegistry {
+    private lateinit var backend: FluidRegistrar
+
+    fun install(impl: FluidRegistrar) {
+        backend = impl
+    }
+
+    fun register(
+        spec: FluidSpec,
+        bucket: () -> RegistryRef<out net.minecraft.world.item.Item>,
+        block: () -> RegistryRef<out net.minecraft.world.level.block.LiquidBlock>,
+    ): FluidPair = backend.register(spec, bucket, block)
+}

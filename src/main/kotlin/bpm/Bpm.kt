@@ -29,6 +29,7 @@ object Bpm {
         bpm.platform.Platform.install(bpm.platform.NeoPlatform)
         bpm.platform.net.Net.install(bpm.platform.net.NeoNet)
         bpm.platform.ports.Ports.install(bpm.platform.ports.NeoPorts, bpm.platform.ports.NeoPortProviders)
+        bpm.platform.registry.FluidRegistry.install(bpm.platform.registry.NeoFluidRegistrar)
         bpm.platform.world.Actor.install(bpm.platform.world.NeoWorldActor)
         bpm.platform.world.Fluids.install(bpm.platform.world.NeoFluidBehaviour)
 

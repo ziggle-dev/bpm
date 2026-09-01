@@ -54,7 +54,10 @@ object BpmClient {
         bpm.platform.client.ClientKeys.install(bpm.platform.client.NeoKeyRegistry)
         Keys.register()
         modBus.addListener(net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent::class.java, Consumer { event ->
-            event.registerFluidType(ExperienceFluidLook, bpm.world.ModFluids.EXPERIENCE_TYPE.get())
+            event.registerFluidType(
+                bpm.platform.registry.NeoFluidRegistrar.looks(bpm.world.ModFluids.SPEC),
+                bpm.platform.registry.NeoFluidRegistrar.type(bpm.world.ModFluids.SPEC.name).get(),
+            )
             bpm.platform.client.NeoClientRenderers.onRegisterExtensions(event)
         })
         BpmEvents.screenOpened.listen(::onScreenOpened)
@@ -125,14 +128,4 @@ object BpmClient {
     }
 }
 
-/** Liquid experience looks like water dyed the green of an orb, and glows a little. */
-private object ExperienceFluidLook : net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions {
-    private val STILL = net.minecraft.resources.ResourceLocation.withDefaultNamespace("block/water_still")
-    private val FLOW = net.minecraft.resources.ResourceLocation.withDefaultNamespace("block/water_flow")
-    private val OVERLAY = net.minecraft.resources.ResourceLocation.withDefaultNamespace("block/water_overlay")
 
-    override fun getTintColor(): Int = 0xFFA8F04A.toInt()
-    override fun getStillTexture(): net.minecraft.resources.ResourceLocation = STILL
-    override fun getFlowingTexture(): net.minecraft.resources.ResourceLocation = FLOW
-    override fun getOverlayTexture(): net.minecraft.resources.ResourceLocation = OVERLAY
-}
