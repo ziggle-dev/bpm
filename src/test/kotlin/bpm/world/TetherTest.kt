@@ -1,5 +1,6 @@
 package bpm.world
 
+import bpm.platform.ports.HandlerPort
 import net.minecraft.world.entity.player.Inventory
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
@@ -65,36 +66,36 @@ class GrantedInvTest {
     @Test
     fun `give may put in and not take out, take may take out and not put in`() {
         val backing = inv()
-        val give = GrantedInv(Grants.DELIVERY, backing)
-        assertTrue(give.insertItem(1, ItemStack(Items.TORCH, 4), false).isEmpty, "a delivery tether could not deliver")
-        assertTrue(give.extractItem(pack, 8, false).isEmpty, "a delivery tether emptied someone's pockets")
+        val give = GrantedInv(Grants.DELIVERY, HandlerPort(backing))
+        assertTrue(give.insert(1, ItemStack(Items.TORCH, 4), false).isEmpty, "a delivery tether could not deliver")
+        assertTrue(give.extract(pack, 8, false).isEmpty, "a delivery tether emptied someone's pockets")
 
-        val take = GrantedInv(setOf(Grant.TAKE), backing)
-        assertEquals(8, take.extractItem(pack, 8, false).count)
-        assertEquals(4, take.insertItem(2, ItemStack(Items.TORCH, 4), false).count, "a take-only tether inserted")
+        val take = GrantedInv(setOf(Grant.TAKE), HandlerPort(backing))
+        assertEquals(8, take.extract(pack, 8, false).count)
+        assertEquals(4, take.insert(2, ItemStack(Items.TORCH, 4), false).count, "a take-only tether inserted")
     }
 
     @Test
     fun `the pack is reachable without equip, the armour and the offhand are not`() {
         val backing = inv()
-        val without = GrantedInv(Grants.FULL, backing)
-        assertEquals(16, without.extractItem(pack, 64, true).count)
-        assertTrue(without.extractItem(armour, 1, false).isEmpty, "a tether without 'equip' stripped someone's armour")
-        assertTrue(without.extractItem(offhand, 1, false).isEmpty, "a tether without 'equip' took someone's shield")
+        val without = GrantedInv(Grants.FULL, HandlerPort(backing))
+        assertEquals(16, without.extract(pack, 64, true).count)
+        assertTrue(without.extract(armour, 1, false).isEmpty, "a tether without 'equip' stripped someone's armour")
+        assertTrue(without.extract(offhand, 1, false).isEmpty, "a tether without 'equip' took someone's shield")
 
-        val with = GrantedInv(Grants.FULL + Grant.EQUIP, backing)
-        assertFalse(with.extractItem(armour, 1, false).isEmpty, "'equip' did not open the armour slots")
-        assertFalse(with.extractItem(offhand, 1, false).isEmpty, "'equip' did not open the offhand")
+        val with = GrantedInv(Grants.FULL + Grant.EQUIP, HandlerPort(backing))
+        assertFalse(with.extract(armour, 1, false).isEmpty, "'equip' did not open the armour slots")
+        assertFalse(with.extract(offhand, 1, false).isEmpty, "'equip' did not open the offhand")
     }
 
     @Test
     fun `reading is never masked, so stacking still works for a controller allowed to insert`() {
         // insertItemStacked reads the slots it is about to fill; a handler that lied about them would
         // scatter deliveries into empty slots instead of topping stacks up.
-        val give = GrantedInv(Grants.DELIVERY, inv())
-        assertEquals(16, give.getStackInSlot(pack).count)
+        val give = GrantedInv(Grants.DELIVERY, HandlerPort(inv()))
+        assertEquals(16, give.stackIn(pack).count)
         assertEquals(Inventory.INVENTORY_SIZE + 5, give.slots)
-        assertTrue(give.isItemValid(1, ItemStack(Items.TORCH)))
-        assertFalse(GrantedInv(Grants.WATCH, inv()).isItemValid(1, ItemStack(Items.TORCH)))
+        assertTrue(give.isValid(1, ItemStack(Items.TORCH)))
+        assertFalse(GrantedInv(Grants.WATCH, HandlerPort(inv())).isValid(1, ItemStack(Items.TORCH)))
     }
 }

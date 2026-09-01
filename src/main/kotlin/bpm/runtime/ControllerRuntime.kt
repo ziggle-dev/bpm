@@ -20,9 +20,10 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.Entity
 import bpm.platform.ports.EnergyPort
+import bpm.platform.ports.HandlerPort
 import bpm.platform.ports.StoragePort
 import net.neoforged.neoforge.fluids.capability.IFluidHandler
-import net.neoforged.neoforge.items.IItemHandler
+import bpm.platform.ports.ItemPort
 
 /**
  * One controller's running program: the [ControllerHost] its nodes call into, the vscript [ScriptRuntime]
@@ -43,7 +44,8 @@ class ControllerRuntime(private val be: ControllerBlockEntity, private val manag
     override val links: LinkTable get() = be.links
     override val jobs = TickJobs()
     override val tickCount: Long get() = manager.clock.ticks
-    override val selfInventory: IItemHandler get() = be.inventory
+    private val selfInventoryPort: ItemPort by lazy { HandlerPort(be.inventory) }
+    override val selfInventory: ItemPort get() = selfInventoryPort
     override val selfTanks: IFluidHandler get() = be.tanks
     /**
      * The cell wrapped once rather than per access. The block entity's own store stays a NeoForge
@@ -115,7 +117,7 @@ class ControllerRuntime(private val be: ControllerBlockEntity, private val manag
         return r.also { resolved[name] = it }
     }
 
-    override fun items(name: String): IItemHandler? =
+    override fun items(name: String): ItemPort? =
         if (name == ControllerHost.SELF) selfInventory else link(name)?.let { r -> r.items().also { if (it == null) unavailable(name, r, "items") } }
 
     override fun fluids(name: String): IFluidHandler? =

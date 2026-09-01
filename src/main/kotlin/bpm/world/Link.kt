@@ -14,9 +14,10 @@ import net.minecraft.world.level.Level
 import net.neoforged.neoforge.capabilities.BlockCapabilityCache
 import net.neoforged.neoforge.capabilities.Capabilities
 import bpm.platform.ports.EnergyPort
+import bpm.platform.ports.HandlerPort
 import bpm.platform.ports.StoragePort
 import net.neoforged.neoforge.fluids.capability.IFluidHandler
-import net.neoforged.neoforge.items.IItemHandler
+import bpm.platform.ports.ItemPort
 
 /**
  * One face in the world a controller may talk to, by name — or one person, when [player] is set.
@@ -270,7 +271,7 @@ open class ResolvedLink(open val link: Link, val level: ServerLevel, val capped:
     private val fluidCache by lazy { BlockCapabilityCache.create(Capabilities.FluidHandler.BLOCK, level, link.pos, link.side) }
     private val energyCache by lazy { BlockCapabilityCache.create(Capabilities.EnergyStorage.BLOCK, level, link.pos, link.side) }
 
-    open fun items(): IItemHandler? = if (loaded) itemCache.capability else null
+    open fun items(): ItemPort? = if (loaded) itemCache.capability?.let(::HandlerPort) else null
     open fun fluids(): IFluidHandler? = if (loaded) fluidCache.capability else null
     open fun energy(): EnergyPort? =
         if (loaded) energyCache.capability?.let(::StoragePort) else null

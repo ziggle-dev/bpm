@@ -29,7 +29,6 @@ import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.Vec3
 import net.neoforged.neoforge.common.util.FakePlayer
 import net.neoforged.neoforge.common.util.FakePlayerFactory
-import net.neoforged.neoforge.items.ItemHandlerHelper
 import java.util.UUID
 
 /** The one fake player every controller acts through: breaking, using, placing. */
@@ -50,7 +49,7 @@ object BpmFakePlayer {
 internal object Hand {
     fun take(host: ControllerHost, slot: Int): ItemStack {
         if (slot < 0 || slot >= host.selfInventory.slots) return ItemStack.EMPTY
-        return host.selfInventory.getStackInSlot(slot)
+        return host.selfInventory.stackIn(slot)
     }
 
     /** Puts back whatever is in the hand after the action; a stack the world used up leaves the slot empty. */
@@ -62,7 +61,10 @@ internal object Hand {
             if (!left.isEmpty) Block.popResource(host.level, host.pos, left)
             return
         }
-        (inv as? net.neoforged.neoforge.items.IItemHandlerModifiable)?.setStackInSlot(slot, left)
+        // A store that will not be written wholesale says so, and then the tool goes on the floor rather
+        // than nowhere. The cast this replaces returned null for a read-only handler and did nothing,
+        // so whatever was in the hand was simply gone.
+        if (!inv.setStackIn(slot, left) && !left.isEmpty) Block.popResource(host.level, host.pos, left)
     }
 }
 

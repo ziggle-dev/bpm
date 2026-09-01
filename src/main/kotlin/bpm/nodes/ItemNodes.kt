@@ -101,7 +101,7 @@ object ItemNodes {
             query {
                 val h = host.items(link()) ?: return@query emptyList<Any?>()
                 val m = host.matcher(filter())
-                (0 until h.slots).mapNotNull { i -> h.getStackInSlot(i).takeIf { m.matches(it) }?.let { SlotValue.of(i, it) } }
+                (0 until h.slots).mapNotNull { i -> h.stackIn(i).takeIf { m.matches(it) }?.let { SlotValue.of(i, it) } }
             }
         }
         func("find") {
@@ -125,7 +125,7 @@ object ItemNodes {
                 val h = host.items(link()) ?: return@query null
                 val m = host.matcher(filter())
                 for (i in 0 until h.slots) {
-                    val s = h.getStackInSlot(i)
+                    val s = h.stackIn(i)
                     if (!m.matches(s)) continue
                     found set true
                     slot set i.toLong()
@@ -162,7 +162,7 @@ object ItemNodes {
             query {
                 val h = host.items(link()) ?: return@query null
                 val i = slot().toInt()
-                if (i < 0 || i >= h.slots) null else ItemStackValue.record(h.getStackInSlot(i))
+                if (i < 0 || i >= h.slots) null else ItemStackValue.record(h.stackIn(i))
             }
         }
         func("canInsert") {
@@ -259,7 +259,7 @@ object ItemNodes {
             command {
                 val h = host.items(from()) ?: return@command null
                 val i = slot().toInt()
-                if (i < 0 || i >= h.slots) null else ItemStackValue.record(h.extractItem(i, max().toInt().coerceAtLeast(1), simulate()))
+                if (i < 0 || i >= h.slots) null else ItemStackValue.record(h.extract(i, max().toInt().coerceAtLeast(1), simulate()))
             }
         }
         func("drop") {
@@ -291,8 +291,8 @@ object ItemNodes {
                 var first = ""
                 for (slot in 0 until inv.slots) {
                     if (left <= 0) break
-                    if (!m.matches(inv.getStackInSlot(slot))) continue
-                    val out = inv.extractItem(slot, left, false)
+                    if (!m.matches(inv.stackIn(slot))) continue
+                    val out = inv.extract(slot, left, false)
                     if (out.isEmpty) continue
                     // Counted BEFORE the throw: `dropItemStack` splits the stack in place as it spawns the
                     // entities, so afterwards it is empty and would count for nothing.

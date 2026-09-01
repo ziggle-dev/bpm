@@ -6,8 +6,9 @@ import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.player.Inventory
 import net.minecraft.world.item.ItemStack
 import net.neoforged.neoforge.capabilities.Capabilities
-import net.neoforged.neoforge.items.IItemHandler
-import net.neoforged.neoforge.items.wrapper.ForwardingItemHandler
+import bpm.platform.ports.ItemPort
+import bpm.platform.ports.HandlerPort
+import bpm.platform.ports.ForwardingPort
 
 /**
  * A player's own inventory, with only the doors their tether opened.
@@ -17,10 +18,10 @@ import net.neoforged.neoforge.items.wrapper.ForwardingItemHandler
  * stacking, other mods' inventory extensions, or anything else about how a player's bag works. It only says
  * no.
  */
-class GrantedInv(private val grants: Set<Grant>, delegate: IItemHandler) : ForwardingItemHandler(delegate) {
+class GrantedInv(private val grants: Set<Grant>, delegate: ItemPort) : ForwardingPort(delegate) {
 
-    override fun insertItem(slot: Int, stack: ItemStack, simulate: Boolean): ItemStack =
-        if (allowed(slot, Grant.GIVE)) super.insertItem(slot, stack, simulate) else stack
+    override fun insert(slot: Int, stack: ItemStack, simulate: Boolean): ItemStack =
+        if (allowed(slot, Grant.GIVE)) super.insert(slot, stack, simulate) else stack
 
     /**
      * Never the tether itself.
@@ -32,14 +33,14 @@ class GrantedInv(private val grants: Set<Grant>, delegate: IItemHandler) : Forwa
      *
      * Any tether, not only this controller's: otherwise one machine could disarm another's.
      */
-    override fun extractItem(slot: Int, amount: Int, simulate: Boolean): ItemStack {
+    override fun extract(slot: Int, amount: Int, simulate: Boolean): ItemStack {
         if (!allowed(slot, Grant.TAKE)) return ItemStack.EMPTY
-        if (Tethers.isCredential(getStackInSlot(slot))) return ItemStack.EMPTY
-        return super.extractItem(slot, amount, simulate)
+        if (Tethers.isCredential(stackIn(slot))) return ItemStack.EMPTY
+        return super.extract(slot, amount, simulate)
     }
 
-    override fun isItemValid(slot: Int, stack: ItemStack): Boolean =
-        allowed(slot, Grant.GIVE) && super.isItemValid(slot, stack)
+    override fun isValid(slot: Int, stack: ItemStack): Boolean =
+        allowed(slot, Grant.GIVE) && super.isValid(slot, stack)
 
     /**
      * Reading is not gated here: a handler is only ever built for a tether that opened one at all
@@ -83,11 +84,13 @@ class PresenceLink(
 
     override val loaded: Boolean get() = state().why == null
 
-    override fun items(): IItemHandler? {
+    override fun items(): ItemPort? {
         val c = state()
         if (c.why != null || c.player == null || !Grants.opensInventory(c.grants)) return null
+        // Still the capability rather than the player's Container directly: on this loader that is what
+        // carries other mods' inventory extensions, and a backpack mod's slots should stay reachable.
         val own = c.player.getCapability(Capabilities.ItemHandler.ENTITY) ?: return null
-        return GrantedInv(c.grants, own)
+        return GrantedInv(c.grants, HandlerPort(own))
     }
 
     /** A person is not a tank and not a battery. */

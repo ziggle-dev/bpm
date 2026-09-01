@@ -1,5 +1,6 @@
 package bpm.nodes
 
+import bpm.platform.ports.insertStacked
 import bpm.catalog.McVs
 import bpm.catalog.values.BlockPosValue
 import bpm.catalog.values.ItemStackValue
@@ -162,9 +163,9 @@ object DeviceNodes {
                 if (g.isOpen || !g.frameOk) return@command false
                 val inv = host.selfInventory
                 var slot = -1
-                for (i in 0 until inv.slots) if (inv.getStackInSlot(i).`is`(ContentItems.COHERENCE_LENS.get())) { slot = i; break }
+                for (i in 0 until inv.slots) if (inv.stackIn(i).`is`(ContentItems.COHERENCE_LENS.get())) { slot = i; break }
                 if (slot < 0) return@command false
-                if (inv.extractItem(slot, 1, false).isEmpty) return@command false
+                if (inv.extract(slot, 1, false).isEmpty) return@command false
                 g.tryOpen(null)
             }
         }
@@ -205,7 +206,7 @@ object DeviceNodes {
             command {
                 val p = host.device<PedestalBlockEntity>(link()) ?: return@command null
                 val core = PedestalHooks.claim(p, null) ?: return@command null
-                val left = net.neoforged.neoforge.items.ItemHandlerHelper.insertItemStacked(host.selfInventory, core.copy(), false)
+                val left = host.selfInventory.insertStacked(core.copy(), false)
                 if (!left.isEmpty) net.minecraft.world.Containers.dropItemStack(host.level, host.pos.x + 0.5, host.pos.y + 1.0, host.pos.z + 0.5, left)
                 ItemStackValue.record(core)
             }
