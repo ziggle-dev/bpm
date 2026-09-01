@@ -117,11 +117,21 @@ object ModCreativeTab {
 
 /** Registers everything above on the mod bus, plus the controller's item capability. */
 object BpmRegistries {
+    /**
+     * Fluids go on the bus before blocks and items, because both name them at construction:
+     * [ModBlocks.EXPERIENCE] builds a `LiquidBlock` from `ModFluids.EXPERIENCE.get()` and
+     * [ModItems.EXPERIENCE_BUCKET] a `BucketItem` from the same holder.
+     *
+     * On NeoForge the order is not load-bearing — `DeferredRegister` holds the factory lambda until
+     * its registry event fires, so the `.get()` runs long after everything is registered whatever
+     * sequence we call `register` in. It is written this way for the reader, and for the day the
+     * same registration list is replayed against a registry that resolves eagerly instead.
+     */
     fun install(bus: IEventBus) {
-        ModBlocks.REG.register(bus)
-        ModItems.REG.register(bus)
         ModFluids.TYPES.register(bus)
         ModFluids.REG.register(bus)
+        ModBlocks.REG.register(bus)
+        ModItems.REG.register(bus)
         DeviceBlocks.REG.register(bus)
         DeviceItems.REG.register(bus)
         DeviceBlockEntities.REG.register(bus)
