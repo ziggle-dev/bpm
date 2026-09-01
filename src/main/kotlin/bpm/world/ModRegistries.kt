@@ -23,11 +23,9 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.block.SoundType
 import net.minecraft.world.level.block.entity.BlockEntityType
+import bpm.platform.ports.Ports
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.material.MapColor
-import net.neoforged.bus.api.IEventBus
-import net.neoforged.neoforge.capabilities.Capabilities
-import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent
 import java.util.function.Consumer
 
 object ModBlocks {
@@ -132,7 +130,7 @@ object BpmRegistries {
      * sequence we call `register` in. It is written this way for the reader, and for the day the
      * same registration list is replayed against a registry that resolves eagerly instead.
      */
-    fun install(bus: IEventBus) {
+    fun install() {
         // Touching each object is what creates its registrar and queues its entries; `installAll` then
         // realises them, in the order they were asked for.
         ModFluids.TYPES
@@ -153,24 +151,24 @@ object BpmRegistries {
         ModComponents.REG
         ModCreativeTab.REG
         Registrars.installAll()
-        bus.addListener(RegisterCapabilitiesEvent::class.java, Consumer { event ->
-            event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, ModBlockEntities.CONTROLLER.get()) { be, _ -> PortHandler(be.inventory) }
-            event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, ModBlockEntities.CONTROLLER.get()) { be, _ -> PortFluidHandler(be.tanks) }
-            event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, ModBlockEntities.CONTROLLER.get()) { be, _ -> PortStorage(be.energy) }
+        Ports.providers { sink ->
+            sink.items(ModBlockEntities.CONTROLLER.get()) { be, _ -> be.inventory }
+            sink.fluids(ModBlockEntities.CONTROLLER.get()) { be, _ -> be.tanks }
+            sink.energy(ModBlockEntities.CONTROLLER.get()) { be, _ -> be.energy }
             // The assembler takes its catalyst from anywhere, but is FED from underneath only.
             //
             // The machine is meant to be plumbed, not surrounded: power and experience come up into it from
             // below, which keeps its four sides clear for the pedestals that have to see it and stops a
             // build turning into a cube of pipework. Items are the exception because the catalyst is what a
             // player hands it, and reaching under a block to do that would be miserable.
-            event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, DeviceBlockEntities.ASSEMBLER.get()) { be, _ -> PortHandler(be.items) }
-            event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, DeviceBlockEntities.ASSEMBLER.get()) { be, side ->
-                if (side == net.minecraft.core.Direction.DOWN) PortFluidHandler(be.tanks) else null
+            sink.items(DeviceBlockEntities.ASSEMBLER.get()) { be, _ -> be.items }
+            sink.fluids(DeviceBlockEntities.ASSEMBLER.get()) { be, side ->
+                if (side == net.minecraft.core.Direction.DOWN) be.tanks else null
             }
-            event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, DeviceBlockEntities.ASSEMBLER.get()) { be, side ->
-                if (side == net.minecraft.core.Direction.DOWN) PortStorage(be.energy) else null
+            sink.energy(DeviceBlockEntities.ASSEMBLER.get()) { be, side ->
+                if (side == net.minecraft.core.Direction.DOWN) be.energy else null
             }
-            event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, DeviceBlockEntities.PEDESTAL.get()) { be, _ -> PortHandler(bpm.world.devices.PedestalSlot(be)) }
-        })
+            sink.items(DeviceBlockEntities.PEDESTAL.get()) { be, _ -> bpm.world.devices.PedestalSlot(be) }
+        }
     }
 }

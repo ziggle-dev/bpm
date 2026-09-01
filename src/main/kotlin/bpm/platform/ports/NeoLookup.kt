@@ -29,3 +29,43 @@ private class NeoPortCache(level: ServerLevel, pos: BlockPos, side: Direction?) 
     override val fluids: FluidPort? get() = fluidCache.capability?.let(::HandlerFluidPort)
     override val energy: EnergyPort? get() = energyCache.capability?.let(::StoragePort)
 }
+
+
+/**
+ * NeoForge collects capability providers in `RegisterCapabilitiesEvent`, which is not open while the mod
+ * is wiring itself up — so the declarations are held and replayed when it fires.
+ */
+object NeoPortProviders : PortProviders {
+
+    private val pending = ArrayList<(PortSink) -> Unit>()
+
+    override fun providers(block: (PortSink) -> Unit) {
+        pending += block
+    }
+
+    fun onRegisterCapabilities(event: net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent) {
+        val sink = object : PortSink {
+            override fun <T : net.minecraft.world.level.block.entity.BlockEntity> items(
+                type: net.minecraft.world.level.block.entity.BlockEntityType<T>,
+                port: (T, Direction?) -> ItemPort?,
+            ) = event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, type) { be, side ->
+                port(be, side)?.let(::PortHandler)
+            }
+
+            override fun <T : net.minecraft.world.level.block.entity.BlockEntity> fluids(
+                type: net.minecraft.world.level.block.entity.BlockEntityType<T>,
+                port: (T, Direction?) -> FluidPort?,
+            ) = event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, type) { be, side ->
+                port(be, side)?.let(::PortFluidHandler)
+            }
+
+            override fun <T : net.minecraft.world.level.block.entity.BlockEntity> energy(
+                type: net.minecraft.world.level.block.entity.BlockEntityType<T>,
+                port: (T, Direction?) -> EnergyPort?,
+            ) = event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, type) { be, side ->
+                port(be, side)?.let(::PortStorage)
+            }
+        }
+        for (block in pending) block(sink)
+    }
+}

@@ -37,12 +37,55 @@ interface PlatformPorts {
     fun playerInventory(player: Player): ItemPort? = ContainerPort(player.inventory)
 }
 
+/**
+ * Saying what a block entity of ours offers, which is the other half of [PlatformPorts].
+ *
+ * [PortCache] asks a block in the world what it has; this declares what OUR blocks have, so that a pipe
+ * from any other mod finds them. NeoForge collects these in `RegisterCapabilitiesEvent`, Fabric through
+ * `ItemStorage.SIDED.registerForBlockEntity` and its two siblings. Both are "for this block entity type,
+ * here is the port, possibly depending on which side you asked from", so that is what this says.
+ *
+ * The side is nullable because both loaders allow a sideless query, and several of our blocks do not care
+ * which face you arrive at. Returning null means "not from there" — that is how the assembler is fed from
+ * underneath only.
+ */
+interface PortSink {
+    fun <T : net.minecraft.world.level.block.entity.BlockEntity> items(
+        type: net.minecraft.world.level.block.entity.BlockEntityType<T>,
+        port: (T, Direction?) -> ItemPort?,
+    )
+
+    fun <T : net.minecraft.world.level.block.entity.BlockEntity> fluids(
+        type: net.minecraft.world.level.block.entity.BlockEntityType<T>,
+        port: (T, Direction?) -> FluidPort?,
+    )
+
+    fun <T : net.minecraft.world.level.block.entity.BlockEntity> energy(
+        type: net.minecraft.world.level.block.entity.BlockEntityType<T>,
+        port: (T, Direction?) -> EnergyPort?,
+    )
+}
+
+interface PortProviders {
+    /**
+     * [block] may be called later, when this loader is ready to hear it.
+     *
+     * Deferred, and it has to be: the block names its block entity types through the deferred registers,
+     * so running it during mod construction resolves holders nothing has bound yet.
+     */
+    fun providers(block: (PortSink) -> Unit)
+}
+
 object Ports {
     private lateinit var backend: PlatformPorts
+    private lateinit var providers: PortProviders
 
-    fun install(impl: PlatformPorts) {
+    fun install(impl: PlatformPorts, providers: PortProviders) {
         backend = impl
+        this.providers = providers
     }
+
+    fun providers(block: (PortSink) -> Unit) = providers.providers(block)
 
     fun cache(level: ServerLevel, pos: BlockPos, side: Direction?): PortCache = backend.cache(level, pos, side)
 
