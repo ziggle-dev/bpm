@@ -75,7 +75,7 @@ class MonitorBlock(properties: Properties) : Block(properties), EntityBlock {
         SHAPES.getValue(state.getValue(FACING))
 
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = MonitorBlockEntity(pos, state)
-    override fun getRenderShape(state: BlockState): RenderShape = RenderShape.ENTITYBLOCK_ANIMATED
+    override fun getRenderShape(state: BlockState): RenderShape = bpm.platform.ANIMATED_BLOCK_SHAPE
 
     override fun <T : BlockEntity> getTicker(level: Level, state: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T>? =
         DeviceBlockEntity.ticker(level, type, DeviceBlockEntities.MONITOR.get())

@@ -41,7 +41,7 @@ class PedestalBlock(properties: Properties) : Block(properties), EntityBlock {
     }
 
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = PedestalBlockEntity(pos, state)
-    override fun getRenderShape(state: BlockState): RenderShape = RenderShape.ENTITYBLOCK_ANIMATED
+    override fun getRenderShape(state: BlockState): RenderShape = bpm.platform.ANIMATED_BLOCK_SHAPE
 
     override fun <T : BlockEntity> getTicker(level: Level, state: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T>? =
         DeviceBlockEntity.ticker(level, type, DeviceBlockEntities.PEDESTAL.get())

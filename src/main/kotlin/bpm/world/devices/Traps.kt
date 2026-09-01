@@ -63,7 +63,7 @@ class TrapBlock(
     private val shape: VoxelShape = PLATE,
 ) : Block(properties), EntityBlock {
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = factory(pos, state)
-    override fun getRenderShape(state: BlockState): RenderShape = RenderShape.ENTITYBLOCK_ANIMATED
+    override fun getRenderShape(state: BlockState): RenderShape = bpm.platform.ANIMATED_BLOCK_SHAPE
     override fun getShape(state: BlockState, level: BlockGetter, pos: BlockPos, ctx: CollisionContext): VoxelShape = shape
 
     override fun <T : BlockEntity> getTicker(level: Level, state: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T>? {
@@ -376,7 +376,7 @@ class TurretBlock(properties: Properties) : Block(properties), EntityBlock {
 
     override fun getStateForPlacement(ctx: BlockPlaceContext): BlockState = defaultBlockState().setValue(FACING, ctx.clickedFace)
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = TurretBlockEntity(pos, state)
-    override fun getRenderShape(state: BlockState): RenderShape = RenderShape.ENTITYBLOCK_ANIMATED
+    override fun getRenderShape(state: BlockState): RenderShape = bpm.platform.ANIMATED_BLOCK_SHAPE
 
     override fun <T : BlockEntity> getTicker(level: Level, state: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T>? =
         DeviceBlockEntity.ticker(level, type, DeviceBlockEntities.TURRET.get())
@@ -462,7 +462,7 @@ class TurretBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(De
     val facing: Direction get() = blockState.takeIf { it.hasProperty(TurretBlock.FACING) }?.getValue(TurretBlock.FACING) ?: Direction.UP
 
     /** The eye: just outside the block along the mount's normal, so its own block never blocks its sight. */
-    fun eye(): Vec3 = Vec3.atCenterOf(worldPosition).add(Vec3.atLowerCornerOf(facing.normal).scale(0.56))
+    fun eye(): Vec3 = Vec3.atCenterOf(worldPosition).add(Vec3.atLowerCornerOf(bpm.platform.unitVector(facing)).scale(0.56))
 
     /** Point the eye at [pos] (null lets it hunt again). */
     fun aimAt(pos: Vec3?) {
@@ -737,7 +737,7 @@ class PhaseBlock(properties: Properties) : Block(properties), EntityBlock {
     }
 
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = PhaseBlockEntity(pos, state)
-    override fun getRenderShape(state: BlockState): RenderShape = RenderShape.ENTITYBLOCK_ANIMATED
+    override fun getRenderShape(state: BlockState): RenderShape = bpm.platform.ANIMATED_BLOCK_SHAPE
 
     /** A ghost is nothing to walk on — except for the Warden, which walks its own decohered floor. */
     override fun getCollisionShape(state: BlockState, level: BlockGetter, pos: BlockPos, context: CollisionContext): VoxelShape {

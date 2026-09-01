@@ -49,7 +49,7 @@ class ControllerBlock(properties: Properties) : Block(properties), EntityBlock {
 
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = ControllerBlockEntity(pos, state)
 
-    override fun getRenderShape(state: BlockState): RenderShape = RenderShape.ENTITYBLOCK_ANIMATED
+    override fun getRenderShape(state: BlockState): RenderShape = bpm.platform.ANIMATED_BLOCK_SHAPE
 
     override fun isSignalSource(state: BlockState): Boolean = true
 
