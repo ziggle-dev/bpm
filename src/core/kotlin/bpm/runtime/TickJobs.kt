@@ -27,7 +27,14 @@ abstract class TickJob(val label: String) {
 
     protected fun fail(message: String) = await.fail(message)
 
-    internal fun step(): Boolean {
+    /**
+     * Advance one tick. Return true when the job is finished.
+     *
+     * Public rather than `internal` only because [TickJobs] and the world jobs that subclass this now
+     * live in different modules — the core is compiled without Minecraft, and `WorldJobs` cannot be.
+     * The contract is unchanged: the scheduler calls this, a job's author overrides [advance].
+     */
+    fun step(): Boolean {
         ticks++
         val done = try {
             advance()
