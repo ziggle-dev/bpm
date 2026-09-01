@@ -2,7 +2,6 @@ package bpm.world
 
 import net.minecraft.world.item.BlockItem
 import net.minecraft.world.level.block.Block
-import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions
 import software.bernie.geckolib.animatable.GeoItem
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
 import software.bernie.geckolib.animation.AnimatableManager
@@ -26,7 +25,4 @@ class ControllerBlockItem(block: Block, properties: Properties) : BlockItem(bloc
         tooltip.add(net.minecraft.network.chat.Component.literal("${tier.label} core · reach ${tier.rangeText} · ${tier.maxLinks} links · ${tier.maxPlayerLinks} presence"))
     }
 
-    override fun initializeClient(consumer: Consumer<IClientItemExtensions>) {
-        consumer.accept(bpm.client.render.ControllerItemExtensions)
-    }
 }

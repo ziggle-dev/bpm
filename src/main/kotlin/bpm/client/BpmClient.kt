@@ -41,8 +41,11 @@ object BpmClient {
             e.registerReloadListener(net.minecraft.server.packs.resources.ResourceManagerReloadListener { bpm.client.render.Glowmasks.invalidate() })
         })
         bpm.client.render.LinkerHud.install(modBus)
+        bpm.platform.client.ClientRenderers.install(bpm.platform.client.NeoClientRenderers)
+        bpm.client.render.BpmItemRenderers.install()
         modBus.addListener(net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent::class.java, Consumer { event ->
             event.registerFluidType(ExperienceFluidLook, bpm.world.ModFluids.EXPERIENCE_TYPE.get())
+            bpm.platform.client.NeoClientRenderers.onRegisterExtensions(event)
         })
         NeoForge.EVENT_BUS.addListener(ScreenEvent.Init.Post::class.java, Consumer(::onScreenInit))
         NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.LeftClickEmpty::class.java, Consumer { event ->

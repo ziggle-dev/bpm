@@ -20,7 +20,7 @@ import net.minecraft.world.phys.Vec3
 import org.joml.Vector3f
 import software.bernie.geckolib.cache.`object`.GeoBone
 import net.neoforged.neoforge.client.event.EntityRenderersEvent
-import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions
+import bpm.platform.client.ClientRenderers
 import software.bernie.geckolib.animatable.GeoAnimatable
 import software.bernie.geckolib.constant.DataTickets
 import software.bernie.geckolib.loading.math.MolangQueries
@@ -110,21 +110,25 @@ class LinkerRenderer : GeoItemRenderer<LinkerItem>(LinkerModel()) {
     }
 }
 
-object ControllerItemExtensions : IClientItemExtensions {
-    private val renderer by lazy { ControllerItemRenderer() }
-    override fun getCustomRenderer(): BlockEntityWithoutLevelRenderer = renderer
-}
-
-object LinkerItemExtensions : IClientItemExtensions {
-    private val renderer by lazy { LinkerRenderer() }
-    override fun getCustomRenderer(): BlockEntityWithoutLevelRenderer = renderer
-}
-
 class TetherRenderer : GeoItemRenderer<bpm.world.items.QuantumTetherItem>(TetherModel())
 
-object TetherItemExtensions : IClientItemExtensions {
-    private val renderer by lazy { TetherRenderer() }
-    override fun getCustomRenderer(): BlockEntityWithoutLevelRenderer = renderer
+/**
+ * Which item draws with which renderer.
+ *
+ * This used to live as an `initializeClient` override on each of the four item classes, which made four
+ * otherwise plain items name a client class. One table on the client side says the same thing and is
+ * where you would look for it.
+ */
+object BpmItemRenderers {
+    fun install() {
+        ClientRenderers.item(bpm.world.ModItems.CONTROLLER.get()) { ControllerItemRenderer() }
+        ClientRenderers.item(bpm.world.ModItems.LINKER.get()) { LinkerRenderer() }
+        ClientRenderers.item(bpm.world.ContentItems.QUANTUM_TETHER.get()) { TetherRenderer() }
+        for (item in bpm.world.DeviceItems.all) {
+            val device = item.get() as? bpm.world.DeviceBlockItem ?: continue
+            ClientRenderers.item(device) { DeviceItemExtensions.of(device.model) }
+        }
+    }
 }
 
 /**

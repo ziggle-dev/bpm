@@ -33,7 +33,6 @@ import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.material.MapColor
-import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions
 import software.bernie.geckolib.animatable.GeoItem
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
 import software.bernie.geckolib.animation.AnimatableManager
@@ -96,9 +95,6 @@ class DeviceBlockItem(block: Block, properties: Properties, val model: String, p
 
     override fun getAnimatableInstanceCache(): AnimatableInstanceCache = animCache
 
-    override fun initializeClient(consumer: Consumer<IClientItemExtensions>) {
-        consumer.accept(bpm.client.render.DeviceItemExtensions.of(model))
-    }
 }
 
 object DeviceItems {

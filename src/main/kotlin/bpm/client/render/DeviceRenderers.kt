@@ -203,7 +203,7 @@ class MonitorRenderer : GeoBlockRenderer<bpm.world.devices.MonitorBlockEntity>(M
 
 /** Device items drawn with their block's model at rest, one renderer per model, made on first use. */
 object DeviceItemExtensions {
-    private val cache = HashMap<String, IClientItemExtensions>()
+    private val cache = HashMap<String, BlockEntityWithoutLevelRenderer>()
 
     /** Bones a model leaves out when drawn as an item (world-only parts that would dwarf the block). */
     private val HIDDEN_IN_ITEM: Map<String, Set<String>> = mapOf(
@@ -212,9 +212,9 @@ object DeviceItemExtensions {
         "quantum_monitor" to setOf("bezel_up_l", "bezel_up_r", "bezel_down_l", "bezel_down_r", "bezel_left_u", "bezel_left_d", "bezel_right_u", "bezel_right_d"),
     )
 
-    fun of(model: String): IClientItemExtensions = cache.getOrPut(model) {
-        object : IClientItemExtensions {
-            private val renderer by lazy {
+    fun of(model: String): BlockEntityWithoutLevelRenderer = cache.getOrPut(model) {
+        run {
+            run {
                 object : GeoItemRenderer<DeviceBlockItem>(DeviceModel(model)) {
                     init {
                         addRenderLayer(GlowLayer(this))
@@ -234,8 +234,6 @@ object DeviceItemExtensions {
                     }
                 }
             }
-
-            override fun getCustomRenderer(): BlockEntityWithoutLevelRenderer = renderer
         }
     }
 }
