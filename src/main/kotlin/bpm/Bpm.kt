@@ -33,6 +33,9 @@ object Bpm {
         bpm.platform.net.Net.install(bpm.platform.net.NeoNet)
         bpm.platform.world.Actor.install(bpm.platform.world.NeoWorldActor)
         bpm.platform.world.Fluids.install(bpm.platform.world.NeoFluidBehaviour)
+        // Strictly before BpmRegistries: touching ModBlocks and friends is what creates their registrars,
+        // and a registrar cannot be created before the thing that makes them exists.
+        bpm.platform.registry.Registrars.install(bpm.platform.registry.NeoRegistries(MOD_BUS))
         BpmRegistries.install(MOD_BUS)
         // The bridge first: it is what turns this loader's events into the ones the subsystems below
         // listen for, so nothing after this line names a bus.

@@ -1,5 +1,11 @@
 package bpm.world
 
+import bpm.platform.registry.BlockRegistrar
+import bpm.platform.registry.ComponentRegistrar
+import bpm.platform.registry.ItemRegistrar
+import bpm.platform.registry.Registrar
+import bpm.platform.registry.RegistryRef
+import bpm.platform.registry.Registrars
 import bpm.Bpm
 import net.minecraft.core.registries.Registries
 import net.minecraft.sounds.SoundEvents
@@ -8,8 +14,6 @@ import net.minecraft.world.level.material.Fluid
 import net.neoforged.neoforge.common.SoundActions
 import net.neoforged.neoforge.fluids.BaseFlowingFluid
 import net.neoforged.neoforge.fluids.FluidType
-import net.neoforged.neoforge.registries.DeferredHolder
-import net.neoforged.neoforge.registries.DeferredRegister
 import net.neoforged.neoforge.registries.NeoForgeRegistries
 
 /**
@@ -18,10 +22,10 @@ import net.neoforged.neoforge.registries.NeoForgeRegistries
  * Twenty millibuckets per point ([ControllerStores.XP_MB_PER_POINT]).
  */
 object ModFluids {
-    val TYPES: DeferredRegister<FluidType> = DeferredRegister.create(NeoForgeRegistries.Keys.FLUID_TYPES, Bpm.ID)
-    val REG: DeferredRegister<Fluid> = DeferredRegister.create(Registries.FLUID, Bpm.ID)
+    val TYPES: Registrar<FluidType> = Registrars.of(NeoForgeRegistries.Keys.FLUID_TYPES, Bpm.ID)
+    val REG: Registrar<Fluid> = Registrars.of(Registries.FLUID, Bpm.ID)
 
-    val EXPERIENCE_TYPE: DeferredHolder<FluidType, FluidType> = TYPES.register("experience") { ->
+    val EXPERIENCE_TYPE: RegistryRef<FluidType> = TYPES.register("experience") { ->
         FluidType(
             FluidType.Properties.create()
                 .descriptionId("fluid.bpm.experience")
@@ -45,8 +49,8 @@ object ModFluids {
             .levelDecreasePerBlock(2)
     }
 
-    val EXPERIENCE: DeferredHolder<Fluid, BaseFlowingFluid.Source> = REG.register("experience") { -> BaseFlowingFluid.Source(properties) }
-    val EXPERIENCE_FLOWING: DeferredHolder<Fluid, BaseFlowingFluid.Flowing> = REG.register("experience_flowing") { -> BaseFlowingFluid.Flowing(properties) }
+    val EXPERIENCE: RegistryRef<BaseFlowingFluid.Source> = REG.register("experience") { -> BaseFlowingFluid.Source(properties) }
+    val EXPERIENCE_FLOWING: RegistryRef<BaseFlowingFluid.Flowing> = REG.register("experience_flowing") { -> BaseFlowingFluid.Flowing(properties) }
 
     const val ID = "bpm:experience"
 }

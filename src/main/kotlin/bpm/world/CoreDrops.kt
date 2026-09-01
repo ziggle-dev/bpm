@@ -1,7 +1,12 @@
 package bpm.world
 
+import bpm.platform.registry.BlockRegistrar
+import bpm.platform.registry.ComponentRegistrar
+import bpm.platform.registry.ItemRegistrar
+import bpm.platform.registry.Registrar
+import bpm.platform.registry.RegistryRef
+import bpm.platform.registry.Registrars
 import net.minecraft.world.item.Item
-import net.neoforged.neoforge.registries.DeferredItem
 
 /**
  * What the Warden's pedestal can give you, and how often.
@@ -16,7 +21,7 @@ import net.neoforged.neoforge.registries.DeferredItem
  */
 object CoreDrops {
 
-    class Drop(val item: DeferredItem<out Item>, val weight: Int)
+    class Drop(val item: RegistryRef<out Item>, val weight: Int)
 
     class Table(
         /** The loot table this mirrors, so the test knows what to check it against. */

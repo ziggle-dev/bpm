@@ -1,5 +1,11 @@
 package bpm.world.assembly
 
+import bpm.platform.registry.BlockRegistrar
+import bpm.platform.registry.ComponentRegistrar
+import bpm.platform.registry.ItemRegistrar
+import bpm.platform.registry.Registrar
+import bpm.platform.registry.RegistryRef
+import bpm.platform.registry.Registrars
 import bpm.Bpm
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
@@ -17,7 +23,6 @@ import net.minecraft.world.item.crafting.RecipeInput
 import net.minecraft.world.item.crafting.RecipeSerializer
 import net.minecraft.world.item.crafting.RecipeType
 import net.minecraft.world.level.Level
-import net.neoforged.neoforge.registries.DeferredRegister
 
 /**
  * What the pedestals around an assembler are holding, as a recipe sees it.
@@ -183,8 +188,8 @@ class AssemblyRecipe(
 
 /** The mod's recipe type and serializer — bpm's first, so this is also where any later one goes. */
 object ModRecipes {
-    val TYPES: DeferredRegister<RecipeType<*>> = DeferredRegister.create(Registries.RECIPE_TYPE, Bpm.ID)
-    val SERIALIZERS: DeferredRegister<RecipeSerializer<*>> = DeferredRegister.create(Registries.RECIPE_SERIALIZER, Bpm.ID)
+    val TYPES: Registrar<RecipeType<*>> = Registrars.of(Registries.RECIPE_TYPE, Bpm.ID)
+    val SERIALIZERS: Registrar<RecipeSerializer<*>> = Registrars.of(Registries.RECIPE_SERIALIZER, Bpm.ID)
 
     val ASSEMBLY = TYPES.register("assembly") { -> object : RecipeType<AssemblyRecipe> {
         override fun toString(): String = "bpm:assembly"

@@ -1,5 +1,11 @@
 package bpm.world
 
+import bpm.platform.registry.BlockRegistrar
+import bpm.platform.registry.ComponentRegistrar
+import bpm.platform.registry.ItemRegistrar
+import bpm.platform.registry.Registrar
+import bpm.platform.registry.RegistryRef
+import bpm.platform.registry.Registrars
 import bpm.Bpm
 import net.minecraft.core.GlobalPos
 import net.minecraft.core.registries.Registries
@@ -19,16 +25,12 @@ import net.minecraft.world.level.material.MapColor
 import net.neoforged.bus.api.IEventBus
 import net.neoforged.neoforge.capabilities.Capabilities
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent
-import net.neoforged.neoforge.registries.DeferredBlock
-import net.neoforged.neoforge.registries.DeferredHolder
-import net.neoforged.neoforge.registries.DeferredItem
-import net.neoforged.neoforge.registries.DeferredRegister
 import java.util.function.Consumer
 
 object ModBlocks {
-    val REG: DeferredRegister.Blocks = DeferredRegister.createBlocks(Bpm.ID)
+    val REG: BlockRegistrar = Registrars.blocks(Bpm.ID)
 
-    val CONTROLLER: DeferredBlock<ControllerBlock> = REG.registerBlock(
+    val CONTROLLER: RegistryRef<ControllerBlock> = REG.registerBlock(
         "quantum_controller",
         ::ControllerBlock,
         BlockBehaviour.Properties.of()
@@ -40,17 +42,17 @@ object ModBlocks {
     )
 
     /** Liquid experience in the world — see [ModFluids]. */
-    val EXPERIENCE: DeferredBlock<LiquidBlock> = REG.register("experience") { ->
+    val EXPERIENCE: RegistryRef<LiquidBlock> = REG.register("experience") { ->
         LiquidBlock(ModFluids.EXPERIENCE.get(), BlockBehaviour.Properties.ofFullCopy(Blocks.WATER).lightLevel { 10 }.noLootTable())
     }
 }
 
 object ModItems {
-    val REG: DeferredRegister.Items = DeferredRegister.createItems(Bpm.ID)
+    val REG: ItemRegistrar = Registrars.items(Bpm.ID)
 
-    val CONTROLLER: DeferredItem<BlockItem> = REG.registerItem("quantum_controller", { p -> ControllerBlockItem(ModBlocks.CONTROLLER.get(), p) }, Item.Properties())
-    val LINKER: DeferredItem<LinkerItem> = REG.registerItem("quantum_linker", ::LinkerItem, Item.Properties().stacksTo(1))
-    val EXPERIENCE_BUCKET: DeferredItem<BucketItem> = REG.registerItem(
+    val CONTROLLER: RegistryRef<BlockItem> = REG.registerItem("quantum_controller", { p -> ControllerBlockItem(ModBlocks.CONTROLLER.get(), p) }, Item.Properties())
+    val LINKER: RegistryRef<LinkerItem> = REG.registerItem("quantum_linker", ::LinkerItem, Item.Properties().stacksTo(1))
+    val EXPERIENCE_BUCKET: RegistryRef<BucketItem> = REG.registerItem(
         "experience_bucket",
         { p -> BucketItem(ModFluids.EXPERIENCE.get(), p) },
         Item.Properties().craftRemainder(Items.BUCKET).stacksTo(1),
@@ -58,16 +60,16 @@ object ModItems {
 }
 
 object ModBlockEntities {
-    val REG: DeferredRegister<BlockEntityType<*>> = DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, Bpm.ID)
+    val REG: Registrar<BlockEntityType<*>> = Registrars.of(Registries.BLOCK_ENTITY_TYPE, Bpm.ID)
 
-    val CONTROLLER: DeferredHolder<BlockEntityType<*>, BlockEntityType<ControllerBlockEntity>> = REG.register("quantum_controller") { ->
+    val CONTROLLER: RegistryRef<BlockEntityType<ControllerBlockEntity>> = REG.register("quantum_controller") { ->
         @Suppress("DataFlowIssue")
         BlockEntityType.Builder.of(::ControllerBlockEntity, ModBlocks.CONTROLLER.get()).build(null)
     }
 }
 
 object ModComponents {
-    val REG: DeferredRegister.DataComponents = DeferredRegister.createDataComponents(Registries.DATA_COMPONENT_TYPE, Bpm.ID)
+    val REG: ComponentRegistrar = Registrars.components(Bpm.ID)
 
     /** The controller a linker is working for. */
     val SELECTED_CONTROLLER = REG.registerComponentType("selected_controller") { b -> b.persistent(GlobalPos.CODEC).networkSynchronized(GlobalPos.STREAM_CODEC) }
@@ -98,9 +100,9 @@ object ModComponents {
 }
 
 object ModCreativeTab {
-    val REG: DeferredRegister<CreativeModeTab> = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, Bpm.ID)
+    val REG: Registrar<CreativeModeTab> = Registrars.of(Registries.CREATIVE_MODE_TAB, Bpm.ID)
 
-    val TAB: DeferredHolder<CreativeModeTab, CreativeModeTab> = REG.register("bpm") { ->
+    val TAB: RegistryRef<CreativeModeTab> = REG.register("bpm") { ->
         CreativeModeTab.builder()
             .title(Component.translatable("itemGroup.bpm"))
             .icon { ItemStack(ModItems.CONTROLLER.get()) }
@@ -128,23 +130,26 @@ object BpmRegistries {
      * same registration list is replayed against a registry that resolves eagerly instead.
      */
     fun install(bus: IEventBus) {
-        ModFluids.TYPES.register(bus)
-        ModFluids.REG.register(bus)
-        ModBlocks.REG.register(bus)
-        ModItems.REG.register(bus)
-        DeviceBlocks.REG.register(bus)
-        DeviceItems.REG.register(bus)
-        DeviceBlockEntities.REG.register(bus)
-        bpm.world.assembly.ModRecipes.TYPES.register(bus)
-        bpm.world.assembly.ModRecipes.SERIALIZERS.register(bus)
-        ModAttachments.REG.register(bus)
-        bpm.world.entity.ModEntities.REG.register(bus)
+        // Touching each object is what creates its registrar and queues its entries; `installAll` then
+        // realises them, in the order they were asked for.
+        ModFluids.TYPES
+        ModFluids.REG
+        ModBlocks.REG
+        ModItems.REG
+        DeviceBlocks.REG
+        DeviceItems.REG
+        DeviceBlockEntities.REG
+        bpm.world.assembly.ModRecipes.TYPES
+        bpm.world.assembly.ModRecipes.SERIALIZERS
+        ModAttachments.REG
+        bpm.world.entity.ModEntities.REG
         bus.addListener(net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent::class.java, Consumer(bpm.world.entity.ModEntities::attributes))
-        ContentBlocks.REG.register(bus)
-        ContentItems.REG.register(bus)
-        ModBlockEntities.REG.register(bus)
-        ModComponents.REG.register(bus)
-        ModCreativeTab.REG.register(bus)
+        ContentBlocks.REG
+        ContentItems.REG
+        ModBlockEntities.REG
+        ModComponents.REG
+        ModCreativeTab.REG
+        Registrars.installAll()
         bus.addListener(RegisterCapabilitiesEvent::class.java, Consumer { event ->
             event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, ModBlockEntities.CONTROLLER.get()) { be, _ -> be.inventory }
             event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, ModBlockEntities.CONTROLLER.get()) { be, _ -> be.tanks }
