@@ -206,6 +206,10 @@ dependencies {
     // Tag & Component Tooltips: every item's tags and data components on its tooltip — the ids the filters take.
     runtimeOnly "maven.modrinth:tag-and-component-tooltips:${tact_version}"
 
+    // Gson is compileOnly for the core: Minecraft ships it, so it is always there at runtime, but the
+    // core must not carry a copy of its own into the jar.
+    coreCompileOnly 'com.google.code.gson:gson:2.10.1'
+
     // `coreImplementation` too: the core compiles against the bundled libraries (vscript, imgui) and
     // against nothing else. Minecraft is absent from its classpath by construction.
     bundled.each { b ->

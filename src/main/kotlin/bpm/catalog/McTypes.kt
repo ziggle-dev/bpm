@@ -216,7 +216,7 @@ object McTypes {
 
     val ENTITY: TypeRef = TypeRef.named("Entity")
     val PLAYER: TypeRef = TypeRef.named("Player")
-    val LINK: TypeRef = TypeRef.named("Link")
+    val LINK: TypeRef = TypeRef.named(bpm.BpmTypeNames.LINK)
 
     /** `Entity` and `Player` resolve through the controller that holds the handle — built per host. */
     fun entityRecords(host: ControllerHost): List<HostRecord> = listOf(

@@ -1,6 +1,6 @@
 package bpm.session
 
-import bpm.catalog.McTypes
+import bpm.BpmTypeNames
 import dev.ziggle.vscript.model.Node
 import dev.ziggle.vscript.model.NodeCatalog
 
@@ -16,7 +16,7 @@ object LinkRenames {
         for (node in nodes) {
             val desc = catalog[node.type] ?: continue
             for (pin in desc.inputs) {
-                if (pin.type.name != McTypes.LINK.name) continue
+                if (pin.type.name != BpmTypeNames.LINK) continue
                 if (node.literals[pin.name] == old) out += node.id to pin.name
             }
         }

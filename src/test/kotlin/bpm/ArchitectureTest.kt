@@ -14,8 +14,9 @@ import kotlin.test.fail
  *
  * The `src/core` source set is compiled without Minecraft on its classpath at all, so for that one the
  * compiler is the real guard and this is belt and braces — it catches a fully-qualified name in a
- * comment or a string, which the compiler would not. `bpm.client.editor` and `bpm.session` are still in
- * the main source set, where only this test stands between them and a stray import.
+ * comment or a string, which the compiler would not. `bpm.client.editor` is still in the main source
+ * set, where only this test stands between it and a stray import — it cannot move to core yet because
+ * the ImGui bridge it draws through is not loader-free.
  *
  * Two things this guard learned the hard way, both worth keeping:
  *
@@ -44,7 +45,6 @@ class ArchitectureTest {
             // which the compiler would not.
             "src/core/kotlin",
             "src/main/kotlin/bpm/client/editor",
-            "src/main/kotlin/bpm/session",
         )
 
         /**

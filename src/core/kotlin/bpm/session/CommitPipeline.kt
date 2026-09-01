@@ -1,6 +1,6 @@
 package bpm.session
 
-import bpm.library.BpmLibrary
+import bpm.library.DocumentStore
 import bpm.library.DocumentCodec
 import dev.ziggle.vscript.compile.Issue
 import dev.ziggle.vscript.compile.Severity
@@ -45,7 +45,7 @@ interface Deployable {
  * deploys it. Deploy restarts every bound *and enabled* controller and only when the document has no errors.
  */
 class CommitPipeline(
-    private val library: BpmLibrary,
+    private val library: DocumentStore,
     private val catalog: NodeCatalog,
     private val bound: (UUID) -> List<Deployable>,
     private val maxRawBytes: Int = DocumentCodec.MAX_RAW_BYTES,
