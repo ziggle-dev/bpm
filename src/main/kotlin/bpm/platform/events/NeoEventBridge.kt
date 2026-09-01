@@ -44,6 +44,24 @@ object NeoEventBridge {
             if (!BpmEvents.blockBreak.fire(BlockBreak(level, e.pos, e.state, e.player))) e.isCanceled = true
         })
 
+        bus.addListener(PlayerEvent.ItemCraftedEvent::class.java, Consumer { e ->
+            BpmEvents.itemCrafted.fire(Crafted(e.entity, e.crafting, e.inventory))
+        })
+
+        bus.addListener(net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.LeftClickBlock::class.java, Consumer { e ->
+            val phase = when (e.action) {
+                net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.LeftClickBlock.Action.START -> ClickPhase.START
+                net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.LeftClickBlock.Action.CLIENT_HOLD -> ClickPhase.HOLD
+                net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.LeftClickBlock.Action.STOP -> ClickPhase.STOP
+                else -> ClickPhase.ABORT
+            }
+            if (!BpmEvents.leftClickBlock.fire(LeftClickBlock(e.entity, e.pos, e.face, phase))) e.isCanceled = true
+        })
+
+        bus.addListener(net.neoforged.neoforge.event.entity.player.AttackEntityEvent::class.java, Consumer { e ->
+            if (!BpmEvents.attackEntity.fire(AttackEntity(e.entity, e.target))) e.isCanceled = true
+        })
+
         bus.addListener(LivingDropsEvent::class.java, Consumer { e ->
             val player = e.entity as? ServerPlayer ?: return@Consumer
             // The stacks are copied here rather than in the listener: cancelling the event is what stops

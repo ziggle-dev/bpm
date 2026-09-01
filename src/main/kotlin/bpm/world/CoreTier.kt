@@ -1,10 +1,13 @@
 package bpm.world
 
+import bpm.platform.events.BpmEvents
+import bpm.platform.events.ClickPhase
+import bpm.platform.events.Crafted
+import bpm.platform.events.LeftClickBlock
+import bpm.platform.events.AttackEntity
 import bpm.BpmConfig
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
-import net.neoforged.bus.api.IEventBus
-import net.neoforged.neoforge.event.entity.player.PlayerEvent
 import java.util.function.Consumer
 
 /**
@@ -74,14 +77,14 @@ enum class CoreTier(
 
 /** Stamps the core's tier onto a controller as it leaves the crafting grid. */
 object CoreTiers {
-    fun install(bus: IEventBus) {
-        bus.addListener(PlayerEvent.ItemCraftedEvent::class.java, Consumer(::onCrafted))
+    fun install() {
+        BpmEvents.itemCrafted.listen(::onCrafted)
     }
 
-    private fun onCrafted(event: PlayerEvent.ItemCraftedEvent) {
-        val result = event.crafting
+    private fun onCrafted(event: Crafted) {
+        val result = event.result
         if (!result.`is`(ModItems.CONTROLLER.get())) return
-        val inv = event.inventory
+        val inv = event.matrix
         var tier: CoreTier? = null
         for (i in 0 until inv.containerSize) {
             val t = CoreTier.of(inv.getItem(i).item) ?: continue

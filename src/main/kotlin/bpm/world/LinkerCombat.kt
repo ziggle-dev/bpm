@@ -1,10 +1,12 @@
 package bpm.world
 
+import bpm.platform.events.BpmEvents
+import bpm.platform.events.ClickPhase
+import bpm.platform.events.Crafted
+import bpm.platform.events.LeftClickBlock
+import bpm.platform.events.AttackEntity
 import bpm.chamber.ChamberDimension
 import net.minecraft.server.level.ServerPlayer
-import net.neoforged.bus.api.IEventBus
-import net.neoforged.neoforge.event.entity.player.AttackEntityEvent
-import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent
 import java.util.function.Consumer
 
 /**
@@ -13,28 +15,29 @@ import java.util.function.Consumer
  * `LinkerTrackPayload` instead (see `bpm.client.BpmClient`).
  */
 object LinkerCombat {
-    fun install(bus: IEventBus) {
-        bus.addListener(PlayerInteractEvent.LeftClickBlock::class.java, Consumer(::onLeftClickBlock))
-        bus.addListener(AttackEntityEvent::class.java, Consumer(::onAttack))
+    fun install() {
+        BpmEvents.leftClickBlock.listen(::onLeftClickBlock)
+        BpmEvents.attackEntity.listen(::onAttack)
     }
 
     private fun wants(player: net.minecraft.world.entity.player.Player): Boolean =
         player.isShiftKeyDown && ChamberDimension.isChamber(player.level()) && LinkerItem.handWith(player) != null
 
-    private fun onLeftClickBlock(event: PlayerInteractEvent.LeftClickBlock) {
-        val player = event.entity as? ServerPlayer ?: return
-        if (!wants(player)) return
-        event.isCanceled = true
-        if (event.action == PlayerInteractEvent.LeftClickBlock.Action.START) {
+    /** False to swallow the click: a wand doing this is not also mining. */
+    private fun onLeftClickBlock(event: LeftClickBlock): Boolean {
+        val player = event.player as? ServerPlayer ?: return true
+        if (!wants(player)) return true
+        if (event.phase == ClickPhase.START) {
             LinkerItem.handWith(player)?.let { (player.mainHandItem.item as? LinkerItem ?: player.offhandItem.item as LinkerItem).trackingPulse(player, it) }
         }
+        return false
     }
 
-    private fun onAttack(event: AttackEntityEvent) {
-        val player = event.entity as? ServerPlayer ?: return
-        if (!wants(player) || player.mainHandItem.item !is LinkerItem) return
-        event.isCanceled = true
+    private fun onAttack(event: AttackEntity): Boolean {
+        val player = event.player as? ServerPlayer ?: return true
+        if (!wants(player) || player.mainHandItem.item !is LinkerItem) return true
         (player.mainHandItem.item as LinkerItem).trackingPulse(player, net.minecraft.world.InteractionHand.MAIN_HAND)
+        return false
     }
 
     /** From the client's left click on air. */

@@ -57,6 +57,26 @@ class Veto<P> {
 
 data class BlockBreak(val level: ServerLevel, val pos: BlockPos, val state: BlockState, val player: Player)
 
+/** Something was taken out of a crafting result slot. [matrix] is the grid, still full. */
+data class Crafted(val player: Player, val result: ItemStack, val matrix: net.minecraft.world.Container)
+
+/**
+ * All four phases, not only the two anything currently acts on.
+ *
+ * `LinkerCombat` refuses the click whatever phase it is in, and narrowing this to START and HOLD would
+ * quietly stop it refusing the other two.
+ */
+enum class ClickPhase { START, HOLD, STOP, ABORT }
+
+data class LeftClickBlock(
+    val player: Player,
+    val pos: BlockPos,
+    val face: net.minecraft.core.Direction?,
+    val phase: ClickPhase,
+)
+
+data class AttackEntity(val player: Player, val target: net.minecraft.world.entity.Entity)
+
 /** A player's death drops, before they are scattered. Refusing means the listener has taken them. */
 data class Drops(val player: ServerPlayer, val stacks: List<ItemStack>)
 
@@ -84,4 +104,10 @@ object BpmEvents {
 
     val blockBreak = Veto<BlockBreak>()
     val playerDrops = Veto<Drops>()
+
+    val itemCrafted = Hook<Crafted>()
+
+    /** Fires on both sides: the HOLD phase only ever happens on the client, and the monitor slider wants it. */
+    val leftClickBlock = Veto<LeftClickBlock>()
+    val attackEntity = Veto<AttackEntity>()
 }
