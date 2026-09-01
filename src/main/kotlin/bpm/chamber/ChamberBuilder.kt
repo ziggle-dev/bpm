@@ -27,6 +27,7 @@ import java.util.Random
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -137,7 +138,24 @@ class RoomLayout(
                 }
                 val h = 3 + rnd.nextInt(2)
                 turrets += BlockPos(x, h + 1, z) to Direction.UP
-                consoles += BlockPos(cx + ((r - 3.5) * cos(a)).roundToInt(), 0, cz + ((r - 3.5) * sin(a)).roundToInt())
+                // The console is a lit tile on the floor in front of its turret, three and a half in.
+                //
+                // Never inside the trench, though. The trench ring runs from 7.5 to 9.5 and a turret at
+                // the near end of its range puts r - 3.5 at 8.0, so a console lands in the ring often
+                // enough to matter. Consoles are written AFTER the floor pass, so one that does either
+                // plugs the pit with a solid light or -- worse, and this is how it was found -- lands on
+                // a bridge cell and punches the crossing out.
+                //
+                // Step outward a cell at a time until the rounded cell is clear, the same way a turret
+                // steps clear of a vent above. A fixed radius will not do it: the cell is rounded, and
+                // at 20 degrees a radius of 10 rounds to (9, 3), which is 9.487 -- back in the ring.
+                var cr = r - 3.5
+                var cp = BlockPos(cx + (cr * cos(a)).roundToInt(), 0, cz + (cr * sin(a)).roundToInt())
+                while (hypot((cp.x - cx).toDouble(), (cp.z - cz).toDouble()) < 9.5) {
+                    cr += 1.0
+                    cp = BlockPos(cx + (cr * cos(a)).roundToInt(), 0, cz + (cr * sin(a)).roundToInt())
+                }
+                consoles += cp
             }
 
             // Crystals: on the diagonals, near the walls, each nudged a little.
