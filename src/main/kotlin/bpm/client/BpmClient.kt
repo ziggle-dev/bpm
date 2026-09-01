@@ -3,6 +3,7 @@ package bpm.client
 import bpm.Bpm
 import bpm.client.mc.SmokeRun
 import bpm.client.mc.WorkbenchSession
+import bpm.platform.events.BpmEvents
 import bpm.client.net.ClientNet
 import bpm.client.render.GeoRenderers
 import net.minecraft.client.Minecraft
@@ -24,15 +25,14 @@ import java.util.function.Consumer
  */
 object BpmClient {
     fun init(modBus: IEventBus) {
-        modBus.addListener(FMLClientSetupEvent::class.java, Consumer {
-            it.enqueueWork {
-                net.minecraft.client.renderer.ItemBlockRenderTypes.setRenderLayer(bpm.world.ModFluids.EXPERIENCE.get(), net.minecraft.client.renderer.RenderType.translucent())
-                net.minecraft.client.renderer.ItemBlockRenderTypes.setRenderLayer(bpm.world.ModFluids.EXPERIENCE_FLOWING.get(), net.minecraft.client.renderer.RenderType.translucent())
-            }
+        bpm.platform.events.NeoClientEventBridge.install(modBus, NeoForge.EVENT_BUS)
+        BpmEvents.clientSetup.listen {
+            net.minecraft.client.renderer.ItemBlockRenderTypes.setRenderLayer(bpm.world.ModFluids.EXPERIENCE.get(), net.minecraft.client.renderer.RenderType.translucent())
+            net.minecraft.client.renderer.ItemBlockRenderTypes.setRenderLayer(bpm.world.ModFluids.EXPERIENCE_FLOWING.get(), net.minecraft.client.renderer.RenderType.translucent())
             GeoRenderers.installMolang()
             bpm.client.ponder.PonderCompat.install()
             Bpm.LOGGER.info("bpm client ready (smoke frames: {})", SmokeRun.frames)
-        })
+        }
         modBus.addListener(EntityRenderersEvent.RegisterRenderers::class.java, Consumer(GeoRenderers::registerRenderers))
         modBus.addListener(net.neoforged.neoforge.client.event.RegisterShadersEvent::class.java, Consumer(bpm.client.render.RiftShader::register))
         modBus.addListener(net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent::class.java, Consumer(Keys::register))
@@ -47,31 +47,35 @@ object BpmClient {
             event.registerFluidType(ExperienceFluidLook, bpm.world.ModFluids.EXPERIENCE_TYPE.get())
             bpm.platform.client.NeoClientRenderers.onRegisterExtensions(event)
         })
-        NeoForge.EVENT_BUS.addListener(ScreenEvent.Init.Post::class.java, Consumer(::onScreenInit))
-        NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.LeftClickEmpty::class.java, Consumer { event ->
-            val player = event.entity
+        BpmEvents.screenOpened.listen(::onScreenOpened)
+        BpmEvents.leftClickEmpty.listen { player ->
             if (player.isShiftKeyDown && bpm.chamber.ChamberDimension.isChamber(player.level())) {
                 bpm.world.LinkerItem.handWith(player)?.let { ClientNet.sendLinkerTrack(it) }
             }
-        })
-        NeoForge.EVENT_BUS.addListener(RegisterClientCommandsEvent::class.java, Consumer(::onRegisterClientCommands))
-        NeoForge.EVENT_BUS.addListener(ClientTickEvent.Post::class.java, Consumer { ClientNet.tick() })
-        NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.client.event.ClientTickEvent.Pre::class.java, Consumer { Keys.tick() })
-        NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.client.event.InputEvent.Key::class.java, Consumer(Keys::onKey))
+        }
+        BpmEvents.registerClientCommands.listen(::onRegisterClientCommands)
+        BpmEvents.clientTickEnd.listen { ClientNet.tick() }
+        BpmEvents.clientTickStart.listen { Keys.tick() }
+        BpmEvents.rawKey.listen(Keys::onKey)
+        BpmEvents.clientTickEnd.listen { bpm.client.fx.EffectManager.tick() }
+        BpmEvents.clientDisconnect.listen {
+            ClientNet.reset(); WorkbenchSession.reset(); bpm.client.mc.BlockPreviewRenderer.clear(); bpm.client.mc.HudOverlay.reset(); Keys.reset()
+        }
+
+        // Still on the loader's own events: registering a renderer, a shader, a GUI layer or a render
+        // stage is as much a Minecraft-version question as a loader one, and they move with that work.
         NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.client.event.RenderGuiEvent.Post::class.java, Consumer(bpm.client.mc.HudOverlay::render))
-        NeoForge.EVENT_BUS.addListener(ClientTickEvent.Post::class.java, Consumer { bpm.client.fx.EffectManager.tick() })
         NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.client.event.RenderLevelStageEvent::class.java, Consumer(bpm.client.fx.EffectManager::render))
-        NeoForge.EVENT_BUS.addListener(ClientPlayerNetworkEvent.LoggingOut::class.java, Consumer { ClientNet.reset(); WorkbenchSession.reset(); bpm.client.mc.BlockPreviewRenderer.clear(); bpm.client.mc.HudOverlay.reset(); Keys.reset() })
     }
 
-    private fun onScreenInit(event: ScreenEvent.Init.Post) {
-        if (event.screen is TitleScreen && SmokeRun.claim()) {
+    private fun onScreenOpened(screen: net.minecraft.client.gui.screens.Screen) {
+        if (screen is TitleScreen && SmokeRun.claim()) {
             // Not from inside the init of the screen being replaced: next tick.
             Minecraft.getInstance().tell { SmokeRun.start() }
         }
     }
 
-    private fun onRegisterClientCommands(event: RegisterClientCommandsEvent) {
+    private fun onRegisterClientCommands(event: bpm.platform.events.CommandRegistration) {
         event.dispatcher.register(
             Commands.literal("bpm")
                 .then(

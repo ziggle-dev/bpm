@@ -75,16 +75,20 @@ object Keys {
      * A raw key moved. Only watched keys are reported, and never while a screen is open — otherwise typing a
      * `g` into chat would fire a graph.
      */
-    fun onKey(event: InputEvent.Key) {
-        if (watched.isEmpty()) return
+    /** True to let the game have the press; false when a graph asked for it exclusively. */
+    fun onKey(event: bpm.platform.events.RawKey): Boolean {
+        if (watched.isEmpty()) return true
         val mc = Minecraft.getInstance()
-        if (mc.screen != null || mc.player == null || mc.connection == null) return
-        if (event.action == GLFW.GLFW_REPEAT) return
-        val name = resolved.entries.firstOrNull { (_, k) -> k.type == InputConstants.Type.KEYSYM && k.value == event.key }?.key ?: return
-        if (!carryingBoundTether()) return
+        if (mc.screen != null || mc.player == null || mc.connection == null) return true
+        if (event.action == GLFW.GLFW_REPEAT) return true
+        val name = resolved.entries.firstOrNull { (_, k) -> k.type == InputConstants.Type.KEYSYM && k.value == event.key }?.key ?: return true
+        if (!carryingBoundTether()) return true
         val isDown = event.action == GLFW.GLFW_PRESS
         if (isDown) down.add(name) else down.remove(name)
         Net.sendToServer(KeyEdgePayload(name, isDown, modifierHeld))
+        // Answering false is the honest signal, but on this loader it changes nothing: InputEvent.Key is
+        // not cancellable, which is exactly why [tick] exists to take the key back afterwards.
+        return true
     }
 
     /**

@@ -121,4 +121,30 @@ object BpmEvents {
     val attackEntity = Veto<AttackEntity>()
 
     val registerCommands = Hook<CommandRegistration>()
+
+    // ---- client ----
+    //
+    // Only the lifecycle and input ones live here. Anything that registers a renderer, a shader, a GUI
+    // layer or a render stage is left where it is on purpose: those differ by Minecraft VERSION as much
+    // as by loader, and hiding them behind a hook before that shape is known would be guessing.
+
+    /** The client is set up. Deferred work that must touch the game goes here. */
+    val clientSetup = Hook<Unit>()
+    val clientTickStart = Hook<Unit>()
+    val clientTickEnd = Hook<Unit>()
+
+    /** Left the server, or the integrated one stopped: forget per-connection state. */
+    val clientDisconnect = Hook<Unit>()
+
+    val screenOpened = Hook<net.minecraft.client.gui.screens.Screen>()
+
+    /** A left click on nothing. Client-only, because the server never hears about empty clicks. */
+    val leftClickEmpty = Hook<Player>()
+
+    val registerClientCommands = Hook<CommandRegistration>()
+
+    /** A raw key edge, before the game acts on it. False consumes it. */
+    val rawKey = Veto<RawKey>()
 }
+
+data class RawKey(val key: Int, val scancode: Int, val action: Int, val modifiers: Int)
