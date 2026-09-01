@@ -46,19 +46,19 @@ class PedestalBlock(properties: Properties) : Block(properties), EntityBlock {
     override fun <T : BlockEntity> getTicker(level: Level, state: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T>? =
         DeviceBlockEntity.ticker(level, type, DeviceBlockEntities.PEDESTAL.get())
 
-    override fun useItemOn(stack: net.minecraft.world.item.ItemStack, state: BlockState, level: Level, pos: BlockPos, player: Player, hand: net.minecraft.world.InteractionHand, hit: BlockHitResult): net.minecraft.world.ItemInteractionResult {
+    override fun useItemOn(stack: net.minecraft.world.item.ItemStack, state: BlockState, level: Level, pos: BlockPos, player: Player, hand: net.minecraft.world.InteractionHand, hit: BlockHitResult): bpm.platform.BlockUseResult {
         val be = level.getBlockEntity(pos) as? PedestalBlockEntity
         val linker = stack.item as? bpm.world.LinkerItem
         if (linker != null && bpm.chamber.ChamberDimension.isChamber(level)) {
             if (!level.isClientSide) linker.recharge(stack, player)
-            return net.minecraft.world.ItemInteractionResult.sidedSuccess(level.isClientSide)
+            return bpm.platform.BlockUse.sidedSuccess(level.isClientSide)
         }
         // A chamber altar is the fight's, not a bench: only a pedestal a player put down holds ingredients.
         if (be == null || be.slotOwner != null || !be.held.isEmpty) {
-            return net.minecraft.world.ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION
+            return bpm.platform.BlockUse.PASS_TO_BLOCK
         }
         if (!level.isClientSide) be.put(stack.split(1))
-        return net.minecraft.world.ItemInteractionResult.sidedSuccess(level.isClientSide)
+        return bpm.platform.BlockUse.sidedSuccess(level.isClientSide)
     }
 
     override fun useWithoutItem(state: BlockState, level: Level, pos: BlockPos, player: Player, hit: BlockHitResult): InteractionResult {

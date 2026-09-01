@@ -76,15 +76,15 @@ class AssemblerBlock(properties: Properties) : HorizontalDirectionalBlock(proper
         player: Player,
         hand: net.minecraft.world.InteractionHand,
         hit: BlockHitResult,
-    ): net.minecraft.world.ItemInteractionResult {
-        if (level.isClientSide) return net.minecraft.world.ItemInteractionResult.sidedSuccess(true)
-        val be = level.getBlockEntity(pos) as? AssemblerBlockEntity ?: return net.minecraft.world.ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION
+    ): bpm.platform.BlockUseResult {
+        if (level.isClientSide) return bpm.platform.BlockUse.sidedSuccess(true)
+        val be = level.getBlockEntity(pos) as? AssemblerBlockEntity ?: return bpm.platform.BlockUse.PASS_TO_BLOCK
         val refusal = be.offer(stack)
         if (refusal != null) {
             player.displayClientMessage(Component.literal("[bpm] $refusal"), true)
-            return net.minecraft.world.ItemInteractionResult.FAIL
+            return bpm.platform.BlockUse.FAIL
         }
-        return net.minecraft.world.ItemInteractionResult.SUCCESS
+        return bpm.platform.BlockUse.SUCCESS
     }
 
     override fun onRemove(state: BlockState, level: Level, pos: BlockPos, newState: BlockState, moved: Boolean) {

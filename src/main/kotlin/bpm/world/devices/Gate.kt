@@ -16,7 +16,7 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
-import net.minecraft.world.ItemInteractionResult
+import bpm.platform.BlockUseResult
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.context.BlockPlaceContext
@@ -69,12 +69,12 @@ class GateBlock(properties: Properties) : Block(properties), EntityBlock {
     override fun <T : BlockEntity> getTicker(level: Level, state: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T>? =
         DeviceBlockEntity.ticker(level, type, DeviceBlockEntities.GATE.get())
 
-    override fun useItemOn(stack: ItemStack, state: BlockState, level: Level, pos: BlockPos, player: Player, hand: InteractionHand, hit: BlockHitResult): ItemInteractionResult {
-        if (!stack.`is`(ContentItems.COHERENCE_LENS.get())) return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION
-        if (level.isClientSide) return ItemInteractionResult.SUCCESS
-        val be = level.getBlockEntity(pos) as? GateBlockEntity ?: return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION
+    override fun useItemOn(stack: ItemStack, state: BlockState, level: Level, pos: BlockPos, player: Player, hand: InteractionHand, hit: BlockHitResult): bpm.platform.BlockUseResult {
+        if (!stack.`is`(ContentItems.COHERENCE_LENS.get())) return bpm.platform.BlockUse.PASS_TO_BLOCK
+        if (level.isClientSide) return bpm.platform.BlockUse.SUCCESS
+        val be = level.getBlockEntity(pos) as? GateBlockEntity ?: return bpm.platform.BlockUse.PASS_TO_BLOCK
         if (be.tryOpen(player) && !player.isCreative) stack.shrink(1)
-        return ItemInteractionResult.CONSUME
+        return bpm.platform.BlockUse.CONSUME
     }
 
     override fun useWithoutItem(state: BlockState, level: Level, pos: BlockPos, player: Player, hit: BlockHitResult): InteractionResult {

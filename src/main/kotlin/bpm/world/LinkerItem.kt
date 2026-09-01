@@ -8,7 +8,6 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.chat.Component
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
-import net.minecraft.world.InteractionResultHolder
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
@@ -126,15 +125,15 @@ class LinkerItem(properties: Properties) : Item(properties), GeoItem {
         return InteractionResult.CONSUME
     }
 
-    override fun use(level: Level, player: Player, hand: InteractionHand): InteractionResultHolder<ItemStack> {
+    override fun use(level: Level, player: Player, hand: InteractionHand): bpm.platform.UseResult {
         val stack = player.getItemInHand(hand)
         if (bpm.chamber.ChamberDimension.isChamber(level)) {
             if (player.isShiftKeyDown) {
                 if (player is net.minecraft.server.level.ServerPlayer) trackingPulse(player, hand)
-                return InteractionResultHolder.sidedSuccess(stack, level.isClientSide)
+                return bpm.platform.Use.sided(stack, level.isClientSide)
             }
             val r = pulse(level, player, hand)
-            return if (r == InteractionResult.PASS) InteractionResultHolder.pass(stack) else InteractionResultHolder.sidedSuccess(stack, level.isClientSide)
+            return if (r == InteractionResult.PASS) bpm.platform.Use.pass(stack) else bpm.platform.Use.sided(stack, level.isClientSide)
         }
         if (player.isShiftKeyDown && stack.has(ModComponents.SELECTED_CONTROLLER.get())) {
             if (!level.isClientSide) {
@@ -151,9 +150,9 @@ class LinkerItem(properties: Properties) : Item(properties), GeoItem {
                 }
                 animate(level, player, stack, "unlink")
             }
-            return InteractionResultHolder.sidedSuccess(stack, level.isClientSide)
+            return bpm.platform.Use.sided(stack, level.isClientSide)
         }
-        return InteractionResultHolder.pass(stack)
+        return bpm.platform.Use.pass(stack)
     }
 
     override fun appendHoverText(stack: ItemStack, context: TooltipContext, tooltip: MutableList<Component>, flag: TooltipFlag) {

@@ -16,7 +16,6 @@ import net.minecraft.sounds.SoundEvents
 import net.minecraft.sounds.SoundSource
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
-import net.minecraft.world.InteractionResultHolder
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.ItemStack
@@ -93,28 +92,28 @@ class QuantumTetherItem(properties: Properties) : TooltipItem(properties), GeoIt
 
     // ---- grants, and letting go -------------------------------------------------------------------------
 
-    override fun use(level: Level, player: Player, hand: InteractionHand): InteractionResultHolder<ItemStack> {
+    override fun use(level: Level, player: Player, hand: InteractionHand): bpm.platform.UseResult {
         val stack = player.getItemInHand(hand)
-        if (!player.isShiftKeyDown) return InteractionResultHolder.pass(stack)
-        if (level.isClientSide) return InteractionResultHolder.success(stack)
+        if (!player.isShiftKeyDown) return bpm.platform.Use.pass(stack)
+        if (level.isClientSide) return bpm.platform.Use.success(stack)
 
         val bound = stack.get(ModComponents.TETHER_CONTROLLER.get()) ?: run {
             say(player, "sneak-use a controller to tether yourself to it")
-            return InteractionResultHolder.fail(stack)
+            return bpm.platform.Use.fail(stack)
         }
 
         val now = level.gameTime
         if (lastCycle[player.uuid]?.let { now - it <= UNBIND_TICKS } == true) {
             lastCycle.remove(player.uuid)
             release(level, player, stack, bound)
-            return InteractionResultHolder.consume(stack)
+            return bpm.platform.Use.consume(stack)
         }
         lastCycle[player.uuid] = now
 
         val grants = Grants.next(grantsOf(stack))
         Tethers.bind(stack, bound, grants)
         say(player, "${Grants.label(grants)} · ${Grants.format(grants)}${if (Grant.TAKE in grants) " — it may take from you" else ""}")
-        return InteractionResultHolder.consume(stack)
+        return bpm.platform.Use.consume(stack)
     }
 
     private fun release(level: Level, player: Player, stack: ItemStack, bound: GlobalPos) {
