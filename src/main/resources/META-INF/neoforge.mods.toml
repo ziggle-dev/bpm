@@ -4,7 +4,7 @@ license="MIT"
 
 [[mods]]
 modId="bpm"
-version="0.2.0"
+version="0.2.1"
 displayName="bpm"
 description='''Visual scripting for automation: graphs run on the server, edited in-game, rendered in the world.'''
 
