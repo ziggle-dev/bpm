@@ -42,13 +42,14 @@ object Bpm {
         // The bridge first: it is what turns this loader's events into the ones the subsystems below
         // listen for, so nothing after this line names a bus.
         bpm.platform.events.NeoEventBridge.install(NeoForge.EVENT_BUS)
+        MOD_BUS.addListener(net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent::class.java, Consumer(bpm.platform.net.NeoNet::onRegisterPayloads))
         bpm.chamber.ChamberEvents.install()
         bpm.chamber.ChamberFight.install()
         bpm.world.CoreTiers.install()
         bpm.world.LinkerCombat.install()
         bpm.world.devices.MonitorInput.install()
         RuntimeManager.install()
-        BpmNetwork.install(MOD_BUS)
+        BpmNetwork.install()
         ServerNet.install()
         bpm.platform.events.BpmEvents.registerCommands.listen(BpmCommands::register)
         // The client class is only ever touched on the client, so a dedicated server never loads it.

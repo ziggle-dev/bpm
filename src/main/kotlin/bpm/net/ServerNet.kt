@@ -30,7 +30,6 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import bpm.platform.net.Net
-import net.neoforged.neoforge.network.handling.IPayloadContext
 import java.util.UUID
 import java.util.function.Consumer
 
@@ -165,21 +164,9 @@ object ServerNet {
 
     // ---- configuration --------------------------------------------------------------------------------------
 
-    fun onCatalogAck(p: CatalogAckPayload, ctx: IPayloadContext) {
-        val problem = CatalogCompare.mismatch(BpmCatalog.hash, BpmCatalog.packList, p.hash, p.packs)
-        if (problem != null) {
-            Bpm.LOGGER.warn("catalogue handshake refused: {}", problem)
-            ctx.disconnect(Component.literal(problem))
-        } else {
-            Bpm.LOGGER.info("catalogue handshake ok ({})", p.hash.take(12))
-            ctx.finishCurrentTask(CatalogTask.TYPE)
-        }
-    }
-
     // ---- library --------------------------------------------------------------------------------------------
 
-    fun onLibraryListRequest(@Suppress("UNUSED_PARAMETER") p: LibraryListRequestPayload, ctx: IPayloadContext) {
-        val player = ctx.player() as? ServerPlayer ?: return
+    fun onLibraryListRequest(@Suppress("UNUSED_PARAMETER") p: LibraryListRequestPayload, player: ServerPlayer) {
         sessions.subscribeLibrary(player.uuid)
         sendLibrary(player)
     }
@@ -203,15 +190,13 @@ object ServerNet {
         Bpm.LOGGER.info("{} created {} '{}' ({})", player.gameProfile.name, if (msg.library) "library" else "document", record.name, record.id)
     }
 
-    fun onDocRename(p: DocRenamePayload, ctx: IPayloadContext) {
-        val player = ctx.player() as? ServerPlayer ?: return
+    fun onDocRename(p: DocRenamePayload, player: ServerPlayer) {
         val lib = BpmLibrary.get(player.server)
         if (!mayManage(player, p.docId)) return
         if (lib.rename(p.docId, p.name)) libraryChanged(player.server, p.docId)
     }
 
-    fun onDocDelete(p: DocDeletePayload, ctx: IPayloadContext) {
-        val player = ctx.player() as? ServerPlayer ?: return
+    fun onDocDelete(p: DocDeletePayload, player: ServerPlayer) {
         val lib = BpmLibrary.get(player.server)
         if (!mayManage(player, p.docId)) return
         if (lib[p.docId] == null) return
@@ -229,8 +214,7 @@ object ServerNet {
         libraryChanged(server, docId, deleted = true)
     }
 
-    fun onDocDuplicate(p: DocDuplicatePayload, ctx: IPayloadContext) {
-        val player = ctx.player() as? ServerPlayer ?: return
+    fun onDocDuplicate(p: DocDuplicatePayload, player: ServerPlayer) {
         val lib = BpmLibrary.get(player.server)
         val src = lib[p.docId] ?: return
         val text = lib.text(src.id) ?: return
@@ -239,8 +223,7 @@ object ServerNet {
         libraryChanged(player.server, copy.id)
     }
 
-    fun onDocFetch(p: DocFetchPayload, ctx: IPayloadContext) {
-        val player = ctx.player() as? ServerPlayer ?: return
+    fun onDocFetch(p: DocFetchPayload, player: ServerPlayer) {
         pushDoc(player, p.docId)
     }
 
@@ -253,8 +236,7 @@ object ServerNet {
 
     // ---- sessions ---------------------------------------------------------------------------------------------
 
-    fun onEditorOpen(p: EditorOpenPayload, ctx: IPayloadContext) {
-        val player = ctx.player() as? ServerPlayer ?: return
+    fun onEditorOpen(p: EditorOpenPayload, player: ServerPlayer) {
         val lib = BpmLibrary.get(player.server)
         val docId = if (p.isControllerGraph) {
             // The controller's own graph, made on first use.
@@ -275,18 +257,15 @@ object ServerNet {
         p.controller?.let { pos -> watch(player, pos, true) }
     }
 
-    fun onEditorClose(p: EditorClosePayload, ctx: IPayloadContext) {
-        val player = ctx.player() as? ServerPlayer ?: return
+    fun onEditorClose(p: EditorClosePayload, player: ServerPlayer) {
         if (sessions.close(player.uuid, p.docId)) broadcastSession(player.server, p.docId, SessionReason.RELEASED)
     }
 
-    fun onHeartbeat(p: SessionHeartbeatPayload, ctx: IPayloadContext) {
-        val player = ctx.player() as? ServerPlayer ?: return
+    fun onHeartbeat(p: SessionHeartbeatPayload, player: ServerPlayer) {
         sessions.heartbeat(player.uuid, p.docId)
     }
 
-    fun onLeaseRequest(p: LeaseRequestPayload, ctx: IPayloadContext) {
-        val player = ctx.player() as? ServerPlayer ?: return
+    fun onLeaseRequest(p: LeaseRequestPayload, player: ServerPlayer) {
         val lease = sessions.requestLease(player.uuid, player.gameProfile.name, p.docId, p.steal, maySteal = mayManage(player, p.docId))
         when (lease.outcome) {
             LeaseOutcome.HELD_BY_OTHER -> sessionState(player, p.docId, SessionReason.NONE)
@@ -305,28 +284,26 @@ object ServerNet {
         }
     }
 
-    fun onLeaseRelease(p: LeaseReleasePayload, ctx: IPayloadContext) {
-        val player = ctx.player() as? ServerPlayer ?: return
+    fun onLeaseRelease(p: LeaseReleasePayload, player: ServerPlayer) {
         if (sessions.release(player.uuid, p.docId)) broadcastSession(player.server, p.docId, SessionReason.RELEASED)
     }
 
     // ---- chunks and commits ----------------------------------------------------------------------------------
 
-    fun onChunk(p: ChunkPayload, ctx: IPayloadContext) {
-        val player = ctx.player() as? ServerPlayer ?: return
+    fun onChunk(p: ChunkPayload, player: ServerPlayer) {
         val assembler = assemblers.getOrPut(player.uuid) {
             ChunkAssembler({ System.currentTimeMillis() }, maxTotalBytes = SERVERBOUND_MAX_BYTES, maxRawBytes = DocumentCodec.MAX_RAW_BYTES)
         }
         when (val r = assembler.accept(p.chunk)) {
             is ChunkAssembler.Result.Rejected -> {
                 Bpm.LOGGER.warn("{} sent a bad chunk: {}", player.gameProfile.name, r.reason)
-                ctx.disconnect(Component.literal("bpm: ${r.reason}"))
+                player.connection.disconnect(Component.literal("bpm: ${r.reason}"))
             }
             ChunkAssembler.Result.Pending -> {}
             is ChunkAssembler.Result.Complete -> when (r.inner) {
                 BigMessages.DOC_CREATE -> onDocCreate(BigMessages.decode(r.bytes, DocCreateMsg::read), player)
                 BigMessages.DOC_COMMIT -> onDocCommit(BigMessages.decode(r.bytes, DocCommitMsg::read), player)
-                else -> ctx.disconnect(Component.literal("bpm: unknown message '${r.inner}'"))
+                else -> player.connection.disconnect(Component.literal("bpm: unknown message '${r.inner}'"))
             }
         }
     }
@@ -358,16 +335,14 @@ object ServerNet {
         return player.serverLevel().getBlockEntity(pos) as? ControllerBlockEntity
     }
 
-    fun onControllerBind(p: ControllerBindPayload, ctx: IPayloadContext) {
-        val player = ctx.player() as? ServerPlayer ?: return
+    fun onControllerBind(p: ControllerBindPayload, player: ServerPlayer) {
         val be = controller(player, p.pos) ?: return
         if (p.docId != null && BpmLibrary.get(player.server)[p.docId] == null) return
         be.bind(p.docId)
         broadcastController(be)
     }
 
-    fun onControllerFlags(p: ControllerFlagsPayload, ctx: IPayloadContext) {
-        val player = ctx.player() as? ServerPlayer ?: return
+    fun onControllerFlags(p: ControllerFlagsPayload, player: ServerPlayer) {
         val be = controller(player, p.pos) ?: return
         val debugChanged = be.debugBuild != p.debugBuild
         be.debugBuild = p.debugBuild
@@ -381,8 +356,7 @@ object ServerNet {
      * was granted `input`. Everything else — offline, out of range, tether pocketed, grant off — is `mayI`
      * saying no, and the key simply goes nowhere.
      */
-    fun onKeyEdge(p: KeyEdgePayload, ctx: IPayloadContext) {
-        val player = ctx.player() as? ServerPlayer ?: return
+    fun onKeyEdge(p: KeyEdgePayload, player: ServerPlayer) {
         val key = bpm.world.KeyNames.normalise(p.key)
         if (key.isEmpty()) return
         for (be in bpm.runtime.RuntimeManager.all()) {
@@ -397,8 +371,7 @@ object ServerNet {
      * A panel was pressed. Only the controller the payload names hears it, and only when that controller's
      * tether grants `input` — a client cannot press a panel it was never shown.
      */
-    fun onHudInput(p: HudInputPayload, ctx: IPayloadContext) {
-        val player = ctx.player() as? ServerPlayer ?: return
+    fun onHudInput(p: HudInputPayload, player: ServerPlayer) {
         val be = player.level().getBlockEntity(p.controller) as? ControllerBlockEntity ?: return
         val rt = be.runtime ?: return
         if (rt.presence(player.uuid)?.mayI(bpm.world.Grant.INPUT) != true) return
@@ -419,8 +392,7 @@ object ServerNet {
      * A slider was dragged. The number is re-derived from the player's own look ray rather than believed:
      * a client that could name a value could set any slider on any wall from anywhere.
      */
-    fun onMonitorDrag(p: MonitorDragPayload, ctx: IPayloadContext) {
-        val player = ctx.player() as? ServerPlayer ?: return
+    fun onMonitorDrag(p: MonitorDragPayload, player: ServerPlayer) {
         val be = bpm.world.devices.MonitorInput.originLookedAt(player, p.origin) ?: return
         val widget = be.widgets.firstOrNull { it.id == p.id && it.kind == bpm.world.devices.Widget.SLIDER } ?: return
         val ray = player.pick(bpm.world.devices.MonitorInput.REACH, 0f, false) as? net.minecraft.world.phys.BlockHitResult ?: return
@@ -430,16 +402,14 @@ object ServerNet {
     }
 
     /** Text typed into a field. Same rule: the player has to be looking at that field. */
-    fun onMonitorText(p: MonitorTextPayload, ctx: IPayloadContext) {
-        val player = ctx.player() as? ServerPlayer ?: return
+    fun onMonitorText(p: MonitorTextPayload, player: ServerPlayer) {
         val be = bpm.world.devices.MonitorInput.originLookedAt(player, p.origin) ?: return
         if (be.widgets.none { it.id == p.id && it.kind == bpm.world.devices.Widget.FIELD }) return
         be.setText(p.id, p.text.take(MonitorTextPayload.MAX_TEXT))
         be.press(p.id)
     }
 
-    fun onRunControl(p: RunControlPayload, ctx: IPayloadContext) {
-        val player = ctx.player() as? ServerPlayer ?: return
+    fun onRunControl(p: RunControlPayload, player: ServerPlayer) {
         val be = controller(player, p.pos) ?: return
         if (!mayControl(player, be)) return
         val rt = be.runtime
@@ -459,8 +429,7 @@ object ServerNet {
         broadcastController(be)
     }
 
-    fun onLinkEdit(p: LinkEditPayload, ctx: IPayloadContext) {
-        val player = ctx.player() as? ServerPlayer ?: return
+    fun onLinkEdit(p: LinkEditPayload, player: ServerPlayer) {
         val be = controller(player, p.pos) ?: return
         val changed = when (p.op) {
             LinkOp.RENAME -> p.newName.isNotBlank() && be.links.rename(p.name, p.newName.trim())
@@ -495,8 +464,7 @@ object ServerNet {
         Bpm.LOGGER.info("bpm: link '{}' is now '{}' in '{}' (v{}); {} controllers restarting", old, new, record.name, stored.version, restarted)
     }
 
-    fun onControllerWatch(p: ControllerWatchPayload, ctx: IPayloadContext) {
-        val player = ctx.player() as? ServerPlayer ?: return
+    fun onControllerWatch(p: ControllerWatchPayload, player: ServerPlayer) {
         watch(player, p.pos, p.watch)
     }
 
@@ -551,8 +519,7 @@ object ServerNet {
         return BreakpointsPayload(be.blockPos, ids, BooleanArray(ids.size) { be.breakpoints[ids[it]] == true })
     }
 
-    fun onRunSubscribe(p: RunSubscribePayload, ctx: IPayloadContext) {
-        val player = ctx.player() as? ServerPlayer ?: return
+    fun onRunSubscribe(p: RunSubscribePayload, player: ServerPlayer) {
         val key = GlobalPos.of(player.serverLevel().dimension(), p.pos)
         val mine = runWatches.getOrPut(player.uuid) { LinkedHashSet() }
         if (!p.on) {
@@ -573,15 +540,13 @@ object ServerNet {
         rt.publisher.pause(force = true)?.let { sendBig(player, RunPauseMsg.NAME, BigMessages.encode { m -> pauseMsg(be, it).write(m) }) }
     }
 
-    fun onRunScopesRequest(p: RunScopesRequestPayload, ctx: IPayloadContext) {
-        val player = ctx.player() as? ServerPlayer ?: return
+    fun onRunScopesRequest(p: RunScopesRequestPayload, player: ServerPlayer) {
         val be = controller(player, p.pos) ?: return
         val rt = be.runtime ?: return
         send(player, RunScopesPayload(be.blockPos, p.contextId, p.frameIndex, scopes(rt.publisher.scopes(p.contextId, p.frameIndex))))
     }
 
-    fun onBreakpointSet(p: BreakpointSetPayload, ctx: IPayloadContext) {
-        val player = ctx.player() as? ServerPlayer ?: return
+    fun onBreakpointSet(p: BreakpointSetPayload, player: ServerPlayer) {
         val be = controller(player, p.pos) ?: return
         if (!mayControl(player, be)) return
         be.setBreakpoint(p.nodeId, p.enabled, p.remove)
@@ -589,15 +554,13 @@ object ServerNet {
         for (w in runWatchersOf(be)) send(w, table)
     }
 
-    fun onSetVariable(p: SetVariablePayload, ctx: IPayloadContext) {
-        val player = ctx.player() as? ServerPlayer ?: return
+    fun onSetVariable(p: SetVariablePayload, player: ServerPlayer) {
         val be = controller(player, p.pos) ?: return
         if (!mayControl(player, be)) return
         be.runtime?.runtime?.setVariable(p.name, parseDebugValue(p.text))
     }
 
-    fun onSetLiteral(p: SetLiteralPayload, ctx: IPayloadContext) {
-        val player = ctx.player() as? ServerPlayer ?: return
+    fun onSetLiteral(p: SetLiteralPayload, player: ServerPlayer) {
         val be = controller(player, p.pos) ?: return
         if (!mayControl(player, be) || !be.debugBuild) return
         be.runtime?.runtime?.setLiteral(p.nodeId, p.pin, parseDebugValue(p.text))
