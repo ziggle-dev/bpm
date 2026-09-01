@@ -36,6 +36,15 @@ class NeoRegistries(private val bus: IEventBus) : PlatformRegistries {
     override fun <T> of(key: ResourceKey<Registry<T>>, namespace: String): Registrar<T> =
         NeoRegistrar(remember(DeferredRegister.create(key, namespace)))
 
+    @Suppress("UNCHECKED_CAST")
+    override fun entityAttributes(block: (AttributeSink) -> Unit) {
+        bus.addListener(net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent::class.java) { event ->
+            block(AttributeSink { type, attributes ->
+                event.put(type.get() as net.minecraft.world.entity.EntityType<out net.minecraft.world.entity.LivingEntity>, attributes)
+            })
+        }
+    }
+
     override fun installAll() {
         for (reg in pending) reg.register(bus)
         pending.clear()

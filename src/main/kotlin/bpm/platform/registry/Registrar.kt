@@ -69,6 +69,22 @@ interface PlatformRegistries {
      * eager registry would call that factory before the fluid existed.
      */
     fun installAll()
+
+    /**
+     * Attributes for entity types, which every loader hangs off its own hook rather than off the
+     * registry: NeoForge fires `EntityAttributeCreationEvent`, Fabric has `FabricDefaultAttributeRegistry`.
+     *
+     * [block] is handed a sink and may be called later, whenever this loader is ready to hear it.
+     */
+    fun entityAttributes(block: (AttributeSink) -> Unit)
+}
+
+/** Where entity attributes go. Deliberately not a map: on NeoForge these arrive during an event. */
+fun interface AttributeSink {
+    fun put(
+        type: RegistryRef<out net.minecraft.world.entity.EntityType<*>>,
+        attributes: net.minecraft.world.entity.ai.attributes.AttributeSupplier,
+    )
 }
 
 /** The installed registries. See [bpm.platform.net.Net] for why this is a `lateinit` and not a lookup. */
@@ -84,4 +100,6 @@ object Registrars {
     fun components(namespace: String): ComponentRegistrar = backend.components(namespace)
     fun <T> of(key: ResourceKey<Registry<T>>, namespace: String): Registrar<T> = backend.of(key, namespace)
     fun installAll() = backend.installAll()
+
+    fun entityAttributes(block: (AttributeSink) -> Unit) = backend.entityAttributes(block)
 }

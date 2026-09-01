@@ -44,6 +44,10 @@ object NeoEventBridge {
             if (!BpmEvents.blockBreak.fire(BlockBreak(level, e.pos, e.state, e.player))) e.isCanceled = true
         })
 
+        bus.addListener(net.neoforged.neoforge.event.RegisterCommandsEvent::class.java, Consumer { e ->
+            BpmEvents.registerCommands.fire(CommandRegistration(e.dispatcher, e.buildContext))
+        })
+
         bus.addListener(PlayerEvent.ItemCraftedEvent::class.java, Consumer { e ->
             BpmEvents.itemCrafted.fire(Crafted(e.entity, e.crafting, e.inventory))
         })

@@ -15,7 +15,6 @@ import net.minecraft.commands.arguments.coordinates.BlockPosArgument
 import net.minecraft.core.Direction
 import net.minecraft.network.chat.Component
 import net.minecraft.world.level.block.entity.BlockEntity
-import net.neoforged.neoforge.event.RegisterCommandsEvent
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.dedicated.DedicatedServer
 import java.nio.file.Files
@@ -29,7 +28,7 @@ import bpm.catalog.BpmCatalog
  * Documents come from `<gamedir>/bpm/graphs/<file>.json` (`GraphDoc` JSON, as the vscript editor saves it).
  */
 object BpmCommands {
-    fun register(event: RegisterCommandsEvent) {
+    fun register(event: bpm.platform.events.CommandRegistration) {
         val root = Commands.literal("bpm").requires { it.hasPermission(2) }
             .then(Commands.literal("stats").executes { ctx -> reply(ctx, RuntimeManager.stats()); 1 })
             .then(Commands.literal("ticks").executes { ctx -> reply(ctx, tickReport(ctx.source.server)); 1 })

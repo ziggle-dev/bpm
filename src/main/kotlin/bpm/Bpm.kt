@@ -50,7 +50,7 @@ object Bpm {
         RuntimeManager.install()
         BpmNetwork.install(MOD_BUS)
         ServerNet.install()
-        NeoForge.EVENT_BUS.addListener(RegisterCommandsEvent::class.java, Consumer(BpmCommands::register))
+        bpm.platform.events.BpmEvents.registerCommands.listen(BpmCommands::register)
         // The client class is only ever touched on the client, so a dedicated server never loads it.
         if (bpm.platform.Platform.isClient) bpm.client.BpmClient.init(MOD_BUS)
         // The dev-only debugging endpoint lives in a source set the shipped jar does not carry; found by

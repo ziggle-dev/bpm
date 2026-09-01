@@ -10,7 +10,6 @@ import bpm.Bpm
 import net.minecraft.core.registries.Registries
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
-import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent
 
 object ModEntities {
     val REG: Registrar<EntityType<*>> = Registrars.of(Registries.ENTITY_TYPE, Bpm.ID)
@@ -27,7 +26,7 @@ object ModEntities {
         EntityType.Builder.of(::LinkerPulseEntity, MobCategory.MISC).sized(0.25f, 0.25f).noSave().noSummon().clientTrackingRange(8).updateInterval(2).build("linker_pulse")
     }
 
-    fun attributes(event: EntityAttributeCreationEvent) {
-        event.put(WARDEN.get(), QuantumWardenEntity.attributes().build())
+    fun attributes() = Registrars.entityAttributes { sink ->
+        sink.put(WARDEN, QuantumWardenEntity.attributes().build())
     }
 }

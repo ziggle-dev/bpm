@@ -77,6 +77,15 @@ data class LeftClickBlock(
 
 data class AttackEntity(val player: Player, val target: net.minecraft.world.entity.Entity)
 
+/**
+ * Where commands are declared. [buildContext] is what the item and block argument types need to know
+ * which registries exist, so it travels with the dispatcher rather than being looked up separately.
+ */
+data class CommandRegistration(
+    val dispatcher: com.mojang.brigadier.CommandDispatcher<net.minecraft.commands.CommandSourceStack>,
+    val buildContext: net.minecraft.commands.CommandBuildContext,
+)
+
 /** A player's death drops, before they are scattered. Refusing means the listener has taken them. */
 data class Drops(val player: ServerPlayer, val stacks: List<ItemStack>)
 
@@ -110,4 +119,6 @@ object BpmEvents {
     /** Fires on both sides: the HOLD phase only ever happens on the client, and the monitor slider wants it. */
     val leftClickBlock = Veto<LeftClickBlock>()
     val attackEntity = Veto<AttackEntity>()
+
+    val registerCommands = Hook<CommandRegistration>()
 }
