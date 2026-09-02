@@ -14,16 +14,27 @@ import net.minecraft.world.entity.MobCategory
 object ModEntities {
     val REG: Registrar<EntityType<*>> = Registrars.of(Registries.ENTITY_TYPE, Bpm.ID)
 
+    private fun id(name: String) = net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(Bpm.ID, name)
+
     val WARDEN: RegistryRef<EntityType<QuantumWardenEntity>> = REG.register("quantum_warden") { ->
-        EntityType.Builder.of(::QuantumWardenEntity, MobCategory.MONSTER).sized(2.4f, 3.2f).fireImmune().clientTrackingRange(12).build("quantum_warden")
+        bpm.platform.entityType(
+            EntityType.Builder.of(::QuantumWardenEntity, MobCategory.MONSTER).sized(2.4f, 3.2f).fireImmune().clientTrackingRange(12),
+            id("quantum_warden"),
+        )
     }
 
     val BOLT: RegistryRef<EntityType<WardenBoltEntity>> = REG.register("warden_bolt") { ->
-        EntityType.Builder.of(::WardenBoltEntity, MobCategory.MISC).sized(0.3f, 0.3f).noSave().noSummon().clientTrackingRange(8).updateInterval(2).build("warden_bolt")
+        bpm.platform.entityType(
+            EntityType.Builder.of(::WardenBoltEntity, MobCategory.MISC).sized(0.3f, 0.3f).noSave().noSummon().clientTrackingRange(8).updateInterval(2),
+            id("warden_bolt"),
+        )
     }
 
     val PULSE: RegistryRef<EntityType<LinkerPulseEntity>> = REG.register("linker_pulse") { ->
-        EntityType.Builder.of(::LinkerPulseEntity, MobCategory.MISC).sized(0.25f, 0.25f).noSave().noSummon().clientTrackingRange(8).updateInterval(2).build("linker_pulse")
+        bpm.platform.entityType(
+            EntityType.Builder.of(::LinkerPulseEntity, MobCategory.MISC).sized(0.25f, 0.25f).noSave().noSummon().clientTrackingRange(8).updateInterval(2),
+            id("linker_pulse"),
+        )
     }
 
     fun attributes() = Registrars.entityAttributes { sink ->

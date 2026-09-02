@@ -144,7 +144,7 @@ private class KeyCatalog : ValueCatalog {
 private class TagCatalog : ValueCatalog {
     private var ids: List<String>? = null
 
-    private fun ids(): List<String> = ids ?: BuiltInRegistries.ITEM.tags.map { it.first.location().toString() }.toList().sorted().also { ids = it }
+    private fun ids(): List<String> = ids ?: bpm.platform.tagIds(BuiltInRegistries.ITEM).sorted().also { ids = it }
 
     fun invalidate() {
         ids = null

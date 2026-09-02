@@ -61,7 +61,11 @@ class AssemblyRecipe(
     val ticks: Int,
     val result: ItemStack,
     val requires: List<String>,
-) : Recipe<AssemblyInput> {
+) : bpm.platform.PedestalRecipe<AssemblyInput>() {
+
+    override val inputs: List<Ingredient> get() = parts
+
+    override val output: ItemStack get() = result
 
     /** Rounded UP, so a job is always fully paid for by the time it ends rather than a tick short. */
     val energyPerTick: Int get() = ceilDiv(energy, ticks)
@@ -112,16 +116,9 @@ class AssemblyRecipe(
 
     override fun assemble(input: AssemblyInput, registries: HolderLookup.Provider): ItemStack = result.copy()
 
-    /** Not a grid recipe; the pedestals are the shape and there is no width to speak of. */
-    override fun canCraftInDimensions(width: Int, height: Int): Boolean = true
+    override fun getSerializer(): RecipeSerializer<out Recipe<AssemblyInput>> = ModRecipes.ASSEMBLY_SERIALIZER.get()
 
-    override fun getResultItem(registries: HolderLookup.Provider): ItemStack = result
-
-    override fun getIngredients(): NonNullList<Ingredient> = parts
-
-    override fun getSerializer(): RecipeSerializer<*> = ModRecipes.ASSEMBLY_SERIALIZER.get()
-
-    override fun getType(): RecipeType<*> = ModRecipes.ASSEMBLY.get()
+    override fun getType(): RecipeType<out Recipe<AssemblyInput>> = ModRecipes.ASSEMBLY.get()
 
     /** A recipe whose result the player cannot see coming is no fun; the screen and JEI both read this. */
     override fun isSpecial(): Boolean = false
@@ -130,8 +127,8 @@ class AssemblyRecipe(
 
         private val codec: MapCodec<AssemblyRecipe> = RecordCodecBuilder.mapCodec { it ->
             it.group(
-                Ingredient.CODEC_NONEMPTY.listOf().fieldOf("ingredients").forGetter { r -> r.parts },
-                Ingredient.CODEC_NONEMPTY.fieldOf("catalyst").forGetter { r -> r.catalyst },
+                bpm.platform.INGREDIENT_CODEC.listOf().fieldOf("ingredients").forGetter { r -> r.parts },
+                bpm.platform.INGREDIENT_CODEC.fieldOf("catalyst").forGetter { r -> r.catalyst },
                 Codec.INT.optionalFieldOf("energy", 0).forGetter { r -> r.energy },
                 Codec.INT.optionalFieldOf("experience", 0).forGetter { r -> r.experience },
                 Codec.INT.optionalFieldOf("ticks", 200).forGetter { r -> r.ticks },

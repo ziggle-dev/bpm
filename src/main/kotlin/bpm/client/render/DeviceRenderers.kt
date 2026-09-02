@@ -13,7 +13,6 @@ import bpm.world.devices.TurretBlockEntity
 import bpm.world.devices.VentBlockEntity
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.math.Axis
-import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.core.Direction
@@ -144,8 +143,8 @@ class MonitorModel : PathGeoModel<bpm.world.devices.MonitorBlockEntity>(
     rl("animations/block/quantum_monitor.animation.json"),
     rl("textures/block/quantum_monitor.png"),
 ) {
-    override fun getTextureResource(animatable: bpm.world.devices.MonitorBlockEntity): ResourceLocation =
-        if (animatable.on) ON else super.getTextureResource(animatable)
+    override fun texturePath(animatable: bpm.world.devices.MonitorBlockEntity): ResourceLocation =
+        if (animatable.on) ON else super.texturePath(animatable)
 
     companion object {
         private val ON = rl("textures/block/quantum_monitor_on.png")
@@ -214,7 +213,7 @@ class MonitorRenderer : GeoBlockRenderer<bpm.world.devices.MonitorBlockEntity>(M
 
 /** Device items drawn with their block's model at rest, one renderer per model, made on first use. */
 object DeviceItemExtensions {
-    private val cache = HashMap<String, BlockEntityWithoutLevelRenderer>()
+    private val cache = HashMap<String, GeoItemRenderer<DeviceBlockItem>>()
 
     /** Bones a model leaves out when drawn as an item (world-only parts that would dwarf the block). */
     private val HIDDEN_IN_ITEM: Map<String, Set<String>> = mapOf(
@@ -223,7 +222,7 @@ object DeviceItemExtensions {
         "quantum_monitor" to setOf("bezel_up_l", "bezel_up_r", "bezel_down_l", "bezel_down_r", "bezel_left_u", "bezel_left_d", "bezel_right_u", "bezel_right_d"),
     )
 
-    fun of(model: String): BlockEntityWithoutLevelRenderer = cache.getOrPut(model) {
+    fun of(model: String): GeoItemRenderer<DeviceBlockItem> = cache.getOrPut(model) {
         run {
             run {
                 object : GeoItemRenderer<DeviceBlockItem>(DeviceModel(model)) {

@@ -40,7 +40,7 @@ import software.bernie.geckolib.animation.RawAnimation
  * Drawing on the screen is the renderer's job later: the model's `screen` bone marks the content plane, 11/16
  * of a block in from the front face, and each tile's visible area is 16 x 16 less a 2 px bezel on outer edges.
  */
-class MonitorBlock(properties: Properties) : Block(properties), EntityBlock {
+class MonitorBlock(properties: Properties) : bpm.platform.ShapeAwareBlock(properties), EntityBlock {
     init {
         registerDefaultState(
             stateDefinition.any().setValue(FACING, Direction.NORTH)
@@ -63,7 +63,7 @@ class MonitorBlock(properties: Properties) : Block(properties), EntityBlock {
         return state
     }
 
-    override fun updateShape(state: BlockState, direction: Direction, neighborState: BlockState, level: LevelAccessor, pos: BlockPos, neighborPos: BlockPos): BlockState {
+    override fun onNeighborShape(state: BlockState, direction: Direction, neighborState: BlockState): BlockState {
         val prop = edge(state.getValue(FACING), direction) ?: return state
         return state.setValue(prop, !joins(state, neighborState))
     }

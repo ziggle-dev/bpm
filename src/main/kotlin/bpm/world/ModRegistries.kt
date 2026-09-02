@@ -61,8 +61,7 @@ object ModBlockEntities {
     val REG: Registrar<BlockEntityType<*>> = Registrars.of(Registries.BLOCK_ENTITY_TYPE, Bpm.ID)
 
     val CONTROLLER: RegistryRef<BlockEntityType<ControllerBlockEntity>> = REG.register("quantum_controller") { ->
-        @Suppress("DataFlowIssue")
-        BlockEntityType.Builder.of(::ControllerBlockEntity, ModBlocks.CONTROLLER.get()).build(null)
+        bpm.platform.blockEntityType(::ControllerBlockEntity, ModBlocks.CONTROLLER.get())
     }
 }
 

@@ -1,35 +1,24 @@
 package bpm.platform.client
 
-import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer
-import net.minecraft.world.item.Item
-
-/**
- * Giving an item its own renderer.
+/*
+ * Item renderers used to be here, as an `ItemRendererSink` this mod owned.
  *
- * NeoForge asks the item itself, through `IClientItemExtensions#getCustomRenderer` — which is why four
- * otherwise entirely vanilla item classes each carried an `initializeClient` override naming a client
- * class. Fabric asks a registry instead (`BuiltinItemRendererRegistry`), and from 1.21.4 vanilla wants a
- * `SpecialModelRenderer` declared in a client-item JSON.
+ * They are not any more, and the reason is worth recording. The three routes looked irreconcilable —
+ * NeoForge asks the item through `IClientItemExtensions#getCustomRenderer`, Fabric asks
+ * `BuiltinItemRendererRegistry`, and from 1.21.4 vanilla deleted `BlockEntityWithoutLevelRenderer`
+ * outright in favour of a `SpecialModelRenderer` named from a client-item JSON. Three mechanisms, one of
+ * which does not even take a renderer object.
  *
- * All three are "here is an item, here is how to draw it", so that is what this says. The consequence is
- * that the item classes go back to being plain items and the client wiring lives in one client-side
- * table, which is where a reader would look for it anyway.
+ * But every item this mod draws that way is a GeckoLib item, and GeckoLib already reconciles all three:
+ * `GeoRenderProvider` is its own answer, present under that exact name on both loaders and on both sides
+ * of the 1.21.4 break, and it is what GeckoLib's NeoForge bridge and its 1.21.4 special-renderer mixin
+ * each consume. A seam here would have been a second abstraction over the first, and would have had to
+ * follow the `BlockEntityWithoutLevelRenderer` deletion for nothing.
+ *
+ * So the mod says which renderer an item wants in one client-side table — see
+ * [bpm.client.render.BpmItemRenderers] — and GeckoLib carries it the rest of the way. Deleted, not
+ * ported, which is the better outcome of the two.
  */
-fun interface ItemRendererSink {
-    fun register(item: Item, renderer: () -> BlockEntityWithoutLevelRenderer)
-}
-
-interface ItemRendererRegistry {
-    /**
-     * [block] may be called later, when this loader is ready to hear it.
-     *
-     * Deferred, and it has to be. The block names its items through the deferred registers, so calling
-     * it during mod construction resolves a holder that nothing has bound yet -- which is exactly what
-     * happened: the client died on "Trying to access unbound value: bpm:quantum_controller" before it
-     * reached the title screen. A dedicated server never runs this code, so no game test could see it.
-     */
-    fun items(block: (ItemRendererSink) -> Unit)
-}
 
 /**
  * Where block-entity and entity renderers are declared.
@@ -46,7 +35,7 @@ interface RendererSink {
 
     fun <T : net.minecraft.world.entity.Entity> entity(
         type: net.minecraft.world.entity.EntityType<out T>,
-        renderer: (net.minecraft.client.renderer.entity.EntityRendererProvider.Context) -> net.minecraft.client.renderer.entity.EntityRenderer<T>,
+        renderer: (net.minecraft.client.renderer.entity.EntityRendererProvider.Context) -> EntityRendererOf<T>,
     )
 }
 
@@ -56,15 +45,11 @@ interface RendererRegistry {
 }
 
 object ClientRenderers {
-    private lateinit var itemRenderers: ItemRendererRegistry
     private lateinit var renderers: RendererRegistry
 
-    fun install(items: ItemRendererRegistry, renderers: RendererRegistry) {
-        this.itemRenderers = items
+    fun install(renderers: RendererRegistry) {
         this.renderers = renderers
     }
-
-    fun items(block: (ItemRendererSink) -> Unit) = itemRenderers.items(block)
 
     fun renderers(block: (RendererSink) -> Unit) = renderers.renderers(block)
 }

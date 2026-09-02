@@ -20,6 +20,17 @@ class ControllerBlockItem(block: Block, properties: Properties) : BlockItem(bloc
 
     override fun getAnimatableInstanceCache(): AnimatableInstanceCache = animCache
 
+    /**
+     * Which renderer draws this item, asked once by GeckoLib and cached by it.
+     *
+     * The answer lives in one client-side table, not here -- see [bpm.client.render.BpmItemRenderers].
+     * This override exists because GeckoLib asks the item and nothing else can answer for it, and it is
+     * the one route that works on both loaders and on both sides of 1.21.4's
+     * `BlockEntityWithoutLevelRenderer` deletion.
+     */
+    override fun createGeoRenderer(consumer: Consumer<software.bernie.geckolib.animatable.client.GeoRenderProvider>) =
+        bpm.client.render.geoItemRenderer(this, consumer)
+
     override fun appendHoverText(stack: net.minecraft.world.item.ItemStack, context: TooltipContext, tooltip: MutableList<net.minecraft.network.chat.Component>, flag: net.minecraft.world.item.TooltipFlag) {
         val tier = CoreTier.of(stack)
         tooltip.add(net.minecraft.network.chat.Component.literal("${tier.label} core · reach ${tier.rangeText} · ${tier.maxLinks} links · ${tier.maxPlayerLinks} presence"))

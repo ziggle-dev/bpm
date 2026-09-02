@@ -191,7 +191,7 @@ class LinkerItem(properties: Properties) : Item(properties), GeoItem {
     /** The pedestal fills the wand again — used with the linker in hand. */
     fun recharge(stack: ItemStack, player: Player) {
         stack.set(ModComponents.CHARGES.get(), MAX_CHARGES)
-        player.cooldowns.addCooldown(this, 10)
+        bpm.platform.addCooldown(player, stack, 10)
         say(player, "the linker hums — $MAX_CHARGES specials")
         (player.level() as? net.minecraft.server.level.ServerLevel)?.let { l ->
             l.sendParticles(net.minecraft.core.particles.ParticleTypes.ELECTRIC_SPARK, player.x, player.y + 1.2, player.z, 24, 0.4, 0.4, 0.4, 0.2)
@@ -200,7 +200,7 @@ class LinkerItem(properties: Properties) : Item(properties), GeoItem {
     }
 
     private fun pulse(level: Level, player: Player, hand: InteractionHand): InteractionResult {
-        if (player.cooldowns.isOnCooldown(this)) return InteractionResult.PASS
+        if (bpm.platform.onCooldown(player, player.getItemInHand(hand))) return InteractionResult.PASS
         if (level.isClientSide) return InteractionResult.SUCCESS
         val server = level as? net.minecraft.server.level.ServerLevel ?: return InteractionResult.PASS
         val stack = player.getItemInHand(hand)
@@ -213,7 +213,7 @@ class LinkerItem(properties: Properties) : Item(properties), GeoItem {
         pulse.launch(from, player.lookAngle)
         server.addFreshEntity(pulse)
         server.playSound(null, player.x, player.y, player.z, net.minecraft.sounds.SoundEvents.BEACON_POWER_SELECT, net.minecraft.sounds.SoundSource.PLAYERS, 0.5f, 1.8f)
-        player.cooldowns.addCooldown(this, PULSE_COOLDOWN)
+        bpm.platform.addCooldown(player, stack, PULSE_COOLDOWN)
         animate(level, player, stack, "link")
         return InteractionResult.CONSUME
     }
@@ -284,7 +284,7 @@ class LinkerItem(properties: Properties) : Item(properties), GeoItem {
     /** One of the wand's one-shot animations, for everyone who can see the hand. */
     private fun animate(level: Level, player: Player, stack: ItemStack, anim: String) {
         val server = level as? net.minecraft.server.level.ServerLevel ?: return
-        triggerAnim<Any>(player, GeoItem.getOrAssignId(stack, server), "overlay", anim)
+        bpm.platform.triggerItemAnim(this, player, GeoItem.getOrAssignId(stack, server), "overlay", anim)
     }
 
     // ---- geckolib ---------------------------------------------------------------------------------------
@@ -298,6 +298,10 @@ class LinkerItem(properties: Properties) : Item(properties), GeoItem {
     }
 
     override fun getAnimatableInstanceCache(): AnimatableInstanceCache = animCache
+
+    /** Drawn by the table in [bpm.client.render.BpmItemRenderers]; GeckoLib asks the item, so the item asks it. */
+    override fun createGeoRenderer(consumer: Consumer<software.bernie.geckolib.animatable.client.GeoRenderProvider>) =
+        bpm.client.render.geoItemRenderer(this, consumer)
 
 
     companion object {

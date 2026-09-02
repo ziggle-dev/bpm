@@ -172,7 +172,7 @@ class QuantumTetherItem(properties: Properties) : TooltipItem(properties), GeoIt
     /** One of the pendant's one-shot animations, for everyone who can see the hand. */
     private fun animate(level: Level, player: Player, stack: ItemStack, anim: String) {
         val server = level as? ServerLevel ?: return
-        triggerAnim<Any>(player, GeoItem.getOrAssignId(stack, server), "overlay", anim)
+        bpm.platform.triggerItemAnim(this, player, GeoItem.getOrAssignId(stack, server), "overlay", anim)
     }
 
     // ---- geckolib ---------------------------------------------------------------------------------------
@@ -186,6 +186,10 @@ class QuantumTetherItem(properties: Properties) : TooltipItem(properties), GeoIt
     }
 
     override fun getAnimatableInstanceCache(): AnimatableInstanceCache = animCache
+
+    /** Drawn by the table in [bpm.client.render.BpmItemRenderers]; GeckoLib asks the item, so the item asks it. */
+    override fun createGeoRenderer(consumer: Consumer<software.bernie.geckolib.animatable.client.GeoRenderProvider>) =
+        bpm.client.render.geoItemRenderer(this, consumer)
 
 
     companion object {

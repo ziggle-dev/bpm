@@ -482,7 +482,7 @@ object WorldNodes {
             val volume = param("Volume", McVs.float, "", default = 1.0)
             val pitch = param("Pitch", McVs.float, "", default = 1.0)
             command {
-                val sound = ResourceLocation.tryParse(id().trim())?.let { BuiltInRegistries.SOUND_EVENT.get(it) } ?: return@command null
+                val sound = ResourceLocation.tryParse(id().trim())?.let { bpm.platform.valueOf(BuiltInRegistries.SOUND_EVENT, it) } ?: return@command null
                 val at = BlockPosValue.toBlockPos(pos()) ?: host.pos
                 host.level.playSound(null, at, sound, SoundSource.BLOCKS, volume().toFloat(), pitch().toFloat())
                 null

@@ -258,7 +258,7 @@ class AssemblerRenderer : DeviceRenderer<AssemblerBlockEntity>("quantum_assemble
             false,
             false,
             RenderType.CompositeState.builder()
-                .setShaderState(RenderStateShard.ShaderStateShard(GameRenderer::getPositionColorShader))
+                .setShaderState(bpm.platform.client.positionColorShader())
                 .setTextureState(RenderStateShard.NO_TEXTURE)
                 .setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY)
                 .setCullState(RenderStateShard.NO_CULL)

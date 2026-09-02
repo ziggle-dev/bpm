@@ -33,24 +33,45 @@ object BpmClient {
             net.minecraft.client.renderer.ItemBlockRenderTypes.setRenderLayer(bpm.world.ModFluids.EXPERIENCE.get(), net.minecraft.client.renderer.RenderType.translucent())
             net.minecraft.client.renderer.ItemBlockRenderTypes.setRenderLayer(bpm.world.ModFluids.EXPERIENCE_FLOWING.get(), net.minecraft.client.renderer.RenderType.translucent())
             GeoRenderers.installMolang()
+            /*
+             * Ponder scenes exist only where Create's Ponder does, which today is 1.21.1. The build
+             * excludes the `bpm.client.ponder` package from every other node, so this call has to go with it --
+             * an excluded source file is not a missing dependency, it is a file that is not there.
+             */
+            //? if <1.21.2 {
             bpm.client.ponder.PonderCompat.install()
+            //?}
             Bpm.LOGGER.info("bpm client ready (smoke frames: {})", SmokeRun.frames)
         }
         modBus.addListener(EntityRenderersEvent.RegisterRenderers::class.java, Consumer(bpm.platform.client.NeoRendererRegistry::onRegisterRenderers))
         modBus.addListener(net.neoforged.neoforge.client.event.RegisterShadersEvent::class.java, Consumer(bpm.client.render.RiftShader::register))
         bpm.platform.client.RiftLooks.install(bpm.client.render.RiftShader)
         modBus.addListener(net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent::class.java, Consumer(bpm.platform.client.NeoKeyRegistry::onRegisterKeys))
+        /*
+         * The glowmask survey (GlowLayer) is per resource set: forget it when packs reload.
+         *
+         * `RegisterClientReloadListenersEvent` became `AddClientReloadListenersEvent` at 1.21.2, and the
+         * listener now needs a NAME -- the event sorts listeners into a dependency graph rather than a
+         * list, so every one has to be identifiable. Same moment, same listener.
+         */
+        //? if >=1.21.2 {
+        /*modBus.addListener(net.neoforged.neoforge.client.event.AddClientReloadListenersEvent::class.java, Consumer { e ->
+            e.addListener(
+                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(Bpm.ID, "glowmasks"),
+                net.minecraft.server.packs.resources.ResourceManagerReloadListener { bpm.client.render.Glowmasks.invalidate() },
+            )
+        })
+        *///?} else {
         modBus.addListener(net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent::class.java, Consumer { e ->
-            // The glowmask survey (GlowLayer) is per resource set: forget it when packs reload.
             e.registerReloadListener(net.minecraft.server.packs.resources.ResourceManagerReloadListener { bpm.client.render.Glowmasks.invalidate() })
         })
+        //?}
         modBus.addListener(net.neoforged.neoforge.client.event.RegisterGuiLayersEvent::class.java, Consumer(bpm.platform.client.NeoHudRegistry::onRegisterGuiLayers))
         bpm.platform.client.Hud.install(bpm.platform.client.NeoHudRegistry)
         bpm.client.render.LinkerHud.install()
         bpm.platform.client.Hud.onTop(HUD_PANELS, bpm.client.mc.HudOverlay::render)
-        bpm.platform.client.ClientRenderers.install(bpm.platform.client.NeoClientRenderers, bpm.platform.client.NeoRendererRegistry)
+        bpm.platform.client.ClientRenderers.install(bpm.platform.client.NeoRendererRegistry)
         bpm.platform.client.FluidVisuals.install(bpm.platform.client.NeoFluidAppearance)
-        bpm.client.render.BpmItemRenderers.install()
         GeoRenderers.registerRenderers()
         bpm.platform.client.ClientKeys.install(bpm.platform.client.NeoKeyRegistry)
         Keys.register()
@@ -59,7 +80,6 @@ object BpmClient {
                 bpm.platform.registry.NeoFluidRegistrar.looks(bpm.world.ModFluids.SPEC),
                 bpm.platform.registry.NeoFluidRegistrar.type(bpm.world.ModFluids.SPEC.name).get(),
             )
-            bpm.platform.client.NeoClientRenderers.onRegisterExtensions(event)
         })
         BpmEvents.screenOpened.listen(::onScreenOpened)
         BpmEvents.leftClickEmpty.listen { player ->
@@ -82,7 +102,7 @@ object BpmClient {
     private fun onScreenOpened(screen: net.minecraft.client.gui.screens.Screen) {
         if (screen is TitleScreen && SmokeRun.claim()) {
             // Not from inside the init of the screen being replaced: next tick.
-            Minecraft.getInstance().tell { SmokeRun.start() }
+            Minecraft.getInstance().execute { SmokeRun.start() }
         }
     }
 

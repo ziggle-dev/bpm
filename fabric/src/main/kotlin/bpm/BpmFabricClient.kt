@@ -16,10 +16,7 @@ import net.fabricmc.api.Environment
 object BpmFabricClient : ClientModInitializer {
 
     override fun onInitializeClient() {
-        bpm.platform.client.ClientRenderers.install(
-            bpm.platform.client.FabricItemRenderers,
-            bpm.platform.client.FabricRendererRegistry,
-        )
+        bpm.platform.client.ClientRenderers.install(bpm.platform.client.FabricRendererRegistry)
         bpm.platform.client.FluidVisuals.install(bpm.platform.client.FabricFluidAppearance)
         bpm.platform.client.Hud.install(bpm.platform.client.FabricHudRegistry)
         bpm.platform.client.ClientKeys.install(bpm.platform.client.FabricKeyRegistry)
@@ -27,7 +24,6 @@ object BpmFabricClient : ClientModInitializer {
         bpm.platform.events.FabricClientEventBridge.install()
 
         // The client subsystems declare what they want; the four registries above collected it.
-        bpm.client.render.BpmItemRenderers.install()
         bpm.client.render.GeoRenderers.registerRenderers()
         bpm.client.render.GeoRenderers.installMolang()
         bpm.client.Keys.register()
@@ -35,7 +31,6 @@ object BpmFabricClient : ClientModInitializer {
         bpm.platform.client.Hud.onTop(HUD_PANELS, bpm.client.mc.HudOverlay::render)
 
         // Now hand it all over. Fabric's registries take these immediately, so this must come last.
-        bpm.platform.client.FabricItemRenderers.register()
         bpm.platform.client.FabricRendererRegistry.register()
         bpm.platform.client.FabricKeyRegistry.register()
         bpm.platform.client.FabricHudRegistry.register()

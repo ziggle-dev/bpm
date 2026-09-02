@@ -127,7 +127,7 @@ object BpmImGui {
             ImGui.render()
             backend.renderDrawData(ImGui.getDrawData())
             BufferUploader.reset()
-            RenderSystem.applyModelViewMatrix()
+            bpm.platform.client.applyModelView()
         }
     }
 

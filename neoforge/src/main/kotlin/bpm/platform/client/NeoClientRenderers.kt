@@ -1,40 +1,10 @@
 package bpm.platform.client
 
-import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer
-import net.minecraft.world.item.Item
-import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions
-import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent
-
-/**
- * NeoForge's client item extensions.
- *
- * Registrations are collected as they arrive and replayed when the event fires, because the event is
- * not open when the mod is wiring itself up. The renderer is built lazily inside the extension, as it
- * was before: constructing a GeckoLib renderer during mod init is too early.
+/*
+ * NeoForge's client item extensions used to be bridged here, to give four items their GeckoLib
+ * renderers. They are not any more: GeckoLib does that bridging itself, from `GeoRenderProvider`, and
+ * on 1.21.4 there is no `getCustomRenderer` to bridge to. See `bpm.platform.client.ClientRenderers`.
  */
-object NeoClientRenderers : ItemRendererRegistry {
-
-    private val pending = ArrayList<(ItemRendererSink) -> Unit>()
-
-    override fun items(block: (ItemRendererSink) -> Unit) {
-        pending += block
-    }
-
-    fun onRegisterExtensions(event: RegisterClientExtensionsEvent) {
-        val declared = ArrayList<Pair<Item, () -> BlockEntityWithoutLevelRenderer>>()
-        val sink = ItemRendererSink { item, renderer -> declared += item to renderer }
-        for (block in pending) block(sink)
-        for ((item, factory) in declared) {
-            event.registerItem(
-                object : IClientItemExtensions {
-                    private val renderer by lazy { factory() }
-                    override fun getCustomRenderer(): BlockEntityWithoutLevelRenderer = renderer
-                },
-                item,
-            )
-        }
-    }
-}
 
 /** NeoForge keeps a fluid's appearance on its client fluid-type extensions. */
 object NeoFluidAppearance : FluidAppearance {
@@ -62,7 +32,7 @@ object NeoRendererRegistry : RendererRegistry {
 
             override fun <T : net.minecraft.world.entity.Entity> entity(
                 type: net.minecraft.world.entity.EntityType<out T>,
-                renderer: (net.minecraft.client.renderer.entity.EntityRendererProvider.Context) -> net.minecraft.client.renderer.entity.EntityRenderer<T>,
+                renderer: (net.minecraft.client.renderer.entity.EntityRendererProvider.Context) -> EntityRendererOf<T>,
             ) = event.registerEntityRenderer(type) { ctx -> renderer(ctx) }
         }
         for (block in pending) block(sink)

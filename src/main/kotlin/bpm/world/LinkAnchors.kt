@@ -39,7 +39,7 @@ object LinkAnchors {
     const val SELF_CORE = 0.9
 
     /** The outward normal of [face], or up for a link with no face of its own. */
-    fun normal(face: Direction?): Vec3 = Vec3.atLowerCornerOf((face ?: Direction.UP).normal)
+    fun normal(face: Direction?): Vec3 = Vec3.atLowerCornerOf(bpm.platform.unitVector(face ?: Direction.UP))
 
     fun onFace(pos: BlockPos, face: Direction?): Vec3 = Vec3.atCenterOf(pos).add(normal(face).scale(ON_FACE))
 

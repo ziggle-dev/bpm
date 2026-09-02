@@ -99,7 +99,7 @@ object BlockPreviewRenderer : BlockPreviews, ItemIcons, IconSource {
     }
 
     override fun labelOf(itemId: String): String? = slots[itemId]?.label?.ifEmpty { null }
-        ?: ResourceLocation.tryParse(itemId)?.let { BuiltInRegistries.ITEM.getOptional(it).orElse(null)?.description?.string }
+        ?: ResourceLocation.tryParse(itemId)?.let { bpm.platform.valueOf(BuiltInRegistries.ITEM, it)?.let { item -> net.minecraft.network.chat.Component.translatable(item.descriptionId).string } }
 
     // ---- vscript's icon source: the value picker's rows and previews --------------------------------------------
 
@@ -151,27 +151,27 @@ object BlockPreviewRenderer : BlockPreviews, ItemIcons, IconSource {
     private fun render(mc: Minecraft, slot: Slot, stack: ItemStack) {
         val target = slot.target
         target.setClearColor(0f, 0f, 0f, 0f)
-        target.clear(Minecraft.ON_OSX)
+        bpm.platform.client.clearTarget(target)
         target.bindWrite(true)
         RenderSystem.backupProjectionMatrix()
         val modelView = RenderSystem.getModelViewStack()
         modelView.pushMatrix()
         modelView.identity()
-        RenderSystem.applyModelViewMatrix()
+        bpm.platform.client.applyModelView()
         // A 16-unit GUI space against an IDENTITY model-view, both set here.
         //
         // This used to set only the projection, with a 1000..21000 depth range chosen to match the -11000 Z
         // push the vanilla GUI model-view happens to carry — that is, it borrowed whatever model-view the
         // frame had left lying around. It works in a plain client and fails wherever another mod has set a
         // different one, because then the item lands outside the depth range and clips away silently.
-        RenderSystem.setProjectionMatrix(Matrix4f().setOrtho(0f, 16f, 16f, 0f, -1000f, 1000f), VertexSorting.ORTHOGRAPHIC_Z)
+        bpm.platform.client.setGuiProjection(Matrix4f().setOrtho(0f, 16f, 16f, 0f, -1000f, 1000f))
         val graphics = GuiGraphics(mc, buffers)
         try {
             graphics.renderItem(stack, 0, 0)
             graphics.flush()
         } finally {
             modelView.popMatrix()
-            RenderSystem.applyModelViewMatrix()
+            bpm.platform.client.applyModelView()
             RenderSystem.restoreProjectionMatrix()
             target.unbindWrite()
             mc.mainRenderTarget.bindWrite(true)

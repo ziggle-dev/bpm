@@ -421,6 +421,24 @@ dependencies {
  * shipped jar. `jarJar` generates that directory for the jar; copying it into the dev source set's resources
  * puts the nested jars into the GAME layer beside the stdlib, which is where they are in production too.
  */
+/*
+ * **A node may override a shared resource, and the node's copy wins.**
+ *
+ * Almost every one of the 386 resource files is version-neutral, so they live in `<root>/src/main/resources`
+ * and every node ships the same bytes. The exceptions are files whose SCHEMA changed: the two rift shader
+ * configs, whose `vertex`/`fragment` fields became resource locations resolved under `shaders/` at 1.21.2
+ * where they had been bare names resolved under `shaders/core/`. No single spelling loads on both, and a
+ * JSON cannot carry a `//? if` directive.
+ *
+ * So a node may put its own copy at `<node>/src/main/resources/...` and it takes precedence. The order is
+ * what makes that work rather than a coin toss: Gradle's java plugin registers the node's own directory
+ * first, Stonecutter appends the branch's, and the shared root is added last, so EXCLUDE keeps the most
+ * specific one. Ordinary duplicates cannot arise -- nothing else is declared twice.
+ */
+tasks.named<ProcessResources>("processResources") {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
 tasks.named<ProcessResources>("processDevResources") {
     from(tasks.named("jarJar"))
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE

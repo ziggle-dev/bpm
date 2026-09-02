@@ -63,6 +63,111 @@ fun <T> holderOrThrow(
 
 /** `NativeImage.getPixelRGBA` became `getPixel`; same packed ABGR either way. */
 fun pixel(image: com.mojang.blaze3d.platform.NativeImage, x: Int, y: Int): Int = image.getPixel(x, y)
+
+/**
+ * One value out of a registry, by id, or null.
+ *
+ * `Registry.get(ResourceLocation)` used to return the value; from 1.21.2 it returns an
+ * `Optional<Holder.Reference<T>>` and the plain value moved to `getValue`. The `containsKey` guard is
+ * not redundant on either: these are DEFAULTED registries, so an unknown item id answers AIR rather
+ * than nothing, and the scripting language has to be able to tell "minecraft:air" from a typo.
+ */
+fun <T : Any> valueOf(registry: net.minecraft.core.Registry<T>, id: net.minecraft.resources.ResourceLocation): T? =
+    if (registry.containsKey(id)) registry.getValue(id) else null
+
+/** `Registry.asLookup()` went away when `Registry` itself became a `HolderLookup.RegistryLookup`. */
+fun blockLookup(): net.minecraft.core.HolderGetter<net.minecraft.world.level.block.Block> =
+    net.minecraft.core.registries.BuiltInRegistries.BLOCK
+
+/** `BlockEntityType.Builder` was deleted; the constructor it hid is public. */
+fun <T : net.minecraft.world.level.block.entity.BlockEntity> blockEntityType(
+    factory: (net.minecraft.core.BlockPos, net.minecraft.world.level.block.state.BlockState) -> T,
+    block: net.minecraft.world.level.block.Block,
+): net.minecraft.world.level.block.entity.BlockEntityType<T> =
+    net.minecraft.world.level.block.entity.BlockEntityType({ pos, state -> factory(pos, state) }, block)
+
+/** `EntityType.Builder.build` takes the registry key rather than a bare name. */
+fun <T : net.minecraft.world.entity.Entity> entityType(
+    builder: net.minecraft.world.entity.EntityType.Builder<T>,
+    id: net.minecraft.resources.ResourceLocation,
+): net.minecraft.world.entity.EntityType<T> =
+    builder.build(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.ENTITY_TYPE, id))
+
+/** `Direction.getNearest(double, double, double)` is `getApproximateNearest`; `getNearest` now needs a fallback. */
+fun nearestDirection(x: Double, y: Double, z: Double): Direction = Direction.getApproximateNearest(x, y, z)
+
+/**
+ * Item cooldowns, which became per-stack.
+ *
+ * 1.21.2 introduced cooldown groups: a cooldown is keyed by a stack's `USE_COOLDOWN` component if it
+ * has one and by its item otherwise, so the API takes the stack. Passing the stack on both sides means
+ * the call site never has to know which, and a cooldown group would be honoured the moment one is set.
+ */
+fun addCooldown(player: net.minecraft.world.entity.player.Player, stack: net.minecraft.world.item.ItemStack, ticks: Int) =
+    player.cooldowns.addCooldown(stack, ticks)
+
+fun onCooldown(player: net.minecraft.world.entity.player.Player, stack: net.minecraft.world.item.ItemStack): Boolean =
+    player.cooldowns.isOnCooldown(stack)
+
+/** `teleportTo` gained a relative-movement set and a "set camera" flag; this is the old behaviour, spelled anew. */
+fun teleport(
+    player: net.minecraft.server.level.ServerPlayer,
+    level: net.minecraft.server.level.ServerLevel,
+    x: Double, y: Double, z: Double, yaw: Float, pitch: Float,
+) {
+    player.teleportTo(level, x, y, z, java.util.Set.of(), yaw, pitch, true)
+}
+
+/** `Registry.getTags()` stopped pairing each tag with its key -- the key is on the `HolderSet.Named` now. */
+fun <T> tagIds(registry: net.minecraft.core.Registry<T>): List<String> =
+    registry.tags.map { it.key().location().toString() }.toList()
+
+/** `BlockState.isSolidRender` stopped asking where it was -- it is a property of the state alone now. */
+fun solidRender(
+    state: net.minecraft.world.level.block.state.BlockState,
+    level: net.minecraft.world.level.BlockGetter,
+    pos: net.minecraft.core.BlockPos,
+): Boolean = state.isSolidRender
+
+/** Redstone dust particles take a packed RGB int rather than a `Vector3f`. */
+fun dust(colour: Int, scale: Float): net.minecraft.core.particles.DustParticleOptions =
+    net.minecraft.core.particles.DustParticleOptions(colour and 0xFFFFFF, scale)
+
+/**
+ * Finding a recipe, on a level that no longer owns the recipe book.
+ *
+ * `Level.recipeManager` became `Level.recipeAccess()`, and a recipe's identity went from a
+ * `ResourceLocation` to a `ResourceKey<Recipe<?>>`. The id is PERSISTED by the assembler -- it survives
+ * a chunk unload mid-job -- so the saved form stays a plain `ResourceLocation` on both, and the key is
+ * built here at the moment of the lookup rather than being written to disk in a shape that changed.
+ */
+fun <I : net.minecraft.world.item.crafting.RecipeInput, T : net.minecraft.world.item.crafting.Recipe<I>> findRecipe(
+    level: net.minecraft.world.level.Level,
+    type: net.minecraft.world.item.crafting.RecipeType<T>,
+    input: I,
+): net.minecraft.world.item.crafting.RecipeHolder<T>? =
+    (level as? net.minecraft.server.level.ServerLevel)?.recipeAccess()?.getRecipeFor(type, input, level)?.orElse(null)
+
+fun recipeById(
+    level: net.minecraft.world.level.Level,
+    id: net.minecraft.resources.ResourceLocation,
+): net.minecraft.world.item.crafting.RecipeHolder<*>? =
+    (level as? net.minecraft.server.level.ServerLevel)?.recipeAccess()
+        ?.byKey(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.RECIPE, id))
+        ?.orElse(null)
+
+fun recipeIdOf(holder: net.minecraft.world.item.crafting.RecipeHolder<*>): net.minecraft.resources.ResourceLocation =
+    holder.id().location()
+
+/**
+ * The codec for one ingredient that must not be empty.
+ *
+ * `Ingredient.CODEC_NONEMPTY` and `Ingredient.CODEC` were two codecs until 1.21.2, differing only in
+ * whether an empty holder set was accepted. The pair collapsed: `CODEC` is now the non-empty one and
+ * the other name is gone, so this is the same guarantee under whichever name the band has for it.
+ */
+val INGREDIENT_CODEC: com.mojang.serialization.Codec<net.minecraft.world.item.crafting.Ingredient> =
+    net.minecraft.world.item.crafting.Ingredient.CODEC
 *///?} else {
 val ANIMATED_BLOCK_SHAPE: RenderShape = RenderShape.ENTITYBLOCK_ANIMATED
 
@@ -83,5 +188,72 @@ fun <T> holderOrThrow(
 ): net.minecraft.core.Holder<T> = access.registryOrThrow(registry).getHolderOrThrow(entry)
 
 fun pixel(image: com.mojang.blaze3d.platform.NativeImage, x: Int, y: Int): Int = image.getPixelRGBA(x, y)
+
+fun <T : Any> valueOf(registry: net.minecraft.core.Registry<T>, id: net.minecraft.resources.ResourceLocation): T? =
+    if (registry.containsKey(id)) registry.get(id) else null
+
+fun blockLookup(): net.minecraft.core.HolderGetter<net.minecraft.world.level.block.Block> =
+    net.minecraft.core.registries.BuiltInRegistries.BLOCK.asLookup()
+
+@Suppress("DataFlowIssue")
+fun <T : net.minecraft.world.level.block.entity.BlockEntity> blockEntityType(
+    factory: (net.minecraft.core.BlockPos, net.minecraft.world.level.block.state.BlockState) -> T,
+    block: net.minecraft.world.level.block.Block,
+): net.minecraft.world.level.block.entity.BlockEntityType<T> =
+    net.minecraft.world.level.block.entity.BlockEntityType.Builder.of({ pos, state -> factory(pos, state) }, block).build(null)
+
+fun <T : net.minecraft.world.entity.Entity> entityType(
+    builder: net.minecraft.world.entity.EntityType.Builder<T>,
+    id: net.minecraft.resources.ResourceLocation,
+): net.minecraft.world.entity.EntityType<T> = builder.build(id.path)
+
+fun nearestDirection(x: Double, y: Double, z: Double): Direction = Direction.getNearest(x, y, z)
+
+fun addCooldown(player: net.minecraft.world.entity.player.Player, stack: net.minecraft.world.item.ItemStack, ticks: Int) =
+    player.cooldowns.addCooldown(stack.item, ticks)
+
+fun onCooldown(player: net.minecraft.world.entity.player.Player, stack: net.minecraft.world.item.ItemStack): Boolean =
+    player.cooldowns.isOnCooldown(stack.item)
+
+fun teleport(
+    player: net.minecraft.server.level.ServerPlayer,
+    level: net.minecraft.server.level.ServerLevel,
+    x: Double, y: Double, z: Double, yaw: Float, pitch: Float,
+) {
+    player.teleportTo(level, x, y, z, yaw, pitch)
+}
+
+fun <T> tagIds(registry: net.minecraft.core.Registry<T>): List<String> =
+    registry.tags.map { it.first.location().toString() }.toList()
+
+fun solidRender(
+    state: net.minecraft.world.level.block.state.BlockState,
+    level: net.minecraft.world.level.BlockGetter,
+    pos: net.minecraft.core.BlockPos,
+): Boolean = state.isSolidRender(level, pos)
+
+fun dust(colour: Int, scale: Float): net.minecraft.core.particles.DustParticleOptions =
+    net.minecraft.core.particles.DustParticleOptions(
+        org.joml.Vector3f(((colour shr 16) and 0xFF) / 255f, ((colour shr 8) and 0xFF) / 255f, (colour and 0xFF) / 255f),
+        scale,
+    )
+
+fun <I : net.minecraft.world.item.crafting.RecipeInput, T : net.minecraft.world.item.crafting.Recipe<I>> findRecipe(
+    level: net.minecraft.world.level.Level,
+    type: net.minecraft.world.item.crafting.RecipeType<T>,
+    input: I,
+): net.minecraft.world.item.crafting.RecipeHolder<T>? =
+    level.recipeManager.getRecipeFor(type, input, level).orElse(null)
+
+fun recipeById(
+    level: net.minecraft.world.level.Level,
+    id: net.minecraft.resources.ResourceLocation,
+): net.minecraft.world.item.crafting.RecipeHolder<*>? = level.recipeManager.byKey(id).orElse(null)
+
+fun recipeIdOf(holder: net.minecraft.world.item.crafting.RecipeHolder<*>): net.minecraft.resources.ResourceLocation =
+    holder.id()
+
+val INGREDIENT_CODEC: com.mojang.serialization.Codec<net.minecraft.world.item.crafting.Ingredient> =
+    net.minecraft.world.item.crafting.Ingredient.CODEC_NONEMPTY
 
 //?}

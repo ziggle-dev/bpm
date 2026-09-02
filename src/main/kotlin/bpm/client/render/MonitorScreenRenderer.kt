@@ -291,7 +291,7 @@ object MonitorScreenRenderer {
         val g = (tint shr 8 and 0xFF) / 255f
         val bl = (tint and 0xFF) / 255f
         val m = pose.last().pose()
-        val b = buffers.getBuffer(RenderType.entityTranslucentCull(net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS))
+        val b = buffers.getBuffer(bpm.platform.client.translucentCull(net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS))
         val u1 = sprite.u0 + (sprite.u1 - sprite.u0) * ((x1 - x0) / 16f).coerceIn(0.05f, 1f)
         val v1 = sprite.v0 + (sprite.v1 - sprite.v0) * ((y1 - y0) / 16f).coerceIn(0.05f, 1f)
         fun v(x: Float, y: Float, u: Float, vv: Float) {
@@ -311,7 +311,7 @@ object MonitorScreenRenderer {
 
     /** The yaw that turns the model's -Z onto [facing]. */
     private fun yawOf(facing: Direction): Float {
-        val n = facing.normal
+        val n = bpm.platform.unitVector(facing)
         return Math.toDegrees(atan2(-n.x.toDouble(), -n.z.toDouble())).toFloat()
     }
 }

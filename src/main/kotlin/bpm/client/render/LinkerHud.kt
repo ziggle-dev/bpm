@@ -122,7 +122,7 @@ object LinkerHud {
         // hung on them has to be too or it judders a tick behind the head it belongs to.
         val partial = event.delta.getGameTimeDeltaPartialTick(true)
 
-        RenderSystem.setShader(GameRenderer::getRendertypeLinesShader)
+        bpm.platform.client.useLinesShader()
         RenderSystem.enableBlend()
         RenderSystem.defaultBlendFunc()
         RenderSystem.lineWidth(2f)
@@ -228,7 +228,7 @@ object LinkerHud {
     }
 
     private fun box(pose: PoseStack, builder: com.mojang.blaze3d.vertex.VertexConsumer, box: AABB, rgb: FloatArray, a: Float) {
-        LevelRenderer.renderLineBox(pose, builder, box, rgb[0], rgb[1], rgb[2], a)
+        bpm.platform.client.lineBox(pose, builder, box, rgb[0], rgb[1], rgb[2], a)
     }
 
     private fun line(pose: PoseStack, builder: com.mojang.blaze3d.vertex.VertexConsumer, from: Vec3, to: Vec3, rgb: FloatArray, a: Float) {

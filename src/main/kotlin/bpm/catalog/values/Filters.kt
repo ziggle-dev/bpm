@@ -178,7 +178,7 @@ object FilterValue {
     }
 
     fun componentType(id: String): DataComponentType<*>? =
-        ResourceLocation.tryParse(id.trim())?.let { rl -> if (BuiltInRegistries.DATA_COMPONENT_TYPE.containsKey(rl)) BuiltInRegistries.DATA_COMPONENT_TYPE.get(rl) else null }
+        ResourceLocation.tryParse(id.trim())?.let { bpm.platform.valueOf(BuiltInRegistries.DATA_COMPONENT_TYPE, it) }
 
     /** A parsed vanilla item predicate, cached by its text. Null when the JSON is not one. */
     fun predicate(json: String, registries: RegistryAccess?): ItemPredicate? {

@@ -433,12 +433,12 @@ object EffectManager {
             return Anchor(centre.add(0.0, SELF_CORE, 0.0), centre.add(0.0, SELF_HEIGHT, 0.0), DOWN, core = pos)
         }
         val d = if (face in 0..5) Direction.from3DDataValue(face) else Direction.UP
-        val n = Vec3.atLowerCornerOf(d.normal)
+        val n = Vec3.atLowerCornerOf(bpm.platform.unitVector(d))
         return Anchor(centre.add(n.scale(0.5)), centre.add(n.scale(OFF_FACE)), n)
     }
 
     private fun hidden(level: Level, a: Anchor, partial: Float = 1f): Boolean =
-        a.cell(partial).let { level.getBlockState(it).isSolidRender(level, it) }
+        a.cell(partial).let { bpm.platform.solidRender(level.getBlockState(it), level, it) }
 
     /**
      * Off for the rest of the session once the rift has thrown once.
@@ -477,7 +477,7 @@ object EffectManager {
         val seed = if (abs(axis.y) > 0.9) Vec3(1.0, 0.0, 0.0) else Vec3(0.0, 1.0, 0.0)
         val u = seed.cross(axis).normalize()
         val v = axis.cross(u)
-        val options = DustParticleOptions(Vector3f(((colour shr 16) and 0xFF) / 255f, ((colour shr 8) and 0xFF) / 255f, (colour and 0xFF) / 255f), 0.7f)
+        val options = bpm.platform.dust(colour, 0.7f)
         repeat(MOTES_PER_PULSE) {
             val ang = Math.random() * Math.PI * 2
             val rad = RIFT_SCALE * (0.75 + Math.random() * 0.4)
@@ -493,7 +493,7 @@ object EffectManager {
     private fun yawOf(facing: Vec3): Float = Math.toDegrees(atan2(-facing.x, -facing.z)).toFloat()
 
     private fun dust(level: Level, from: Vec3, to: Vec3, colour: Int) {
-        val options = DustParticleOptions(Vector3f(((colour shr 16) and 0xFF) / 255f, ((colour shr 8) and 0xFF) / 255f, (colour and 0xFF) / 255f), 0.8f)
+        val options = bpm.platform.dust(colour, 0.8f)
         val v = to.subtract(from).scale(1.0 / LEG_TICKS)
         repeat(4) {
             val p = from.add((Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.2)
@@ -537,7 +537,7 @@ object EffectManager {
         pose.mulPose(Axis.XP.rotationDegrees(age * 2.7f + seed * 0.61f))
 
         val last = pose.last()
-        val buffer = buffers.getBuffer(RenderType.entityTranslucentCull(net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS))
+        val buffer = buffers.getBuffer(bpm.platform.client.translucentCull(net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS))
         solid(last, buffer, size, size * 1.35f, size, sprite, r, g, b, a, light)
     }
 
@@ -648,7 +648,7 @@ object EffectManager {
         val half = STREAM_WIDTH * (0.55 + 0.5 * flow) * life.coerceIn(0f, 1f)
         val light = LevelRenderer.getLightColor(level, cell)
 
-        val buffer = buffers.getBuffer(RenderType.entityTranslucentCull(net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS))
+        val buffer = buffers.getBuffer(bpm.platform.client.translucentCull(net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS))
         val last = pose.last()
         val m = last.pose()
         val u0 = sprite.getU(0.18f)
@@ -786,7 +786,7 @@ object EffectManager {
         // current running between two boxes is not a bpm thing, it is electricity.
         EffectKind.ENERGY -> 0xFF4438
         EffectKind.XP -> 0xA8F04A
-        EffectKind.FLUID -> ResourceLocation.tryParse(item)?.let { BuiltInRegistries.FLUID.get(it) }?.let { bpm.platform.client.FluidVisuals.of(it).tint and 0xFFFFFF } ?: 0x3F76E4
+        EffectKind.FLUID -> ResourceLocation.tryParse(item)?.let { bpm.platform.valueOf(BuiltInRegistries.FLUID, it) }?.let { bpm.platform.client.FluidVisuals.of(it).tint and 0xFFFFFF } ?: 0x3F76E4
         else -> 0x8AB4F8
     }
 
@@ -831,7 +831,7 @@ object EffectManager {
         false,
         false,
         RenderType.CompositeState.builder()
-            .setShaderState(net.minecraft.client.renderer.RenderStateShard.ShaderStateShard(net.minecraft.client.renderer.GameRenderer::getPositionColorShader))
+            .setShaderState(bpm.platform.client.positionColorShader())
             .setTextureState(net.minecraft.client.renderer.RenderStateShard.NO_TEXTURE)
             .setTransparencyState(net.minecraft.client.renderer.RenderStateShard.ADDITIVE_TRANSPARENCY)
             .setCullState(net.minecraft.client.renderer.RenderStateShard.NO_CULL)

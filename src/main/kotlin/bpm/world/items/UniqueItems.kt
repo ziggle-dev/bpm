@@ -22,7 +22,6 @@ import net.minecraft.world.InteractionHand
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.entity.player.Player
-import net.minecraft.world.item.Equipable
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.TooltipFlag
 import net.minecraft.world.level.ClipContext
@@ -36,10 +35,7 @@ import kotlin.math.sqrt
 private fun say(player: Player, text: String) = player.displayClientMessage(Component.literal("[bpm] $text"), true)
 
 /** The Warden's Visor: worn on the head; the linker reaches half again as far and its lines show through walls. */
-class WardenVisorItem(properties: Properties) : TooltipItem(properties), Equipable {
-    override fun getEquipmentSlot(): EquipmentSlot = EquipmentSlot.HEAD
-
-    override fun use(level: Level, player: Player, hand: InteractionHand): bpm.platform.UseResult = swapWithEquipmentSlot(this, level, player, hand)
+class WardenVisorItem(properties: Properties) : bpm.platform.HeadWornItem(properties) {
 
     companion object {
         const val RANGE_FACTOR = 1.5
@@ -55,7 +51,7 @@ class WardenVisorItem(properties: Properties) : TooltipItem(properties), Equipab
 class PhaseGauntletItem(properties: Properties) : TooltipItem(properties) {
     override fun use(level: Level, player: Player, hand: InteractionHand): bpm.platform.UseResult {
         val stack = player.getItemInHand(hand)
-        if (player.cooldowns.isOnCooldown(this)) return bpm.platform.Use.pass(stack)
+        if (bpm.platform.onCooldown(player, stack)) return bpm.platform.Use.pass(stack)
         if (level.isClientSide) return bpm.platform.Use.success(stack)
         val blinks = stack.getOrDefault(ModComponents.BLINKS.get(), 0)
         if (blinks >= BLINKS_PER_SHARD && !player.isCreative) {
@@ -79,7 +75,7 @@ class PhaseGauntletItem(properties: Properties) : TooltipItem(properties) {
         level.playSound(null, from.x, from.y, from.z, SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.8f, 1.4f)
         player.teleportTo(to.x, to.y, to.z)
         player.fallDistance = 0f
-        player.cooldowns.addCooldown(this, COOLDOWN_TICKS)
+        bpm.platform.addCooldown(player, stack, COOLDOWN_TICKS)
         return bpm.platform.Use.consume(stack)
     }
 

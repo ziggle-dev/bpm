@@ -3,52 +3,20 @@ package bpm.platform.client
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
 import net.fabricmc.fabric.api.client.rendering.v1.BlockEntityRendererRegistry
-import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant
 import net.fabricmc.fabric.api.transfer.v1.client.fluid.FluidVariantRendering
 import net.minecraft.client.KeyMapping
-import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer
 import net.minecraft.resources.ResourceLocation
-import net.minecraft.world.item.Item
 import net.minecraft.world.level.material.Fluid
 
-/**
- * Item renderers, on a loader that asks a registry rather than the item.
- *
- * NeoForge asks the item itself through `IClientItemExtensions`; Fabric keeps a table. The seam already
- * says "here is an item, here is how to draw it", which is the table's shape, so this is nearly a
- * forwarding call — the only work is turning a `BlockEntityWithoutLevelRenderer` into Fabric's
- * `DynamicItemRenderer`, which is the same six arguments under a different name.
+/*
+ * Item renderers used to be bridged here, onto `BuiltinItemRendererRegistry`. They are not any more:
+ * GeckoLib registers its own items on both loaders, from `GeoRenderProvider`. See
+ * `bpm.platform.client.ClientRenderers`.
  */
-@Environment(EnvType.CLIENT)
-object FabricItemRenderers : ItemRendererRegistry {
-
-    private val pending = ArrayList<(ItemRendererSink) -> Unit>()
-
-    override fun items(block: (ItemRendererSink) -> Unit) {
-        pending += block
-    }
-
-    /** Called from the client entry point, once registration has bound every item. */
-    fun register() {
-        val sink = ItemRendererSink { item: Item, renderer: () -> BlockEntityWithoutLevelRenderer ->
-            // Built once and kept, as on NeoForge: constructing a GeckoLib renderer per frame would be
-            // ruinous, and constructing one during mod init is too early.
-            val built by lazy { renderer() }
-            BuiltinItemRendererRegistry.INSTANCE.register(
-                item,
-                BuiltinItemRendererRegistry.DynamicItemRenderer { stack, mode, pose, buffers, light, overlay ->
-                    built.renderByItem(stack, mode, pose, buffers, light, overlay)
-                },
-            )
-        }
-        for (block in pending) block(sink)
-        pending.clear()
-    }
-}
 
 /** Block-entity and entity renderers. Two registries here, one event on NeoForge; same declarations. */
 @Environment(EnvType.CLIENT)
@@ -76,7 +44,7 @@ object FabricRendererRegistry : RendererRegistry {
 
             override fun <T : net.minecraft.world.entity.Entity> entity(
                 type: net.minecraft.world.entity.EntityType<out T>,
-                renderer: (net.minecraft.client.renderer.entity.EntityRendererProvider.Context) -> net.minecraft.client.renderer.entity.EntityRenderer<T>,
+                renderer: (net.minecraft.client.renderer.entity.EntityRendererProvider.Context) -> EntityRendererOf<T>,
             ) {
                 EntityRendererRegistry.register(type) { ctx -> renderer(ctx) }
             }

@@ -206,7 +206,7 @@ class AssemblerBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity
         val recipe = found.value()
         // Spent on starting, not on finishing: the lens is what sets the process going.
         items.extract(CATALYST, 1, false)
-        recipeId = found.id()
+        recipeId = bpm.platform.recipeIdOf(found)
         running = true
         ticksDone = 0
         totalTicks = recipe.ticks
@@ -294,7 +294,7 @@ class AssemblerBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity
         val l = level ?: return null
         if (withCatalyst.isEmpty) return null
         val input = AssemblyInput(pedestals().map { it.held }, withCatalyst)
-        val found = l.recipeManager.getRecipeFor(ModRecipes.ASSEMBLY.get(), input, l).orElse(null) ?: return null
+        val found = bpm.platform.findRecipe(l, ModRecipes.ASSEMBLY.get(), input) ?: return null
         return if (found.value().paired) null else found
     }
 
@@ -380,7 +380,7 @@ class AssemblerBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity
         val id = recipeId ?: return null
         // The VALUE is type-checked, not the holder: an unchecked cast of the holder proves nothing at
         // runtime and would let a datapack that reused the id hand us some other recipe entirely.
-        val holder = l.recipeManager.byKey(id).orElse(null) ?: return null
+        val holder = bpm.platform.recipeById(l, id) ?: return null
         return holder.value() as? AssemblyRecipe
     }
 

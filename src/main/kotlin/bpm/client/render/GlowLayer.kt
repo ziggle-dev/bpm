@@ -2,16 +2,10 @@ package bpm.client.render
 
 import bpm.Bpm
 import com.mojang.blaze3d.platform.NativeImage
-import com.mojang.blaze3d.vertex.PoseStack
-import com.mojang.blaze3d.vertex.VertexConsumer
 import net.minecraft.client.Minecraft
-import net.minecraft.client.renderer.MultiBufferSource
-import net.minecraft.client.renderer.RenderType
 import net.minecraft.resources.ResourceLocation
 import software.bernie.geckolib.animatable.GeoAnimatable
-import software.bernie.geckolib.cache.`object`.BakedGeoModel
 import software.bernie.geckolib.renderer.GeoRenderer
-import software.bernie.geckolib.renderer.layer.AutoGlowingGeoLayer
 
 /**
  * GeckoLib's glow layer, minus its one sharp edge: a `_glowmask` with no visible pixel (an "off" texture with
@@ -20,14 +14,8 @@ import software.bernie.geckolib.renderer.layer.AutoGlowingGeoLayer
  * skips the glow when there is nothing to glow; a missing mask is left to GeckoLib (it may still carry glow
  * sections in the base texture's mcmeta).
  */
-class GlowLayer<T : GeoAnimatable>(renderer: GeoRenderer<T>) : AutoGlowingGeoLayer<T>(renderer) {
-    override fun render(
-        poseStack: PoseStack, animatable: T, bakedModel: BakedGeoModel, renderType: RenderType?, bufferSource: MultiBufferSource,
-        buffer: VertexConsumer?, partialTick: Float, packedLight: Int, packedOverlay: Int,
-    ) {
-        if (!Glowmasks.glows(getTextureResource(animatable))) return
-        super.render(poseStack, animatable, bakedModel, renderType, bufferSource, buffer, partialTick, packedLight, packedOverlay)
-    }
+class GlowLayer<T : GeoAnimatable>(renderer: GeoRenderer<T>) : bpm.platform.client.GlowLayerBase<T>(renderer) {
+    override fun glows(animatable: T): Boolean = Glowmasks.glows(getTextureResource(animatable))
 }
 
 /** Which textures have a glowmask worth drawing; answered once per texture until resources reload. */

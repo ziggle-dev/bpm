@@ -248,7 +248,7 @@ class Chambers : SavedData() {
                 val floored = cells.firstOrNull { c -> level.getBlockState(c).canBeReplaced() && level.getBlockState(c.below()).isFaceSturdy(level, c.below(), Direction.UP) }
                 val cell = floored ?: cells.firstOrNull { level.getBlockState(it).canBeReplaced() }
                 if (cell != null) {
-                    val facing = Direction.getNearest((at.x - cell.x).toDouble(), 0.0, (at.z - cell.z).toDouble())
+                    val facing = bpm.platform.nearestDirection((at.x - cell.x).toDouble(), 0.0, (at.z - cell.z).toDouble())
                     val state = Blocks.CHEST.defaultBlockState().setValue(ChestBlock.FACING, facing).setValue(ChestBlock.WATERLOGGED, level.getFluidState(cell).`is`(Fluids.WATER))
                     level.setBlock(cell, state, 3)
                     chest = level.getBlockEntity(cell) as? ChestBlockEntity
@@ -297,7 +297,7 @@ class Chambers : SavedData() {
                 },
             )
             val at = slot.arrival()
-            player.teleportTo(chamber, at.x, at.y, at.z, 0f, 0f)
+            bpm.platform.teleport(player, chamber, at.x, at.y, at.z, 0f, 0f)
             player.setPortalCooldown(ARRIVAL_COOLDOWN)
             slot.lastVisit = server.overworld().gameTime
             data.setDirty()
@@ -308,7 +308,7 @@ class Chambers : SavedData() {
         fun leave(player: ServerPlayer) {
             val (target, at) = returnPoint(player.server, player)
             val yaw = PlayerStore.get(player, ModAttachments.CHAMBER_RETURN).getFloat("yaw")
-            player.teleportTo(target, at.x, at.y, at.z, yaw, 0f)
+            bpm.platform.teleport(player, target, at.x, at.y, at.z, yaw, 0f)
             player.setPortalCooldown(ARRIVAL_COOLDOWN)
         }
     }

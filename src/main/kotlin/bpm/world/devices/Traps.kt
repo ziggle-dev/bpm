@@ -218,7 +218,7 @@ class SpikeBlockEntity(pos: BlockPos, state: BlockState) : TrapBlockEntity(Devic
         super.loadSynced(tag, registries)
         conjured = tag.getBoolean("conjured")
         revertAt = tag.getLong("revertAt")
-        original = if (tag.contains("original")) net.minecraft.nbt.NbtUtils.readBlockState(net.minecraft.core.registries.BuiltInRegistries.BLOCK.asLookup(), tag.getCompound("original")) else null
+        original = if (tag.contains("original")) net.minecraft.nbt.NbtUtils.readBlockState(bpm.platform.blockLookup(), tag.getCompound("original")) else null
     }
 
     override val phase: String
@@ -870,7 +870,7 @@ class PhaseBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(Dev
         mode = runCatching { TrapMode.valueOf(tag.getString("mode")) }.getOrDefault(TrapMode.LINKED)
         trail = tag.getBoolean("trail")
         revertAt = tag.getLong("revertAt")
-        original = if (tag.contains("original")) net.minecraft.nbt.NbtUtils.readBlockState(net.minecraft.core.registries.BuiltInRegistries.BLOCK.asLookup(), tag.getCompound("original")) else null
+        original = if (tag.contains("original")) net.minecraft.nbt.NbtUtils.readBlockState(bpm.platform.blockLookup(), tag.getCompound("original")) else null
     }
 
     override fun registerControllers(controllers: AnimatableManager.ControllerRegistrar) {

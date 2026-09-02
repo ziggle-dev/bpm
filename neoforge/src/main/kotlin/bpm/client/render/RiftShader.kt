@@ -5,7 +5,6 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.VertexFormat
 import net.minecraft.client.renderer.RenderStateShard
 import net.minecraft.client.renderer.RenderType
-import net.minecraft.client.renderer.ShaderInstance
 import net.minecraft.resources.ResourceLocation
 import net.neoforged.neoforge.client.event.RegisterShadersEvent
 
@@ -31,17 +30,61 @@ import net.neoforged.neoforge.client.event.RegisterShadersEvent
  */
 object RiftShader : bpm.platform.client.RiftLook {
 
-    private var cube: ShaderInstance? = null
-    private var tear: ShaderInstance? = null
+    /** Declared first: the shader programs below are built from it as the object initialises. */
+    val FORMAT: VertexFormat = DefaultVertexFormat.POSITION_TEX_COLOR_NORMAL
+
+    /*
+     * Registering a core shader, on both sides of 1.21.2's shader rework.
+     *
+     * Until 1.21.2 a mod BUILT the `ShaderInstance` -- compiling it there and then from a
+     * `ResourceProvider` the event handed over -- and gave the game a callback to receive it. From 1.21.2
+     * it DECLARES a `ShaderProgram`: an id, a vertex format and a set of defines, three values with no
+     * GL state in them. The game compiles it when it loads resources and recompiles it on every pack
+     * reload, which is the whole point of the change -- the old callback shape had every mod holding a
+     * handle that a resource reload had already invalidated.
+     *
+     * Two consequences for the code below. There is nothing to hold on to any more, so `ready` asks the
+     * shader manager rather than checking a field; and a `RenderType` names the program rather than a
+     * supplier of the instance.
+     *
+     * The GLSL is untouched. The config JSON is not: `vertex` and `fragment` became real resource
+     * locations resolved under `shaders/`, where they used to be bare names resolved under
+     * `shaders/core/`, so 1.21.4 wants `bpm:core/rift_cube` where 1.21.1 wants `bpm:rift_cube`. No single
+     * spelling works on both -- hence the pair of JSONs under this node's own resources.
+     */
+    //? if >=1.21.2 {
+    /*private val CUBE_PROGRAM = net.minecraft.client.renderer.ShaderProgram(
+        rl("core/rift_cube"), FORMAT, net.minecraft.client.renderer.ShaderDefines.EMPTY,
+    )
+    private val TEAR_PROGRAM = net.minecraft.client.renderer.ShaderProgram(
+        rl("core/rift_tear"), FORMAT, net.minecraft.client.renderer.ShaderDefines.EMPTY,
+    )
 
     fun register(event: RegisterShadersEvent) {
-        event.registerShader(ShaderInstance(event.resourceProvider, rl("rift_cube"), FORMAT)) { cube = it }
-        event.registerShader(ShaderInstance(event.resourceProvider, rl("rift_tear"), FORMAT)) { tear = it }
+        event.registerShader(CUBE_PROGRAM)
+        event.registerShader(TEAR_PROGRAM)
+        Bpm.LOGGER.info("bpm rift shaders registered (cube, tear)")
+    }
+
+    /** True once both have compiled; nothing draws a rift before then. */
+    override val ready: Boolean
+        get() {
+            val shaders = net.minecraft.client.Minecraft.getInstance().shaderManager
+            return shaders.getProgram(CUBE_PROGRAM) != null && shaders.getProgram(TEAR_PROGRAM) != null
+        }
+    *///?} else {
+    private var cube: net.minecraft.client.renderer.ShaderInstance? = null
+    private var tear: net.minecraft.client.renderer.ShaderInstance? = null
+
+    fun register(event: RegisterShadersEvent) {
+        event.registerShader(net.minecraft.client.renderer.ShaderInstance(event.resourceProvider, rl("rift_cube"), FORMAT)) { cube = it }
+        event.registerShader(net.minecraft.client.renderer.ShaderInstance(event.resourceProvider, rl("rift_tear"), FORMAT)) { tear = it }
         Bpm.LOGGER.info("bpm rift shaders registered (cube, tear)")
     }
 
     /** True once both have loaded; nothing draws a rift before then. */
     override val ready: Boolean get() = cube != null && tear != null
+    //?}
 
     override fun typeFor(style: RiftStyle): RenderType = if (style == RiftStyle.CUBE) CUBE else TEAR
 
@@ -54,7 +97,7 @@ object RiftShader : bpm.platform.client.RiftLook {
      * `discard` transparent fragments — and the tear discards everything outside its radius — so only the
      * visible mouth writes depth, never the quad it is cut from.
      */
-    private fun type(name: String, shader: () -> ShaderInstance?): RenderType = RenderType.create(
+    private fun type(name: String, shader: RenderStateShard.ShaderStateShard): RenderType = RenderType.create(
         name,
         FORMAT,
         VertexFormat.Mode.QUADS,
@@ -62,7 +105,7 @@ object RiftShader : bpm.platform.client.RiftLook {
         false,
         false,
         RenderType.CompositeState.builder()
-            .setShaderState(RenderStateShard.ShaderStateShard(shader))
+            .setShaderState(shader)
             .setTextureState(RenderStateShard.NO_TEXTURE)
             .setTransparencyState(RenderStateShard.ADDITIVE_TRANSPARENCY)
             .setCullState(RenderStateShard.NO_CULL)
@@ -70,9 +113,13 @@ object RiftShader : bpm.platform.client.RiftLook {
             .createCompositeState(false),
     )
 
-    val FORMAT: VertexFormat = DefaultVertexFormat.POSITION_TEX_COLOR_NORMAL
-    private val CUBE: RenderType = type("bpm_rift_cube") { cube }
-    private val TEAR: RenderType = type("bpm_rift_tear") { tear }
+    //? if >=1.21.2 {
+    /*private val CUBE: RenderType = type("bpm_rift_cube", RenderStateShard.ShaderStateShard(CUBE_PROGRAM))
+    private val TEAR: RenderType = type("bpm_rift_tear", RenderStateShard.ShaderStateShard(TEAR_PROGRAM))
+    *///?} else {
+    private val CUBE: RenderType = type("bpm_rift_cube", RenderStateShard.ShaderStateShard { cube })
+    private val TEAR: RenderType = type("bpm_rift_tear", RenderStateShard.ShaderStateShard { tear })
+    //?}
 
     private fun rl(path: String) = ResourceLocation.fromNamespaceAndPath(Bpm.ID, path)
 }

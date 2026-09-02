@@ -11,7 +11,6 @@ import bpm.world.ModComponents
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
 import net.minecraft.client.Minecraft
-import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.resources.ResourceLocation
@@ -24,15 +23,19 @@ import bpm.platform.client.ClientRenderers
 import software.bernie.geckolib.animatable.GeoAnimatable
 import software.bernie.geckolib.constant.DataTickets
 import software.bernie.geckolib.loading.math.MolangQueries
-import software.bernie.geckolib.model.GeoModel
 import software.bernie.geckolib.renderer.GeoBlockRenderer
+import software.bernie.geckolib.animatable.client.GeoRenderProvider
 import software.bernie.geckolib.renderer.GeoItemRenderer
 
-/** A GeckoLib model at fixed asset paths, so one model file can serve a block entity and its item. */
-open class PathGeoModel<T : GeoAnimatable>(private val geo: ResourceLocation, private val anim: ResourceLocation, private val tex: ResourceLocation) : GeoModel<T>() {
-    override fun getModelResource(animatable: T): ResourceLocation = geo
+/**
+ * A GeckoLib model at fixed asset paths, so one model file can serve a block entity and its item.
+ *
+ * The geometry and texture paths are answered by [bpm.platform.client.PathGeoModelBase], because the
+ * signature that asks for them changed arity across the band. The animation path did not, so it is here.
+ */
+open class PathGeoModel<T : GeoAnimatable>(geo: ResourceLocation, private val anim: ResourceLocation, tex: ResourceLocation) :
+    bpm.platform.client.PathGeoModelBase<T>(geo, tex) {
     override fun getAnimationResource(animatable: T): ResourceLocation = anim
-    override fun getTextureResource(animatable: T): ResourceLocation = tex
 }
 
 private fun rl(path: String) = ResourceLocation.fromNamespaceAndPath(Bpm.ID, path)
@@ -124,19 +127,44 @@ class TetherRenderer : GeoItemRenderer<bpm.world.items.QuantumTetherItem>(Tether
  * Which item draws with which renderer.
  *
  * This used to live as an `initializeClient` override on each of the four item classes, which made four
- * otherwise plain items name a client class. One table on the client side says the same thing and is
- * where you would look for it.
+ * otherwise plain items name a client class. One table says the same thing and is where you would look
+ * for it; the items only say "ask the table", through GeckoLib's own [GeoRenderProvider].
+ *
+ * [rendererFor] is asked once per item, lazily, the first time GeckoLib needs to draw it -- which is why
+ * the renderers are built here and not at startup. Constructing a GeoRenderer during mod init is too
+ * early: it resolves item holders that nothing has bound yet, and the client dies before the title
+ * screen on "Trying to access unbound value". A dedicated server never runs this code, so no game test
+ * can see that mistake; it is only visible from a client, which is why the laziness is load-bearing
+ * rather than tidy.
  */
 object BpmItemRenderers {
-    fun install() = ClientRenderers.items { sink ->
-        sink.register(bpm.world.ModItems.CONTROLLER.get()) { ControllerItemRenderer() }
-        sink.register(bpm.world.ModItems.LINKER.get()) { LinkerRenderer() }
-        sink.register(bpm.world.ContentItems.QUANTUM_TETHER.get()) { TetherRenderer() }
-        for (item in bpm.world.DeviceItems.all) {
-            val device = item.get() as? bpm.world.DeviceBlockItem ?: continue
-            sink.register(device) { DeviceItemExtensions.of(device.model) }
-        }
+
+    /** Null for any item that is not drawn by a model of ours -- GeckoLib then leaves it to its own item model. */
+    fun rendererFor(item: net.minecraft.world.item.Item): GeoItemRenderer<*>? = when {
+        item === bpm.world.ModItems.CONTROLLER.get() -> ControllerItemRenderer()
+        item === bpm.world.ModItems.LINKER.get() -> LinkerRenderer()
+        item === bpm.world.ContentItems.QUANTUM_TETHER.get() -> TetherRenderer()
+        item is bpm.world.DeviceBlockItem -> DeviceItemExtensions.of(item.model)
+        else -> null
     }
+}
+
+/**
+ * The one line each of this mod's GeckoLib items needs on its client side.
+ *
+ * GeckoLib caches whatever the consumer is handed, per item, and hands it back through
+ * `GeoRenderProvider.of(item)` -- which its NeoForge bridge reads as an `IClientItemExtensions` custom
+ * renderer on 1.21.1, and its `SpecialModelRenderers` mixin reads as a vanilla special renderer on
+ * 1.21.4. One override, four items, both loaders, both sides of the break.
+ */
+fun geoItemRenderer(item: net.minecraft.world.item.Item, consumer: java.util.function.Consumer<GeoRenderProvider>) {
+    consumer.accept(
+        object : GeoRenderProvider {
+            private val renderer by lazy { BpmItemRenderers.rendererFor(item) }
+
+            override fun getGeoItemRenderer(): GeoItemRenderer<*>? = renderer
+        },
+    )
 }
 
 /**

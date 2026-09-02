@@ -129,7 +129,7 @@ class Tank(val capacity: Long) {
 
     fun load(t: CompoundTag) {
         val id = t.getString("fluid").takeIf { it.isNotBlank() } ?: run { held = FluidVolume.EMPTY; return }
-        val fluid: Fluid = ResourceLocation.tryParse(id)?.let { BuiltInRegistries.FLUID.get(it) } ?: Fluids.EMPTY
+        val fluid: Fluid = ResourceLocation.tryParse(id)?.let { bpm.platform.valueOf(BuiltInRegistries.FLUID, it) } ?: Fluids.EMPTY
         held = if (fluid == Fluids.EMPTY) FluidVolume.EMPTY else FluidVolume(fluid, t.getLong("droplets"))
     }
 }

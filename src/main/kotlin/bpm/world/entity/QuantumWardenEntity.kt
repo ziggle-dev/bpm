@@ -52,7 +52,7 @@ import kotlin.math.sqrt
  * plates, a pool of armour that must be broken to force the cage open; stage 3 is faster, and at the end it
  * blinks to the dais and stays open. Its death returns the core to the pedestal it rose from.
  */
-class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Level) : Monster(type, level), GeoEntity {
+class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Level) : bpm.platform.BossMonster(type, level), GeoEntity {
     private val animCache: AnimatableInstanceCache = GeckoLibUtil.createInstanceCache(this)
     private val bossEvent = ServerBossEvent(displayName, BossEvent.BossBarColor.BLUE, BossEvent.BossBarOverlay.NOTCHED_6)
 
@@ -158,8 +158,7 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
 
     // ---- the fight --------------------------------------------------------------------------------------
 
-    override fun customServerAiStep() {
-        val l = level() as? ServerLevel ?: return
+    override fun fightTick(level: ServerLevel) {
         bossEvent.progress = (health / maxHealth).coerceIn(0f, 1f)
         if (spawnTicks < SPAWN_TICKS) {
             spawnTicks++
@@ -171,7 +170,7 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
         plates()
         // Someone on the dais — recharging at the pedestal — gets everything: the fury.
         val intruder = ChamberFight.daisIntruder(this)
-        val target = intruder ?: l.getNearestPlayer(this, 48.0)?.takeIf { !it.isCreative && !it.isSpectator }
+        val target = intruder ?: level.getNearestPlayer(this, 48.0)?.takeIf { !it.isCreative && !it.isSpectator }
         val fury = intruder != null
         facing = target?.getEyePosition(1f)
         if (disabled) {
@@ -187,19 +186,19 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
         if (grounded && target != null && blinkTicks == 0 && !retreating && groundedLoss >= maxHealth * AMBUSH_FRACTION) {
             groundedLoss -= maxHealth * AMBUSH_FRACTION
             ambush = target
-            beginBlink(behind(l, target))
+            beginBlink(behind(level, target))
         }
-        bolts(l)
+        bolts(level)
         if (blinkTicks > 0) {
-            blink(l)
+            blink(level)
             face()
             return
         }
         when {
-            retreating -> retreat(l)
-            fury -> closeIn(l)
-            grounded -> walk(l)
-            else -> hover(l)
+            retreating -> retreat(level)
+            fury -> closeIn(level)
+            grounded -> walk(level)
+            else -> hover(level)
         }
         if (!retreating && stage == 3 && health <= maxHealth * RETREAT_FRACTION && retreatLeft == 0) {
             retreating = true
@@ -213,7 +212,7 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
             attackIn = if (fury) FURY_ATTACK_EVERY else when (stage) { 1 -> 80; 2 -> 70; else -> 50 }
         }
         if ((exposed || fury) && target != null && --seekerIn <= 0) {
-            seeker(l, target)
+            seeker(level, target)
             seekerIn = if (fury) FURY_SEEKER_EVERY else SEEKER_EVERY
         }
         if (exposeLeft > 0) {
@@ -224,7 +223,7 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
         }
         // Now and then, spikes out of the floor under whoever it is watching.
         if (target != null && --spikesIn <= 0) {
-            spikeAttack(l, target)
+            spikeAttack(level, target)
             spikesIn = SPIKES_EVERY + random.nextInt(SPIKES_JITTER)
         }
         face()
@@ -494,8 +493,8 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
 
     // ---- damage -----------------------------------------------------------------------------------------
 
-    override fun hurt(source: DamageSource, amount: Float): Boolean {
-        if (level().isClientSide || isInvulnerableTo(source) || isDeadOrDying) return super.hurt(source, amount)
+    override fun takeDamage(level: ServerLevel, source: DamageSource, amount: Float): Boolean {
+        if (invulnerable(level, source) || isDeadOrDying) return applyDamage(level, source, amount)
         val byPlayer = source.entity is Player || (source.directEntity as? Projectile)?.owner is Player
         if (byPlayer) lastPlayerHurtTick = tickCount
         var dealt = amount
@@ -505,7 +504,7 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
                 triggerAnim("overlay", "stagger")
                 staggerCooldown = 20
             }
-            return super.hurt(source, dealt)
+            return applyDamage(level, source, dealt)
         }
         if (shielded && plateHp > 0f) {
             plateHp -= dealt
@@ -517,14 +516,15 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
                 setExposed(true, (BpmConfig.exposeSeconds(2) * 20).toInt())
             }
         }
-        return super.hurt(source, dealt * ChamberFight.cageMultiplier(this))
+        return applyDamage(level, source, dealt * ChamberFight.cageMultiplier(this))
     }
 
     /** The linker's pulse: damage the cage cannot quarter, counted as the player's hit. */
     fun pulseHit(amount: Float, by: Entity?) {
-        if (level().isClientSide || isDeadOrDying) return
+        val level = level() as? ServerLevel ?: return
+        if (isDeadOrDying) return
         if (by is Player) lastPlayerHurtTick = tickCount
-        super.hurt(bpm.world.BpmDamage.source(level(), bpm.world.BpmDamage.LINKER_PULSE, by), amount)
+        applyDamage(level, bpm.world.BpmDamage.source(level, bpm.world.BpmDamage.LINKER_PULSE, by), amount)
         stagger()
     }
 
@@ -536,8 +536,8 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
         }
     }
 
-    override fun isInvulnerableTo(source: DamageSource): Boolean =
-        super.isInvulnerableTo(source) || source.`is`(DamageTypeTags.IS_FALL) || source.`is`(DamageTypeTags.IS_DROWNING) ||
+    override fun immuneTo(source: DamageSource): Boolean =
+        source.`is`(DamageTypeTags.IS_FALL) || source.`is`(DamageTypeTags.IS_DROWNING) ||
             source.`is`(DamageTypes.IN_WALL) || source.`is`(DamageTypes.CRAMMING) || source.`is`(DamageTypeTags.IS_FIRE)
 
     override fun isPushable(): Boolean = false
