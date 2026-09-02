@@ -51,7 +51,7 @@ import bpm.platform.boolOr
  * opening for ten ticks travels — into the player's Decoherence Chamber from the overworld, back out through
  * the chamber's return gate, which is always open.
  */
-class GateBlock(properties: Properties) : Block(properties), EntityBlock {
+class GateBlock(properties: Properties) : bpm.platform.RemovalAwareBlock(properties), EntityBlock {
     init {
         registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(OPEN, false))
     }
@@ -93,9 +93,8 @@ class GateBlock(properties: Properties) : Block(properties), EntityBlock {
     }
 
     /** The projector going away un-forms its ring. */
-    override fun onRemove(state: BlockState, level: Level, pos: BlockPos, newState: BlockState, moving: Boolean) {
-        if (!state.`is`(newState.block) && !level.isClientSide) GateFrames.setFormed(level, pos, state.getValue(FACING), false)
-        super.onRemove(state, level, pos, newState, moving)
+    override fun onBlockRemoved(state: BlockState, level: net.minecraft.server.level.ServerLevel, pos: BlockPos, movedByPiston: Boolean) {
+        GateFrames.setFormed(level, pos, state.getValue(FACING), false)
     }
 
     companion object {

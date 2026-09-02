@@ -178,12 +178,12 @@ class PedestalBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(
 
     override fun saveSynced(tag: CompoundTag, registries: HolderLookup.Provider) {
         slotOwner?.let { bpm.platform.putUuid(tag, "slotOwner", it) }
-        tag.put("held", held.saveOptional(registries))
+        tag.put("held", bpm.platform.writeStack(registries, held))
     }
 
     override fun loadSynced(tag: CompoundTag, registries: HolderLookup.Provider) {
         slotOwner = bpm.platform.uuidOrNull(tag, "slotOwner")
-        held = ItemStack.parseOptional(registries, tag.compoundOr("held"))
+        held = bpm.platform.readStack(registries, tag.compoundOr("held"))
     }
 
     override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {

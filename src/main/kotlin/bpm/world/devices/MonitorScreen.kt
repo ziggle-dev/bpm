@@ -125,7 +125,7 @@ data class Widget(
             label = t.stringOr("label", ""),
             value = t.doubleOr("value", 0.0),
             max = t.doubleOr("max", 0.0),
-            item = if (t.contains("item")) ItemStack.parseOptional(registries, t.compoundOr("item")) else ItemStack.EMPTY,
+            item = if (t.contains("item")) bpm.platform.readStack(registries, t.compoundOr("item")) else ItemStack.EMPTY,
             fluid = t.stringOr("fluid", ""),
             colour = t.stringOr("colour", ""),
             size = if (t.contains("size")) t.intOr("size", 0).coerceIn(1, 4) else 1,

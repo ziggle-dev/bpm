@@ -37,7 +37,7 @@ enum class ControllerStatus(private val key: String) : StringRepresentable {
  * six faces, driven by `redstone.emit`. Right-click reports what the controller is doing; sneak + right-click
  * toggles it. The editor opens through the client (phase 5).
  */
-class ControllerBlock(properties: Properties) : Block(properties), EntityBlock {
+class ControllerBlock(properties: Properties) : bpm.platform.RemovalAwareBlock(properties), EntityBlock {
 
     init {
         registerDefaultState(stateDefinition.any().setValue(STATUS, ControllerStatus.IDLE))
@@ -73,8 +73,8 @@ class ControllerBlock(properties: Properties) : Block(properties), EntityBlock {
         return bpm.platform.Interact.sided(level.isClientSide)
     }
 
-    override fun onRemove(state: BlockState, level: Level, pos: BlockPos, newState: BlockState, movedByPiston: Boolean) {
-        if (!state.`is`(newState.block)) {
+    override fun onBlockRemoved(state: BlockState, level: net.minecraft.server.level.ServerLevel, pos: BlockPos, movedByPiston: Boolean) {
+        run {
             (level.getBlockEntity(pos) as? ControllerBlockEntity)?.let { be ->
                 val inv = be.inventory
                 for (i in 0 until inv.slots) {
@@ -82,7 +82,7 @@ class ControllerBlock(properties: Properties) : Block(properties), EntityBlock {
                     if (!stack.isEmpty) Containers.dropItemStack(level, pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, stack)
                 }
                 // The controller's own graph goes with it; a library it happened to run stays.
-                val server = (level as? net.minecraft.server.level.ServerLevel)?.server
+                val server = level.server
                 val id = be.docId
                 if (server != null && id != null && !movedByPiston) {
                     val lib = bpm.library.BpmLibrary.get(server)
@@ -90,7 +90,6 @@ class ControllerBlock(properties: Properties) : Block(properties), EntityBlock {
                 }
             }
         }
-        super.onRemove(state, level, pos, newState, movedByPiston)
     }
 
     companion object {

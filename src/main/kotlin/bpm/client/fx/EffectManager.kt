@@ -523,9 +523,7 @@ object EffectManager {
     ) {
         if (size <= 0.001f) return
         val look = bpm.platform.client.FluidVisuals.of(fluid)
-        val sprite = Minecraft.getInstance()
-            .getTextureAtlas(net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS)
-            .apply(look.still)
+        val sprite = bpm.platform.client.blockSprite(look.still)
         val tint = look.tint
         val r = ((tint shr 16) and 0xFF) / 255f
         val g = ((tint shr 8) and 0xFF) / 255f
@@ -637,9 +635,7 @@ object EffectManager {
         }
 
         val look = bpm.platform.client.FluidVisuals.of(fluid)
-        val sprite = Minecraft.getInstance()
-            .getTextureAtlas(net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS)
-            .apply(look.flowing)
+        val sprite = bpm.platform.client.blockSprite(look.flowing)
         val tint = look.tint
         val r = ((tint shr 16) and 0xFF) / 255f
         val g = ((tint shr 8) and 0xFF) / 255f

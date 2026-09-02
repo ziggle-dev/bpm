@@ -27,7 +27,7 @@ object FluidLookProvider : FluidLooks {
         val tint = look.tint
         if ((tint and 0xFFFFFF) != 0xFFFFFF) return tint or (0xFF shl 24)
         return runCatching {
-            val sprite = Minecraft.getInstance().getTextureAtlas(TextureAtlas.LOCATION_BLOCKS).apply(look.still)
+            val sprite = bpm.platform.client.blockSprite(look.still)
             val image = sprite.contents().originalImage
             val w = sprite.contents().width()
             val h = sprite.contents().height()

@@ -50,13 +50,13 @@ typealias NeighborSource = net.minecraft.world.level.redstone.Orientation?
  * it — a `Registry` before, a `HolderLookup` after — so the two call chains do not merely differ in
  * spelling. Both still answer the same question, which is what these take.
  */
-fun <T> holderOrNull(
+fun <T : Any> holderOrNull(
     access: net.minecraft.core.RegistryAccess,
     registry: net.minecraft.resources.ResourceKey<net.minecraft.core.Registry<T>>,
     entry: net.minecraft.resources.ResourceKey<T>,
 ): net.minecraft.core.Holder<T>? = access.lookupOrThrow(registry).get(entry).orElse(null)
 
-fun <T> holderOrThrow(
+fun <T : Any> holderOrThrow(
     access: net.minecraft.core.RegistryAccess,
     registry: net.minecraft.resources.ResourceKey<net.minecraft.core.Registry<T>>,
     entry: net.minecraft.resources.ResourceKey<T>,
@@ -120,7 +120,7 @@ fun teleport(
 }
 
 /** `Registry.getTags()` stopped pairing each tag with its key -- the key is on the `HolderSet.Named` now. */
-fun <T> tagIds(registry: net.minecraft.core.Registry<T>): List<String> =
+fun <T : Any> tagIds(registry: net.minecraft.core.Registry<T>): List<String> =
     registry.tags.map { it.key().keyId().toString() }.toList()
 
 /** `BlockState.isSolidRender` stopped asking where it was -- it is a property of the state alone now. */
@@ -176,13 +176,13 @@ fun unitVector(direction: Direction): Vec3i = direction.normal
 
 typealias NeighborSource = net.minecraft.core.BlockPos
 
-fun <T> holderOrNull(
+fun <T : Any> holderOrNull(
     access: net.minecraft.core.RegistryAccess,
     registry: net.minecraft.resources.ResourceKey<net.minecraft.core.Registry<T>>,
     entry: net.minecraft.resources.ResourceKey<T>,
 ): net.minecraft.core.Holder<T>? = access.registryOrThrow(registry).getHolder(entry).orElse(null)
 
-fun <T> holderOrThrow(
+fun <T : Any> holderOrThrow(
     access: net.minecraft.core.RegistryAccess,
     registry: net.minecraft.resources.ResourceKey<net.minecraft.core.Registry<T>>,
     entry: net.minecraft.resources.ResourceKey<T>,
@@ -224,7 +224,7 @@ fun teleport(
     player.teleportTo(level, x, y, z, yaw, pitch)
 }
 
-fun <T> tagIds(registry: net.minecraft.core.Registry<T>): List<String> =
+fun <T : Any> tagIds(registry: net.minecraft.core.Registry<T>): List<String> =
     registry.tags.map { it.first.keyId().toString() }.toList()
 
 fun solidRender(

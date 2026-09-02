@@ -33,7 +33,7 @@ interface RegistryRef<T> : Supplier<T> {
     fun holder(): Holder<T>
 }
 
-interface Registrar<T> {
+interface Registrar<T : Any> {
     fun <R : T> register(name: String, factory: () -> R): RegistryRef<R>
 }
 
@@ -56,7 +56,7 @@ interface ComponentRegistrar {
      * property+invoke, other should be the same". Nothing about the mod was wrong; the name was just
      * unlucky, and a name is cheap to change.
      */
-    fun <T> registerComponentType(
+    fun <T : Any> registerComponentType(
         name: String,
         configure: (DataComponentType.Builder<T>) -> DataComponentType.Builder<T>,
     ): RegistryRef<DataComponentType<T>>
@@ -66,7 +66,7 @@ interface PlatformRegistries {
     fun blocks(namespace: String): BlockRegistrar
     fun items(namespace: String): ItemRegistrar
     fun components(namespace: String): ComponentRegistrar
-    fun <T> of(key: ResourceKey<Registry<T>>, namespace: String): Registrar<T>
+    fun <T : Any> of(key: ResourceKey<Registry<T>>, namespace: String): Registrar<T>
 
     /**
      * Realise everything that has been asked for, in the order it was asked for.
@@ -113,7 +113,7 @@ object Registrars {
     fun blocks(namespace: String): BlockRegistrar = backend.blocks(namespace)
     fun items(namespace: String): ItemRegistrar = backend.items(namespace)
     fun components(namespace: String): ComponentRegistrar = backend.components(namespace)
-    fun <T> of(key: ResourceKey<Registry<T>>, namespace: String): Registrar<T> = backend.of(key, namespace)
+    fun <T : Any> of(key: ResourceKey<Registry<T>>, namespace: String): Registrar<T> = backend.of(key, namespace)
     fun installAll() = backend.installAll()
 
     fun entityAttributes(block: (AttributeSink) -> Unit) = backend.entityAttributes(block)

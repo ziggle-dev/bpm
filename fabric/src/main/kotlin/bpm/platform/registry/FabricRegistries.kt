@@ -43,7 +43,7 @@ class FabricRegistries : PlatformRegistries {
 
     override fun components(namespace: String): ComponentRegistrar = FabricComponentRegistrar(namespace, ::defer)
 
-    override fun <T> of(key: ResourceKey<Registry<T>>, namespace: String): Registrar<T> =
+    override fun <T : Any> of(key: ResourceKey<Registry<T>>, namespace: String): Registrar<T> =
         FabricRegistrar(registryFor(key), namespace, ::defer)
 
     override fun entityAttributes(block: (AttributeSink) -> Unit) {
@@ -73,7 +73,7 @@ class FabricRegistries : PlatformRegistries {
          * and silently fails on one. This looked like a missing registry ("no registry minecraft:fluid")
          * and was a missing unwrap; the safe cast is what hid it.
          */
-        fun <T> registryFor(key: ResourceKey<Registry<T>>): Registry<T> =
+        fun <T : Any> registryFor(key: ResourceKey<Registry<T>>): Registry<T> =
             bpm.platform.valueOf(BuiltInRegistries.REGISTRY, key.keyId()) as? Registry<T>
                 ?: error("no registry ${key.keyId()} — a loader-specific registry cannot be asked for here")
     }
@@ -86,7 +86,7 @@ class FabricRegistries : PlatformRegistries {
  * class initialisation gets you the error below rather than a value, because on this loader nothing has
  * been registered at that point.
  */
-private class FabricRef<T>(override val id: ResourceLocation) : RegistryRef<T> {
+private class FabricRef<T : Any>(override val id: ResourceLocation) : RegistryRef<T> {
     var reference: Holder.Reference<T>? = null
 
     override fun get(): T = (reference ?: notYet()).value()
@@ -97,7 +97,7 @@ private class FabricRef<T>(override val id: ResourceLocation) : RegistryRef<T> {
         error("$id was asked for before registration ran; see PlatformRegistries.installAll")
 }
 
-private open class FabricRegistrar<T>(
+private open class FabricRegistrar<T : Any>(
     private val registry: Registry<T>,
     protected val namespace: String,
     protected val defer: (() -> Unit) -> Unit,
@@ -107,7 +107,7 @@ private open class FabricRegistrar<T>(
         registerInto(registry, name, factory)
 
     @Suppress("UNCHECKED_CAST")
-    protected fun <V, R : V> registerInto(into: Registry<V>, name: String, factory: () -> R): RegistryRef<R> {
+    protected fun <V : Any, R : V> registerInto(into: Registry<V>, name: String, factory: () -> R): RegistryRef<R> {
         val id = ResourceLocation.fromNamespaceAndPath(namespace, name)
         val ref = FabricRef<R>(id)
         defer { ref.reference = Registry.registerForHolder(into, id, factory()) as Holder.Reference<R> }
@@ -158,7 +158,7 @@ private class FabricComponentRegistrar(private val namespace: String, private va
     ComponentRegistrar {
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T> registerComponentType(
+    override fun <T : Any> registerComponentType(
         name: String,
         configure: (DataComponentType.Builder<T>) -> DataComponentType.Builder<T>,
     ): RegistryRef<DataComponentType<T>> {

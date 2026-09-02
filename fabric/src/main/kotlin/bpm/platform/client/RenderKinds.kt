@@ -321,3 +321,23 @@ fun translucent(): RenderType = net.minecraft.client.renderer.RenderType.translu
 
 fun gui(): RenderType = net.minecraft.client.renderer.RenderType.gui()
 //?}
+
+/**
+ * One sprite off the block atlas, by name.
+ *
+ * `Minecraft.getTextureAtlas` handed back a `Function<Identifier, TextureAtlasSprite>` -- the atlas as a
+ * lookup. 1.21.9 gave the atlases their own `AtlasManager` and the atlas its own `getSprite`, so the
+ * lookup is now two named steps instead of a function value. Same sprite either way.
+ */
+//? if >=1.21.9 {
+/*fun blockSprite(texture: ResourceLocation): net.minecraft.client.renderer.texture.TextureAtlasSprite =
+    net.minecraft.client.Minecraft.getInstance()
+        .atlasManager
+        .getAtlasOrThrow(net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS)
+        .getSprite(texture)
+*///?} else {
+fun blockSprite(texture: ResourceLocation): net.minecraft.client.renderer.texture.TextureAtlasSprite =
+    net.minecraft.client.Minecraft.getInstance()
+        .getTextureAtlas(net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS)
+        .apply(texture)
+//?}

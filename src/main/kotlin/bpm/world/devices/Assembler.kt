@@ -52,7 +52,7 @@ import bpm.platform.listOr
  * [RUNNING] is on the blockstate rather than only in the entity so the light level can follow it without the
  * client needing the entity at all.
  */
-class AssemblerBlock(properties: Properties) : HorizontalDirectionalBlock(properties), EntityBlock {
+class AssemblerBlock(properties: Properties) : bpm.platform.RemovalAwareHorizontalBlock(properties), EntityBlock {
 
     init {
         registerDefaultState(stateDefinition.any().setValue(FACING, net.minecraft.core.Direction.NORTH).setValue(RUNNING, false))
@@ -94,13 +94,10 @@ class AssemblerBlock(properties: Properties) : HorizontalDirectionalBlock(proper
         return bpm.platform.BlockUse.SUCCESS
     }
 
-    override fun onRemove(state: BlockState, level: Level, pos: BlockPos, newState: BlockState, moved: Boolean) {
-        if (!state.`is`(newState.block)) {
-            (level.getBlockEntity(pos) as? AssemblerBlockEntity)?.let { be ->
-                Containers.dropItemStack(level, pos.x + 0.5, pos.y + 1.0, pos.z + 0.5, be.catalyst)
-            }
+    override fun onBlockRemoved(state: BlockState, level: net.minecraft.server.level.ServerLevel, pos: BlockPos, movedByPiston: Boolean) {
+        (level.getBlockEntity(pos) as? AssemblerBlockEntity)?.let { be ->
+            Containers.dropItemStack(level, pos.x + 0.5, pos.y + 1.0, pos.z + 0.5, be.catalyst)
         }
-        super.onRemove(state, level, pos, newState, moved)
     }
 
     companion object {
@@ -403,7 +400,7 @@ class AssemblerBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity
         tag.putInt("totalTicks", totalTicks)
         tag.putFloat("coherence", coherence)
         tag.putByte("instability", instability.ordinal.toByte())
-        tag.put("forming", forming.saveOptional(registries))
+        tag.put("forming", bpm.platform.writeStack(registries, forming))
         recipeId?.let { tag.putString("recipe", it.toString()) }
     }
 
@@ -417,7 +414,7 @@ class AssemblerBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity
         totalTicks = tag.intOr("totalTicks", 0)
         coherence = tag.floatOr("coherence", 0f)
         instability = Instability.entries.getOrElse(tag.byteOr("instability", 0).toInt()) { Instability.NONE }
-        forming = ItemStack.parseOptional(registries, tag.compoundOr("forming"))
+        forming = bpm.platform.readStack(registries, tag.compoundOr("forming"))
         recipeId = if (tag.contains("recipe")) ResourceLocation.tryParse(tag.stringOr("recipe", "")) else null
     }
 

@@ -285,7 +285,7 @@ object MonitorScreenRenderer {
 
     private fun fluidQuad(mc: Minecraft, pose: PoseStack, buffers: MultiBufferSource, fluid: net.minecraft.world.level.material.Fluid, x0: Float, y0: Float, x1: Float, y1: Float, light: Int) {
         val look = bpm.platform.client.FluidVisuals.of(fluid)
-        val sprite = mc.getTextureAtlas(net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS).apply(look.still)
+        val sprite = bpm.platform.client.blockSprite(look.still)
         val tint = look.tint
         val r = (tint shr 16 and 0xFF) / 255f
         val g = (tint shr 8 and 0xFF) / 255f

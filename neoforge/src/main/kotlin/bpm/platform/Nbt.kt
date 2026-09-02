@@ -97,3 +97,33 @@ fun net.minecraft.nbt.CompoundTag.hasString(key: String): Boolean =
 fun net.minecraft.nbt.CompoundTag.hasCompound(key: String): Boolean =
     contains(key, net.minecraft.nbt.Tag.TAG_COMPOUND.toInt())
 //?}
+
+/**
+ * An item stack to and from a tag, on either side of 1.21.5's codec turn.
+ *
+ * `ItemStack.parseOptional` and `saveOptional` were convenience wrappers around the stack codec, and
+ * they went away when the codec became the only route. What they did is preserved exactly: an empty
+ * stack writes an empty tag and an empty or unreadable tag reads back as empty, so a save from either
+ * version loads on the other.
+ */
+//? if >=1.21.9 {
+/*fun readStack(registries: net.minecraft.core.HolderLookup.Provider, tag: net.minecraft.nbt.CompoundTag): net.minecraft.world.item.ItemStack =
+    if (tag.isEmpty) net.minecraft.world.item.ItemStack.EMPTY
+    else net.minecraft.world.item.ItemStack.CODEC
+        .parse(registries.createSerializationContext(net.minecraft.nbt.NbtOps.INSTANCE), tag)
+        .result()
+        .orElse(net.minecraft.world.item.ItemStack.EMPTY)
+
+fun writeStack(registries: net.minecraft.core.HolderLookup.Provider, stack: net.minecraft.world.item.ItemStack): net.minecraft.nbt.Tag =
+    if (stack.isEmpty) net.minecraft.nbt.CompoundTag()
+    else net.minecraft.world.item.ItemStack.CODEC
+        .encodeStart(registries.createSerializationContext(net.minecraft.nbt.NbtOps.INSTANCE), stack)
+        .result()
+        .orElseGet { net.minecraft.nbt.CompoundTag() }
+*///?} else {
+fun readStack(registries: net.minecraft.core.HolderLookup.Provider, tag: net.minecraft.nbt.CompoundTag): net.minecraft.world.item.ItemStack =
+    net.minecraft.world.item.ItemStack.parseOptional(registries, tag)
+
+fun writeStack(registries: net.minecraft.core.HolderLookup.Provider, stack: net.minecraft.world.item.ItemStack): net.minecraft.nbt.Tag =
+    stack.saveOptional(registries)
+//?}

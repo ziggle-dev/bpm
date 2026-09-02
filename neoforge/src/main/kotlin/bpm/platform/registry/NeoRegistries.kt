@@ -24,7 +24,7 @@ class NeoRegistries(private val bus: IEventBus) : PlatformRegistries {
 
     private val pending = ArrayList<DeferredRegister<*>>()
 
-    private fun <T> remember(reg: DeferredRegister<T>): DeferredRegister<T> = reg.also { pending += it }
+    private fun <T : Any> remember(reg: DeferredRegister<T>): DeferredRegister<T> = reg.also { pending += it }
 
     override fun blocks(namespace: String): BlockRegistrar = NeoBlockRegistrar(remember(DeferredRegister.createBlocks(namespace)) as DeferredRegister.Blocks)
 
@@ -33,7 +33,7 @@ class NeoRegistries(private val bus: IEventBus) : PlatformRegistries {
     override fun components(namespace: String): ComponentRegistrar =
         NeoComponentRegistrar(remember(DeferredRegister.createDataComponents(net.minecraft.core.registries.Registries.DATA_COMPONENT_TYPE, namespace)) as DeferredRegister.DataComponents)
 
-    override fun <T> of(key: ResourceKey<Registry<T>>, namespace: String): Registrar<T> =
+    override fun <T : Any> of(key: ResourceKey<Registry<T>>, namespace: String): Registrar<T> =
         NeoRegistrar(remember(DeferredRegister.create(key, namespace)))
 
     @Suppress("UNCHECKED_CAST")
@@ -52,7 +52,7 @@ class NeoRegistries(private val bus: IEventBus) : PlatformRegistries {
 }
 
 /** A `DeferredHolder` wearing the mod's interface. */
-private class NeoRef<T>(private val holder: DeferredHolder<*, T>) : RegistryRef<T> {
+private class NeoRef<T : Any>(private val holder: DeferredHolder<*, T>) : RegistryRef<T> {
     override val id: ResourceLocation get() = holder.id
     override fun get(): T = holder.get()
 
@@ -60,7 +60,7 @@ private class NeoRef<T>(private val holder: DeferredHolder<*, T>) : RegistryRef<
     override fun holder(): Holder<T> = holder as Holder<T>
 }
 
-private open class NeoRegistrar<T>(protected val reg: DeferredRegister<T>) : Registrar<T> {
+private open class NeoRegistrar<T : Any>(protected val reg: DeferredRegister<T>) : Registrar<T> {
     override fun <R : T> register(name: String, factory: () -> R): RegistryRef<R> = NeoRef(reg.register(name) { _ -> factory() })
 }
 
@@ -81,7 +81,7 @@ private class NeoItemRegistrar(private val items: DeferredRegister.Items) : NeoR
 }
 
 private class NeoComponentRegistrar(private val components: DeferredRegister.DataComponents) : ComponentRegistrar {
-    override fun <T> registerComponentType(
+    override fun <T : Any> registerComponentType(
         name: String,
         configure: (DataComponentType.Builder<T>) -> DataComponentType.Builder<T>,
     ): RegistryRef<DataComponentType<T>> = NeoRef(components.registerComponentType(name) { b -> configure(b) })
