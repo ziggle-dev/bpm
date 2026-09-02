@@ -67,7 +67,7 @@ object BlockUse {
 object Interact {
     fun sided(isClientSide: Boolean): InteractionResult = InteractionResult.SUCCESS
 }
-*///?} else {
+*///?} elif >=1.20.5 {
 typealias UseResult = net.minecraft.world.InteractionResultHolder<ItemStack>
 typealias BlockUseResult = net.minecraft.world.ItemInteractionResult
 
@@ -94,4 +94,39 @@ object BlockUse {
 object Interact {
     fun sided(isClientSide: Boolean): InteractionResult = InteractionResult.sidedSuccess(isClientSide)
 }
-//?}
+//?} else {
+/*typealias UseResult = net.minecraft.world.InteractionResultHolder<ItemStack>
+
+/*
+ * `ItemInteractionResult` did not exist before 1.20.5: using an item on a block answered a plain
+ * `InteractionResult`, the same type everything else answered.
+ *
+ * PASS_TO_BLOCK is the one that needs a thought rather than a rename. Its whole meaning is "I did not
+ * handle this -- run the block's own interaction", and that is exactly what PASS meant on this band,
+ * because there was no separate item-on-block result to pass out of.
+ */
+typealias BlockUseResult = net.minecraft.world.InteractionResult
+
+object Use {
+    fun pass(stack: ItemStack): UseResult = net.minecraft.world.InteractionResultHolder.pass(stack)
+    fun success(stack: ItemStack): UseResult = net.minecraft.world.InteractionResultHolder.success(stack)
+    fun fail(stack: ItemStack): UseResult = net.minecraft.world.InteractionResultHolder.fail(stack)
+    fun consume(stack: ItemStack): UseResult = net.minecraft.world.InteractionResultHolder.consume(stack)
+    fun sided(stack: ItemStack, isClientSide: Boolean): UseResult =
+        net.minecraft.world.InteractionResultHolder.sidedSuccess(stack, isClientSide)
+}
+
+object BlockUse {
+    val SUCCESS: BlockUseResult = net.minecraft.world.InteractionResult.SUCCESS
+    val CONSUME: BlockUseResult = net.minecraft.world.InteractionResult.CONSUME
+    val FAIL: BlockUseResult = net.minecraft.world.InteractionResult.FAIL
+
+    val PASS_TO_BLOCK: BlockUseResult = net.minecraft.world.InteractionResult.PASS
+
+    fun sidedSuccess(isClientSide: Boolean): BlockUseResult =
+        net.minecraft.world.InteractionResult.sidedSuccess(isClientSide)
+}
+object Interact {
+    fun sided(isClientSide: Boolean): InteractionResult = InteractionResult.sidedSuccess(isClientSide)
+}
+*///?}

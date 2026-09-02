@@ -24,10 +24,10 @@ import net.minecraft.world.item.ItemStack
  * and the call sites stop caring. `FluidVolume` wants the patch, as it always did.
  */
 //? if >=26.1 {
-/*internal val net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant.patch: net.minecraft.core.component.DataComponentPatch
+/*internal val net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant.patch: bpm.platform.ComponentPatch
     get() = componentsPatch
 *///?} else {
-internal val net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant.patch: net.minecraft.core.component.DataComponentPatch
+internal val net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant.patch: bpm.platform.ComponentPatch
     get() = components
 //?}
 

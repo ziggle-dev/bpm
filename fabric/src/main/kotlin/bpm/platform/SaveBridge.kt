@@ -85,17 +85,20 @@ abstract class SavingBlockEntity(type: net.minecraft.world.level.block.entity.Bl
     /*override fun applyImplicitComponents(input: net.minecraft.core.component.DataComponentGetter) {
         super.applyImplicitComponents(input)
         readComponents(object : ComponentSource {
-            override fun <T : Any> get(type: net.minecraft.core.component.DataComponentType<T>): T? = input.get(type)
+            override fun <T : Any> get(type: bpm.platform.registry.ComponentKey<T>): T? = input.get(type)
         })
     }
-    *///?} else {
+    *///?} elif >=1.20.5 {
     override fun applyImplicitComponents(input: DataComponentInput) {
         super.applyImplicitComponents(input)
         readComponents(object : ComponentSource {
-            override fun <T : Any> get(type: net.minecraft.core.component.DataComponentType<T>): T? = input.get(type)
+            override fun <T : Any> get(type: bpm.platform.registry.ComponentKey<T>): T? = input.get(type)
         })
     }
-    //?}
+    //?} else {
+    /*// Nothing to override. Implicit components arrived with components themselves at 1.20.5; below
+    // that a block entity's data comes from its tag, which `load` and `saveAdditional` already handle.
+    *///?}
 
     //? if >=1.21.6 {
     /*override fun saveAdditional(output: net.minecraft.world.level.storage.ValueOutput) {
@@ -165,5 +168,5 @@ abstract class SavingProjectile(type: EntityType<out Projectile>, level: Level) 
  */
 interface ComponentSource {
     /** The value for [type], or null when the stack carried none. */
-    fun <T : Any> get(type: net.minecraft.core.component.DataComponentType<T>): T?
+    fun <T : Any> get(type: bpm.platform.registry.ComponentKey<T>): T?
 }
