@@ -325,7 +325,10 @@ class ControllerRuntime(private val be: ControllerBlockEntity, private val manag
     private fun sendEffect(p: bpm.net.EffectPayload) {
         val l = be.level as? ServerLevel ?: return
         val players = LinkedHashSet<net.minecraft.server.level.ServerPlayer>()
-        for (pos in listOf(p.controller, p.origin, p.target)) players += l.chunkSource.chunkMap.getPlayers(net.minecraft.world.level.ChunkPos(pos), false)
+        for (pos in listOf(p.controller, p.origin, p.target)) players += l.chunkSource.chunkMap.getPlayers(net.minecraft.world.level.ChunkPos(
+            net.minecraft.core.SectionPos.blockToSectionCoord(pos.x),
+            net.minecraft.core.SectionPos.blockToSectionCoord(pos.z),
+        ), false)
         for (player in players) bpm.platform.net.Net.sendToPlayer(player, p)
     }
 

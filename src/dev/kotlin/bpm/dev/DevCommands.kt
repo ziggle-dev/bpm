@@ -38,7 +38,7 @@ object DevCommands {
         return DevJson.obj(
             "type" to "state",
             "client" to (mc != null),
-            "screen" to mc?.screen?.javaClass?.simpleName,
+            "screen" to bpm.platform.client.currentScreen()?.let { it::class.java.simpleName },
             "level" to mc?.level?.dimension()?.keyId()?.toString(),
             "player" to mc?.player?.let { p -> mapOf("name" to p.gameProfile.name, "x" to p.x, "y" to p.y, "z" to p.z) },
             "server" to (server != null),
@@ -84,15 +84,15 @@ object DevCommands {
         val mc = Minecraft.getInstance()
         val words = arg.trim().lowercase().split(" ").filter { it.isNotEmpty() }
         return when (words.firstOrNull()) {
-            "demo" -> { mc.execute { mc.setScreen(BpmEditorScreen(DemoBody::draw)) }; DevJson.obj("type" to "editor", "msg" to "opening the demo") }
+            "demo" -> { mc.execute { bpm.platform.client.openScreen(BpmEditorScreen(DemoBody::draw)) }; DevJson.obj("type" to "editor", "msg" to "opening the demo") }
             "open" -> {
                 // `editor open` or `editor open x y z` (attached to the controller there).
                 val pos = if (words.size >= 4) net.minecraft.core.BlockPos(words[1].toInt(), words[2].toInt(), words[3].toInt()) else null
                 bpm.client.ClientHooks.openWorkbench(pos)
                 DevJson.obj("type" to "editor", "msg" to "opening the workbench${pos?.let { " at ${it.toShortString()}" } ?: ""}")
             }
-            "close" -> { mc.execute { if (mc.screen is BpmEditorScreen) mc.setScreen(null) }; DevJson.obj("type" to "editor", "msg" to "closed") }
-            else -> DevJson.obj("type" to "editor", "open" to (mc.screen is BpmEditorScreen))
+            "close" -> { mc.execute { if (bpm.platform.client.currentScreen() is BpmEditorScreen) bpm.platform.client.closeScreen() }; DevJson.obj("type" to "editor", "msg" to "closed") }
+            else -> DevJson.obj("type" to "editor", "open" to (bpm.platform.client.currentScreen() is BpmEditorScreen))
         }
     }
 
@@ -101,7 +101,7 @@ object DevCommands {
         val given = java.nio.file.Path.of(path.trim().ifBlank { "bpm-shot.png" })
         // A relative path is relative to the game dir (the dev run's `run/`), an absolute one is taken as given.
         val out = if (given.isAbsolute) given else FMLPaths.GAMEDIR.get().resolve(given)
-        val image: NativeImage = mc.submit<NativeImage> { bpm.platform.client.grabScreenshot(mc.mainRenderTarget) }.get(10, TimeUnit.SECONDS)
+        val image: NativeImage = mc.submit<NativeImage> { bpm.platform.client.grabScreenshot(bpm.platform.client.mainRenderTarget()) }.get(10, TimeUnit.SECONDS)
         return try {
             Files.createDirectories(out.toAbsolutePath().parent)
             image.writeToFile(out)

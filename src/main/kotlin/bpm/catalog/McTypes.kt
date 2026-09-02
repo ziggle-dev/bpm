@@ -305,9 +305,8 @@ object McTypes {
     fun propertiesOf(state: BlockState?): Map<String, String> {
         if (state == null) return emptyMap()
         val out = LinkedHashMap<String, String>()
-        for ((p, v) in state.values) {
-            val prop = p as Property<Comparable<Any>>
-            out[prop.name] = prop.getName(v as Comparable<Any>)
+        for ((name, value) in bpm.platform.blockStateProperties(state)) {
+            out[name] = value
         }
         return out
     }

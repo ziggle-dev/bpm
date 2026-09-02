@@ -90,3 +90,27 @@ fun hudHidden(): Boolean {
 *///?} elif >=1.21.9 {
 /*typealias CameraRenderState = net.minecraft.client.renderer.state.CameraRenderState
 *///?}
+
+/**
+ * Close whatever screen is open.
+ *
+ * Not `openScreen(null)`: 26.1's `setScreenAndShow` is non-null, and closing a screen is asking the
+ * screen to close -- which is what pressing Escape does, and what runs its own teardown.
+ */
+fun closeScreen() {
+    //? if >=26.1 {
+    /*currentScreen()?.onClose()
+    *///?} else {
+    net.minecraft.client.Minecraft.getInstance().setScreen(null)
+    //?}
+}
+
+/** The frame buffer the game is drawing into, which moved onto the game renderer at 26.1. */
+fun mainRenderTarget(): com.mojang.blaze3d.pipeline.RenderTarget {
+    val mc = net.minecraft.client.Minecraft.getInstance()
+    //? if >=26.1 {
+    /*return mc.gameRenderer.mainRenderTarget()
+    *///?} else {
+    return mc.mainRenderTarget
+    //?}
+}

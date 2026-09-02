@@ -114,7 +114,7 @@ class AssemblyRecipe(
         return false
     }
 
-    override fun assemble(input: AssemblyInput, registries: HolderLookup.Provider): ItemStack = result.copy()
+    override fun assembleResult(input: AssemblyInput): ItemStack = result.copy()
 
     override fun getSerializer(): RecipeSerializer<out Recipe<AssemblyInput>> = ModRecipes.ASSEMBLY_SERIALIZER.get()
 
@@ -123,9 +123,15 @@ class AssemblyRecipe(
     /** A recipe whose result the player cannot see coming is no fun; the screen and JEI both read this. */
     override fun isSpecial(): Boolean = false
 
-    class Serializer : RecipeSerializer<AssemblyRecipe> {
+    /**
+     * The two codecs, and nothing else.
+     *
+     * An object rather than a `RecipeSerializer` subclass, because from 26.1 a serializer is a final
+     * record built from exactly these two things -- see `bpm.platform.recipeSerializer`.
+     */
+    object Serializer {
 
-        private val codec: MapCodec<AssemblyRecipe> = RecordCodecBuilder.mapCodec { it ->
+        val codec: MapCodec<AssemblyRecipe> = RecordCodecBuilder.mapCodec { it ->
             it.group(
                 bpm.platform.INGREDIENT_CODEC.listOf().fieldOf("ingredients").forGetter { r -> r.parts },
                 bpm.platform.INGREDIENT_CODEC.fieldOf("catalyst").forGetter { r -> r.catalyst },
@@ -139,7 +145,7 @@ class AssemblyRecipe(
             }
         }
 
-        private val streamCodec: StreamCodec<RegistryFriendlyByteBuf, AssemblyRecipe> =
+        val streamCodec: StreamCodec<RegistryFriendlyByteBuf, AssemblyRecipe> =
             StreamCodec.of({ buf, r ->
                 ByteBufCodecs.collection<RegistryFriendlyByteBuf, Ingredient, MutableList<Ingredient>>({ ArrayList(it) }, Ingredient.CONTENTS_STREAM_CODEC)
                     .encode(buf, r.parts)
@@ -163,8 +169,6 @@ class AssemblyRecipe(
                 AssemblyRecipe(list(ingredients), catalyst, energy, experience, ticks, result, requires)
             })
 
-        override fun codec(): MapCodec<AssemblyRecipe> = codec
-        override fun streamCodec(): StreamCodec<RegistryFriendlyByteBuf, AssemblyRecipe> = streamCodec
     }
 
     companion object {
@@ -192,5 +196,7 @@ object ModRecipes {
         override fun toString(): String = "bpm:assembly"
     } }
 
-    val ASSEMBLY_SERIALIZER = SERIALIZERS.register("assembly") { -> AssemblyRecipe.Serializer() }
+    val ASSEMBLY_SERIALIZER = SERIALIZERS.register("assembly") { ->
+        bpm.platform.recipeSerializer(AssemblyRecipe.Serializer.codec, AssemblyRecipe.Serializer.streamCodec)
+    }
 }

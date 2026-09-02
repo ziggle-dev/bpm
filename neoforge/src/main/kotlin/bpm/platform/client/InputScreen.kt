@@ -271,6 +271,31 @@ fun resetVertexBuffers() {
  *
  * Returns whether it drew, which is true on every band this mod builds for.
  */
+/*
+ * Declared on the bands that HAVE a buffer source, and nowhere else.
+ *
+ * From 26.1 `MultiBufferSource` does not exist, and nothing calls this there: `PreparedDraw.item`
+ * resolves and submits directly. Written as one flat chain of arms rather than one function with
+ * directives inside it, because bounding the whole declaration would mean nesting a directive inside a
+ * commented arm -- which ends that arm at its first close-comment, twenty lines from the cause.
+ */
+//? if >=1.21.9 <26.1 {
+/*fun drawWorldItem(
+    pose: com.mojang.blaze3d.vertex.PoseStack,
+    buffers: net.minecraft.client.renderer.MultiBufferSource,
+    stack: net.minecraft.world.item.ItemStack,
+    context: net.minecraft.world.item.ItemDisplayContext,
+    light: Int,
+    level: net.minecraft.world.level.Level,
+    seed: Int,
+): Boolean {
+    val mc = net.minecraft.client.Minecraft.getInstance()
+    val state = net.minecraft.client.renderer.item.ItemStackRenderState()
+    mc.itemModelResolver.updateForTopItem(state, stack, context, level as? net.minecraft.client.multiplayer.ClientLevel, null, seed)
+    state.submit(pose, ImmediateCollector(buffers), light, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, 0)
+    return true
+}
+*///?} elif <1.21.9 {
 fun drawWorldItem(
     pose: com.mojang.blaze3d.vertex.PoseStack,
     buffers: net.minecraft.client.renderer.MultiBufferSource,
@@ -280,13 +305,6 @@ fun drawWorldItem(
     level: net.minecraft.world.level.Level,
     seed: Int,
 ): Boolean {
-    //? if >=1.21.9 {
-    /*val mc = net.minecraft.client.Minecraft.getInstance()
-    val state = net.minecraft.client.renderer.item.ItemStackRenderState()
-    mc.itemModelResolver.updateForTopItem(state, stack, context, level as? net.minecraft.client.multiplayer.ClientLevel, null, seed)
-    state.submit(pose, ImmediateCollector(buffers), light, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, 0)
-    return true
-    *///?} else {
     net.minecraft.client.Minecraft.getInstance().itemRenderer.renderStatic(
         stack,
         context,
@@ -298,8 +316,8 @@ fun drawWorldItem(
         seed,
     )
     return true
-    //?}
 }
+//?}
 
 /**
  * Whether a screen still has to draw its own background.

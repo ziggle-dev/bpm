@@ -30,6 +30,30 @@ abstract class PedestalRecipe<T : RecipeInput> : Recipe<T> {
     /** What comes out. Not copied -- callers that keep it must copy it themselves. */
     abstract val output: ItemStack
 
+    /**
+     * What this recipe produces for [input].
+     *
+     * `Recipe.assemble` lost its `HolderLookup.Provider` at 26.1 -- nothing in this mod's recipes ever
+     * read it -- and a subclass cannot declare two arities, so the vanilla override lives here and
+     * forwards to this.
+     */
+    abstract fun assembleResult(input: T): ItemStack
+
+    //? if >=26.1 {
+    /*final override fun assemble(input: T): ItemStack = assembleResult(input)
+
+    /*
+     * `showNotification` and `group` stopped being interface defaults at 26.1 and have to be answered.
+     * These are the values vanilla defaulted them to, so nothing about these recipes changes: the
+     * toast still appears, and they belong to no recipe group.
+     */
+    override fun showNotification(): Boolean = true
+
+    override fun group(): String = ""
+    *///?} else {
+    final override fun assemble(input: T, registries: HolderLookup.Provider): ItemStack = assembleResult(input)
+    //?}
+
     //? if >=1.21.2 {
     /*private val placement: net.minecraft.world.item.crafting.PlacementInfo by lazy {
         net.minecraft.world.item.crafting.PlacementInfo.create(inputs)
@@ -57,3 +81,23 @@ abstract class PedestalRecipe<T : RecipeInput> : Recipe<T> {
     }
     //?}
 }
+
+/**
+ * A recipe serializer from its two codecs.
+ *
+ * `RecipeSerializer` was an interface to implement until 26.1 and is a final record now, so it is
+ * CONSTRUCTED rather than extended -- which is what "this type is final, so it cannot be extended"
+ * means. The two codecs are the whole of it either way.
+ */
+fun <R : net.minecraft.world.item.crafting.Recipe<*>> recipeSerializer(
+    codec: com.mojang.serialization.MapCodec<R>,
+    streamCodec: net.minecraft.network.codec.StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, R>,
+): net.minecraft.world.item.crafting.RecipeSerializer<R> =
+    //? if >=26.1 {
+    /*net.minecraft.world.item.crafting.RecipeSerializer(codec, streamCodec)
+    *///?} else {
+    object : net.minecraft.world.item.crafting.RecipeSerializer<R> {
+        override fun codec(): com.mojang.serialization.MapCodec<R> = codec
+        override fun streamCodec(): net.minecraft.network.codec.StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, R> = streamCodec
+    }
+    //?}

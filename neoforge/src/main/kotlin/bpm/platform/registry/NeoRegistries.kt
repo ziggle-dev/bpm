@@ -65,16 +65,36 @@ private open class NeoRegistrar<T : Any>(protected val reg: DeferredRegister<T>)
 }
 
 private class NeoBlockRegistrar(private val blocks: DeferredRegister.Blocks) : NeoRegistrar<Block>(blocks), BlockRegistrar {
+    /*
+     * The properties are handed over as a SUPPLIER from 26.1 rather than as themselves.
+     *
+     * Deferred registration defers the properties too now, so a block's settings are built when the
+     * block is, not when it is declared. The seam's callers pass a built `Properties` on every band and
+     * this wraps it, which keeps them from having to care -- and is honest, because by the time these
+     * are called the properties really have already been built.
+     */
     override fun <B : Block> registerBlock(name: String, factory: (BlockBehaviour.Properties) -> B, props: BlockBehaviour.Properties): RegistryRef<B> =
+        //? if >=26.1 {
+        /*NeoRef(blocks.registerBlock(name, factory, java.util.function.Supplier { props }))
+        *///?} else {
         NeoRef(blocks.registerBlock(name, factory, props))
+        //?}
 
     override fun registerSimpleBlock(name: String, props: BlockBehaviour.Properties): RegistryRef<Block> =
+        //? if >=26.1 {
+        /*NeoRef(blocks.registerSimpleBlock(name, java.util.function.Supplier { props }))
+        *///?} else {
         NeoRef(blocks.registerSimpleBlock(name, props))
+        //?}
 }
 
 private class NeoItemRegistrar(private val items: DeferredRegister.Items) : NeoRegistrar<Item>(items), ItemRegistrar {
     override fun <I : Item> registerItem(name: String, factory: (Item.Properties) -> I, props: Item.Properties): RegistryRef<I> =
+        //? if >=26.1 {
+        /*NeoRef(items.registerItem(name, factory, java.util.function.Supplier { props }))
+        *///?} else {
         NeoRef(items.registerItem(name, factory, props))
+        //?}
 
     override fun registerSimpleBlockItem(block: RegistryRef<out Block>): RegistryRef<BlockItem> =
         NeoRef(items.registerSimpleBlockItem(block.id.path) { block.get() })

@@ -72,7 +72,12 @@ fun <T : TagStore> storeOf(server: MinecraftServer, type: StoreType<T>): T {
         // needed a rule. Whatever is chosen here is a no-op for a store written by this same version,
         // which is every store this mod writes.
         net.minecraft.world.level.saveddata.SavedDataType(
+            // An `Identifier` from 26.1, where it was a bare string before.
+            //? if >=26.1 {
+            /*bpm.platform.ResourceLocation.fromNamespaceAndPath(bpm.Bpm.ID, type.name),
+            *///?} else {
             type.name,
+            //?}
             java.util.function.Supplier { type.create() },
             CompoundTag.CODEC.xmap({ tag -> type.read(tag) }, { store -> CompoundTag().also(store::writeTo) }),
             net.minecraft.util.datafix.DataFixTypes.SAVED_DATA_RANDOM_SEQUENCES,

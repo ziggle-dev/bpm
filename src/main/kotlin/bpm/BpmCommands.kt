@@ -296,7 +296,7 @@ object BpmCommands {
     private fun slot(ctx: CommandContext<CommandSourceStack>, count: Int): Int {
         val be = controller(ctx) ?: return 0
         val slot = com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "slot")
-        val stack = net.minecraft.commands.arguments.item.ItemArgument.getItem(ctx, "item").createItemStack(count, false)
+        val stack = bpm.platform.itemStackOf(net.minecraft.commands.arguments.item.ItemArgument.getItem(ctx, "item"), count)
         be.inventory.setStackIn(slot, stack)
         be.setChanged()
         reply(ctx, "slot $slot of ${be.blockPos.toShortString()}: ${stack.count} × ${stack.hoverName.string}${if (stack.isEnchanted) " (enchanted)" else ""}")

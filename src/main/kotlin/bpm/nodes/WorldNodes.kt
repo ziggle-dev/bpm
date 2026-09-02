@@ -143,13 +143,13 @@ object WorldNodes {
             title("Time Of Day")
             doc("The time of day in ticks, 0 to 23999. Day starts at 0, night around 13000.")
             result("Time", McVs.int)
-            query { host.level.dayTime % 24000L }
+            query { bpm.platform.dayTime(host.level) % 24000L }
         }
         func("day") {
             title("Day Number")
             doc("How many days the world has seen.")
             result("Day", McVs.int)
-            query { host.level.dayTime / 24000L }
+            query { bpm.platform.dayTime(host.level) / 24000L }
         }
         func("isDay") {
             title("Is Day")

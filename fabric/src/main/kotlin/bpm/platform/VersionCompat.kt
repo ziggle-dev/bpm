@@ -416,6 +416,78 @@ fun fullPermissionSource(
     //?}
 
 /**
+ * A stack from a parsed `/give`-style item argument.
+ *
+ * `ItemInput.createItemStack` dropped its "allow oversized" flag at 26.1. This mod always passed false,
+ * so the flag going away changes nothing -- but the arity does, and a shared file cannot say both.
+ */
+fun itemStackOf(
+    input: net.minecraft.commands.arguments.item.ItemInput,
+    count: Int,
+): net.minecraft.world.item.ItemStack =
+    //? if >=26.1 {
+    /*input.createItemStack(count)
+    *///?} else {
+    input.createItemStack(count, false)
+    //?}
+
+/**
+ * The time of day in this dimension, in ticks.
+ *
+ * `Level.dayTime` became a world CLOCK at 26.1: a dimension names one in its type, and
+ * `getDefaultClockTime()` reads that dimension's own -- which is what `dayTime` always was.
+ */
+fun dayTime(level: net.minecraft.world.level.Level): Long =
+    //? if >=26.1 {
+    /*level.getDefaultClockTime()
+    *///?} else {
+    level.dayTime
+    //?}
+
+/**
+ * A block state's properties, as names and value names.
+ *
+ * `getValues()` returned a `Map<Property, Comparable>` until 26.1 and returns a
+ * `Stream<Property.Value>` now -- a record that knows how to name its own value, which is the only
+ * thing this was ever doing with the pair.
+ */
+fun blockStateProperties(state: net.minecraft.world.level.block.state.BlockState): Map<String, String> {
+    val out = LinkedHashMap<String, String>()
+    //? if >=26.1 {
+    /*state.values.forEach { out[it.property().name] = it.valueName() }
+    *///?} else {
+    for ((p, v) in state.values) {
+        @Suppress("UNCHECKED_CAST")
+        val prop = p as net.minecraft.world.level.block.state.properties.Property<Comparable<Any>>
+        @Suppress("UNCHECKED_CAST")
+        out[prop.name] = prop.getName(v as Comparable<Any>)
+    }
+    //?}
+    return out
+}
+
+/** `interactOn` gained the point on the entity that was clicked; the mod has no cursor, so its middle. */
+fun interactWith(
+    player: net.minecraft.world.entity.player.Player,
+    target: net.minecraft.world.entity.Entity,
+    hand: net.minecraft.world.InteractionHand,
+): net.minecraft.world.InteractionResult =
+    //? if >=26.1 {
+    /*player.interactOn(target, hand, target.position())
+    *///?} else {
+    player.interactOn(target, hand)
+    //?}
+
+/** The impulse flag gained the position the impulse came from, which for a linker pulse is the target. */
+fun ignoreImpulseFallDamage(player: net.minecraft.world.entity.player.Player, at: net.minecraft.world.phys.Vec3) {
+    //? if >=26.1 {
+    /*player.setIgnoreFallDamageFromCurrentImpulse(true, at)
+    *///?} else {
+    player.setIgnoreFallDamageFromCurrentImpulse(true)
+    //?}
+}
+
+/**
  * A boss bar for one boss.
  *
  * 26.1 gave `ServerBossEvent` an explicit id where it used to make its own. Derived from the boss's own

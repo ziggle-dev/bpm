@@ -1,0 +1,50 @@
+# The 26.2 metadata. A copy of ../../resources-1.21.11/META-INF/neoforge.mods.toml with new ranges.
+#
+# Minecraft's versions stopped looking like `1.x.y` at 26.1 -- they are calendar versions now -- so the
+# range `[1.21.11,1.22)` that served every earlier band does not merely need widening, it stops matching
+# at all. `26.2` is not below `1.22`, and FML refuses to load the mod with "requires minecraft 1.21.5 or
+# above, and below 1.22; currently, minecraft is 26.2". That refusal is what a wrong range here looks
+# like: not a compile error, but the mod silently not loading in a run.
+#
+# NeoForge's own versioning follows the game, so its range moves the same way.
+#
+# Kept as a whole file rather than a patch for the same reason as its neighbours: the version directory
+# is searched before the shared one and `processResources` excludes duplicates, so this replaces them
+# outright. See the note in neoforge/build.gradle.kts.
+modLoader="kotlinforforge"
+loaderVersion="[6,)"
+license="MIT"
+
+[[mods]]
+modId="bpm"
+version="0.2.1"
+displayName="bpm"
+description='''Visual scripting for automation: graphs run on the server, edited in-game, rendered in the world.'''
+
+[[dependencies.bpm]]
+    modId="kotlinforforge"
+    type="required"
+    versionRange="[6.3,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.bpm]]
+    modId="geckolib"
+    type="required"
+    versionRange="[5.5,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.bpm]]
+    modId="neoforge"
+    type="required"
+    versionRange="[26.2,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.bpm]]
+    modId="minecraft"
+    type="required"
+    versionRange="[26.2,27)"
+    ordering="NONE"
+    side="BOTH"
+
+# Ponder and JEI are not published for this band, and the packages that use them are excluded from the
+# build here -- see the source-set exclusion in neoforge/build.gradle.kts.

@@ -171,8 +171,15 @@ private class GpuImGuiBackend : ImGuiBackend {
         // Opening the pass, the projection and the uniforms all differ by band; see ImGuiGpuCompat.
         imguiRenderPass(pipeline, displayWidth, displayHeight) { pass ->
             run {
+                // 26.1 takes a SLICE of the vertex buffer rather than the buffer, and moved
+                // `IndexType` out of `VertexFormat` to the top of blaze3d.
+                //? if >=26.1 {
+                /*pass.setVertexBuffer(0, vbo.slice())
+                pass.setIndexBuffer(ibo, com.mojang.blaze3d.IndexType.SHORT)
+                *///?} else {
                 pass.setVertexBuffer(0, vbo)
                 pass.setIndexBuffer(ibo, com.mojang.blaze3d.vertex.VertexFormat.IndexType.SHORT)
+                //?}
                 // Whatever the last command bound; the font is by far the common case, so it is bound
                 // once here and only re-bound when a command asks for something else.
                 bindImGuiFont(pass, atlasFont)

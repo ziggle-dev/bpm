@@ -73,7 +73,16 @@ object NeoClientEventBridge {
                 1024f,
             )
             BpmEvents.worldRenderTranslucent.fire(
-                WorldRender(pose, e.levelRenderState.cameraRenderState.pos, projection, e.modelViewMatrix, mc.deltaTracker)
+                WorldRender(
+                    pose,
+                    e.levelRenderState.cameraRenderState.pos,
+                    projection,
+                    // Read-only at 26.1. Copied rather than cast: the seam hands this to effect
+                    // code that is free to multiply into it, and writing through a view the game
+                    // still owns would corrupt the frame rather than fail.
+                    org.joml.Matrix4f(e.modelViewMatrix),
+                    mc.deltaTracker,
+                )
             )
         })
         *///?} elif >=1.21.6 {

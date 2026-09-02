@@ -147,7 +147,7 @@ class LinkerPulseEntity(type: EntityType<out LinkerPulseEntity>, level: Level) :
         p.deltaMovement = Vec3(p.deltaMovement.x * 0.4, v, p.deltaMovement.z * 0.4)
         p.hurtMarked = true
         p.currentImpulseImpactPos = result.location
-        p.setIgnoreFallDamageFromCurrentImpulse(true)
+        bpm.platform.ignoreImpulseFallDamage(p, result.location)
         p.resetFallDistance()
         l.sendParticles(ParticleTypes.GUST, result.location.x, result.location.y + 0.1, result.location.z, 1, 0.0, 0.0, 0.0, 0.0)
         l.sendParticles(ParticleTypes.CLOUD, result.location.x, result.location.y + 0.2, result.location.z, 16, 0.5, 0.1, 0.5, 0.05)

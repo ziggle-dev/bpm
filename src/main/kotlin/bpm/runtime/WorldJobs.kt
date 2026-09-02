@@ -381,7 +381,7 @@ class ClickJob(
         player.setItemInHand(InteractionHand.MAIN_HAND, stack)
         player.isShiftKeyDown = sneak
         try {
-            pendingOk = runCatching { player.interactOn(who, InteractionHand.MAIN_HAND).consumesAction() }
+            pendingOk = runCatching { bpm.platform.interactWith(player, who, InteractionHand.MAIN_HAND).consumesAction() }
                 .getOrElse {
                     fail("using slot $slot on ${who.name.string} failed: ${it.message}")
                     return true
