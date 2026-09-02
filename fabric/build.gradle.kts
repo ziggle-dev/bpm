@@ -102,15 +102,29 @@ base { archivesName = "$modId-fabric" }
  * it on Loom's CLASSIC access-widener path: from 1.21.9 Loom takes the ClassTweaker route, which accepts
  * only the `intermediary` namespace, and this branch is Mojmap throughout.
  */
-val widensAccess = stonecutter.eval(minecraftVersion, ">=1.21.5 <1.21.9")
+/*
+ * TWO bands need a widener, and they need DIFFERENT ones -- so this picks a file rather than a boolean.
+ *
+ * 1.21.5-1.21.8 widen `AbstractTexture.texture`, for the reason above. 1.20.1 widens the pieces a custom
+ * `RenderType` is built from, which are protected there and stopped existing in that form at 1.21.5.
+ * Neither file's entries mean anything on the other's band, which is why they are not merged.
+ *
+ * Both stay on Loom's classic access-widener path: from 1.21.9 Loom takes the ClassTweaker route, which
+ * accepts only the `intermediary` namespace, and this branch is Mojmap throughout.
+ */
+val accessWidenerFile = when {
+    stonecutter.eval(minecraftVersion, ">=1.21.5 <1.21.9") -> "fabric/accesswidener/bpm.accesswidener"
+    stonecutter.eval(minecraftVersion, "<1.20.2") -> "fabric/accesswidener/bpm-1.20.1.accesswidener"
+    else -> null
+}
 
 configure<net.fabricmc.loom.api.LoomGradleExtensionAPI> {
-    if (widensAccess) {
+    if (accessWidenerFile != null) {
         // OUTSIDE the resources tree on purpose. Stonecutter shares `fabric/src/main/resources` across
         // every node, and Loom picks up a widener sitting there whether or not this points at it -- so a
         // file meant for two bands would be read by all of them. Loom copies it into the built jar and
         // declares it in fabric.mod.json itself.
-        accessWidenerPath = rootProject.file("fabric/accesswidener/bpm.accesswidener")
+        accessWidenerPath = rootProject.file(accessWidenerFile)
     }
 }
 

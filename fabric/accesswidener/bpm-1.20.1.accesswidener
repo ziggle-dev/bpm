@@ -1,0 +1,22 @@
+accessWidener	v2	named
+
+# The pieces a custom RenderType is built from, on 1.20.1.
+#
+# `RenderType.CompositeState`, its builder, and the state shards are declared PROTECTED there -- nested
+# classes meant for RenderType's own subclasses. From 1.21.5 the render pipeline was rebuilt and these
+# stopped being the way a render type is described at all, which is why this file is scoped to 1.20.1
+# alone in fabric/build.gradle.kts rather than merged into bpm.accesswidener.
+#
+# Worth knowing if this ever looks wrong: `javap` reports these classes as PUBLIC, because a class file
+# carries its access twice -- once in its own flags and once in the enclosing class's InnerClasses
+# attribute. Kotlin honours the latter, which says protected. The compiler is right and javap's first
+# line is misleading.
+accessible	class	net/minecraft/client/renderer/RenderType$CompositeState
+accessible	class	net/minecraft/client/renderer/RenderType$CompositeState$CompositeStateBuilder
+accessible	class	net/minecraft/client/renderer/RenderStateShard$ShaderStateShard
+accessible	class	net/minecraft/client/renderer/RenderStateShard$LineStateShard
+accessible	class	net/minecraft/client/renderer/RenderStateShard$TransparencyStateShard
+accessible	class	net/minecraft/client/renderer/RenderStateShard$TextureStateShard
+
+# `create` is how a composite render type is actually made, and it is package-private.
+accessible	method	net/minecraft/client/renderer/RenderType	create	(Ljava/lang/String;Lcom/mojang/blaze3d/vertex/VertexFormat;Lcom/mojang/blaze3d/vertex/VertexFormat$Mode;ILnet/minecraft/client/renderer/RenderType$CompositeState;)Lnet/minecraft/client/renderer/RenderType$CompositeRenderType;
