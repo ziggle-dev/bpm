@@ -68,6 +68,38 @@ internal fun boxEdges(box: net.minecraft.world.phys.AABB): List<Pair<net.minecra
     )
 }
 
+/*
+ * The matrix uniforms a pipeline declares, which is the whole of the 1.21.5-vs-1.21.6 difference here.
+ *
+ * 1.21.5 still passes matrices as LOOSE uniforms -- its `UniformType` has INT, VEC3, MATRIX4X4 and no
+ * `UNIFORM_BUFFER` at all -- and vanilla's recipe for "just the matrices" is `MATRICES_SNIPPET`. 1.21.6
+ * moved them into std140 blocks, and the snippet that declares those is `MATRICES_PROJECTION_SNIPPET`.
+ * Same pipelines either way; only the name of the recipe they start from differs.
+ *
+ * This also decides which GLSL a shader has to be written in, which is why the rift's sources are split
+ * at the same version rather than at 1.21.9.
+ */
+//? if >=1.21.6 {
+/*private fun matricesSnippet(): com.mojang.blaze3d.pipeline.RenderPipeline.Snippet =
+    net.minecraft.client.renderer.RenderPipelines.MATRICES_PROJECTION_SNIPPET
+*///?} elif >=1.21.5 {
+/*private fun matricesSnippet(): com.mojang.blaze3d.pipeline.RenderPipeline.Snippet =
+    net.minecraft.client.renderer.RenderPipelines.MATRICES_SNIPPET
+*///?}
+
+/**
+ * `TextureStateShard` dropped its TriState blur argument at 1.21.6, and is gone entirely at 1.21.9 --
+ * where a texture is named on the RenderSetup instead. Both arms are bounded above for that reason:
+ * an open-ended `>=1.21.6` would declare this on a band that has no such class.
+ */
+//? if >=1.21.6 <1.21.9 {
+/*private fun textureShard(texture: ResourceLocation): net.minecraft.client.renderer.RenderStateShard.EmptyTextureStateShard =
+    net.minecraft.client.renderer.RenderStateShard.TextureStateShard(texture, false)
+*///?} elif >=1.21.5 <1.21.6 {
+/*private fun textureShard(texture: ResourceLocation): net.minecraft.client.renderer.RenderStateShard.EmptyTextureStateShard =
+    net.minecraft.client.renderer.RenderStateShard.TextureStateShard(texture, net.minecraft.util.TriState.FALSE, false)
+*///?}
+
 //? if >=1.21.9 {
 /*/**
  * Every pipeline this mod draws with, declared together because they are registered together.
@@ -117,7 +149,7 @@ object BpmPipelines {
  * the rift shader's JSON asked for in words.
  */
 private fun colourQuadPipeline(name: String, additive: Boolean, depthWrite: Boolean): com.mojang.blaze3d.pipeline.RenderPipeline =
-    com.mojang.blaze3d.pipeline.RenderPipeline.builder(net.minecraft.client.renderer.RenderPipelines.MATRICES_PROJECTION_SNIPPET)
+    com.mojang.blaze3d.pipeline.RenderPipeline.builder(matricesSnippet())
         .withLocation("pipeline/" + name)
         .withVertexShader("core/position_color")
         .withFragmentShader("core/position_color")
@@ -315,7 +347,7 @@ object BpmPipelines {
 // Only the blend and the depth write differ between the two this mod needs, and BlendFunction.LIGHTNING
 // is SRC_ALPHA, ONE -- the same additive the old ADDITIVE_TRANSPARENCY shard was.
 private fun colourQuadPipeline(name: String, additive: Boolean, depthWrite: Boolean): com.mojang.blaze3d.pipeline.RenderPipeline =
-    com.mojang.blaze3d.pipeline.RenderPipeline.builder(net.minecraft.client.renderer.RenderPipelines.MATRICES_PROJECTION_SNIPPET)
+    com.mojang.blaze3d.pipeline.RenderPipeline.builder(matricesSnippet())
         .withLocation("pipeline/" + name)
         .withVertexShader("core/position_color")
         .withFragmentShader("core/position_color")
@@ -338,7 +370,7 @@ fun translucentCull(texture: ResourceLocation): RenderType = translucentCullCach
         true,
         BpmPipelines.TRANSLUCENT_CULL,
         net.minecraft.client.renderer.RenderType.CompositeState.builder()
-            .setTextureState(net.minecraft.client.renderer.RenderStateShard.TextureStateShard(texture, false))
+            .setTextureState(textureShard(texture))
             .setLightmapState(net.minecraft.client.renderer.RenderStateShard.LIGHTMAP)
             .setOverlayState(net.minecraft.client.renderer.RenderStateShard.OVERLAY)
             .createCompositeState(true),

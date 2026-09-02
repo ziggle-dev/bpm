@@ -226,6 +226,9 @@ for (name in listOf("main", "test", "core", "dev")) {
          * existing. Added AFTER the exact-version directory and before the shared one, so specificity
          * still decreases down the list and `processResources`' EXCLUDE keeps the first answer.
          */
+        if (stonecutter.eval(minecraftVersion, ">=1.21.6")) {
+            resources.srcDir(rootProject.file("src/$name/resources-since-1.21.6"))
+        }
         if (stonecutter.eval(minecraftVersion, ">=1.21.2")) {
             resources.srcDir(rootProject.file("src/$name/resources-since-1.21.2"))
         }

@@ -38,12 +38,23 @@ object FabricRiftShader : bpm.platform.client.RiftLook {
 
     private fun rl(path: String) = ResourceLocation.fromNamespaceAndPath(Bpm.ID, path)
 
+    //? if >=1.21.6 {
+    /*private fun matricesSnippet(): com.mojang.blaze3d.pipeline.RenderPipeline.Snippet =
+        net.minecraft.client.renderer.RenderPipelines.MATRICES_PROJECTION_SNIPPET
+    *///?} elif >=1.21.5 {
+    /*// 1.21.5 still passes matrices as loose uniforms; see the note in RenderKinds. The rift's GLSL is
+    // split at the same version for the same reason -- the shared `assets/bpm/shaders/core` sources are
+    // the loose-uniform form and serve every band up to and including this one.
+    private fun matricesSnippet(): com.mojang.blaze3d.pipeline.RenderPipeline.Snippet =
+        net.minecraft.client.renderer.RenderPipelines.MATRICES_SNIPPET
+    *///?}
+
     //? if >=1.21.9 {
     /*// The GLSL is a translation, not a redesign: the same maths against std140 uniform blocks instead
     // of loose uniforms. See `src/main/resources-1.21.11/assets/bpm/shaders/core`, which is generated
     // from the 1.21.1 originals so the two cannot drift.
     private fun pipeline(name: String, shader: String): com.mojang.blaze3d.pipeline.RenderPipeline =
-        com.mojang.blaze3d.pipeline.RenderPipeline.builder(net.minecraft.client.renderer.RenderPipelines.MATRICES_PROJECTION_SNIPPET)
+        com.mojang.blaze3d.pipeline.RenderPipeline.builder(matricesSnippet())
             .withLocation("pipeline/" + name)
             .withVertexShader(rl(shader))
             .withFragmentShader(rl(shader))
@@ -61,6 +72,32 @@ object FabricRiftShader : bpm.platform.client.RiftLook {
     }
 
     // A pipeline is a value, so there is nothing to wait for.
+    override val ready: Boolean get() = true
+
+    private val CUBE: RenderType = pipelineType("bpm_rift_cube", CUBE_PIPELINE)
+    private val TEAR: RenderType = pipelineType("bpm_rift_tear", TEAR_PIPELINE)
+    *///?} elif >=1.21.5 {
+    /*// Identical to the band above except for how a RenderType is built from a pipeline; see the
+    // NeoForge counterpart. Nothing is registered on either band, which on this loader is not a
+    // compromise: Fabric has never had a pipeline registration event.
+    private fun pipeline(name: String, shader: String): com.mojang.blaze3d.pipeline.RenderPipeline =
+        com.mojang.blaze3d.pipeline.RenderPipeline.builder(matricesSnippet())
+            .withLocation("pipeline/" + name)
+            .withVertexShader(rl(shader))
+            .withFragmentShader(rl(shader))
+            .withVertexFormat(FORMAT, VertexFormat.Mode.QUADS)
+            .withBlend(com.mojang.blaze3d.pipeline.BlendFunction.LIGHTNING)
+            .withCull(false)
+            .withDepthWrite(true)
+            .build()
+
+    private val CUBE_PIPELINE = pipeline("bpm_rift_cube", "core/rift_cube")
+    private val TEAR_PIPELINE = pipeline("bpm_rift_tear", "core/rift_tear")
+
+    private fun registerShaders() {
+        Bpm.LOGGER.info("bpm rift pipelines declared (cube, tear); compiled on first use")
+    }
+
     override val ready: Boolean get() = true
 
     private val CUBE: RenderType = pipelineType("bpm_rift_cube", CUBE_PIPELINE)
@@ -139,6 +176,16 @@ object FabricRiftShader : bpm.platform.client.RiftLook {
             net.minecraft.client.renderer.rendertype.RenderSetup.builder(pipeline)
                 .bufferSize(256)
                 .createRenderSetup(),
+        )
+    *///?} elif >=1.21.5 {
+    /*private fun pipelineType(name: String, pipeline: com.mojang.blaze3d.pipeline.RenderPipeline): RenderType =
+        net.minecraft.client.renderer.RenderType.create(
+            name,
+            256,
+            false,
+            false,
+            pipeline,
+            net.minecraft.client.renderer.RenderType.CompositeState.builder().createCompositeState(false),
         )
     *///?} else {
     private fun type(name: String, shader: net.minecraft.client.renderer.RenderStateShard.ShaderStateShard): RenderType = net.minecraft.client.renderer.RenderType.create(

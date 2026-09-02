@@ -50,6 +50,11 @@ object BpmClient {
             // The mod's own flat-colour and translucent pipelines, which the beams and the monitor screen draw with.
             for (pipeline in bpm.platform.client.BpmPipelines.all) e.registerPipeline(pipeline)
         })
+        *///?} elif >=1.21.5 {
+        /*// Nothing to register on this band. Core shaders are gone -- the rift is two RenderPipelines --
+        // and RegisterRenderPipelinesEvent does not exist yet, because NeoForge added it with the 1.21.9
+        // render-type rework. The pipelines compile on first use instead, which is what the rift and the
+        // beams already rely on for their whole life on Fabric.
         *///?} else {
         modBus.addListener(net.neoforged.neoforge.client.event.RegisterShadersEvent::class.java, Consumer(bpm.client.render.RiftShader::register))
         //?}

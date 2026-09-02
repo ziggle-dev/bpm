@@ -50,6 +50,17 @@ object RiftShader : bpm.platform.client.RiftLook {
      * `shaders/core/`, so 1.21.4 wants `bpm:core/rift_cube` where 1.21.1 wants `bpm:rift_cube`. No single
      * spelling works on both -- hence the pair of JSONs under this node's own resources.
      */
+    //? if >=1.21.6 {
+    /*private fun matricesSnippet(): com.mojang.blaze3d.pipeline.RenderPipeline.Snippet =
+        net.minecraft.client.renderer.RenderPipelines.MATRICES_PROJECTION_SNIPPET
+    *///?} elif >=1.21.5 {
+    /*// 1.21.5 still passes matrices as loose uniforms; see the note in RenderKinds. The rift's GLSL is
+    // split at the same version for the same reason -- the shared `assets/bpm/shaders/core` sources are
+    // the loose-uniform form and serve every band up to and including this one.
+    private fun matricesSnippet(): com.mojang.blaze3d.pipeline.RenderPipeline.Snippet =
+        net.minecraft.client.renderer.RenderPipelines.MATRICES_SNIPPET
+    *///?}
+
     //? if >=1.21.9 {
     /*/**
      * On this band a core shader is not registered at all: a RENDER PIPELINE is, and it names the two
@@ -63,7 +74,7 @@ object RiftShader : bpm.platform.client.RiftLook {
      * the 1.21.1 originals so the two cannot drift.
      */
     private fun pipeline(name: String, shader: String): com.mojang.blaze3d.pipeline.RenderPipeline =
-        com.mojang.blaze3d.pipeline.RenderPipeline.builder(net.minecraft.client.renderer.RenderPipelines.MATRICES_PROJECTION_SNIPPET)
+        com.mojang.blaze3d.pipeline.RenderPipeline.builder(matricesSnippet())
             .withLocation("pipeline/" + name)
             .withVertexShader(rl(shader))
             .withFragmentShader(rl(shader))
@@ -83,6 +94,30 @@ object RiftShader : bpm.platform.client.RiftLook {
     }
 
     /** A pipeline is a value, so there is nothing to wait for. */
+    override val ready: Boolean get() = true
+    *///?} elif >=1.21.5 {
+    /*// The same two pipelines as the band above, built the same way -- RenderPipeline and its builder
+    // are 1.21.5 features, not 1.21.9 ones, and the builder's shape did not change between them.
+    //
+    // What is missing here is a registration event: NeoForge only grew RegisterRenderPipelinesEvent
+    // alongside the 1.21.9 render-type rework. None is needed. The device compiles a pipeline the first
+    // time a render pass is set to it, and registration only moves that compile earlier -- the same
+    // thing FabricRiftShader relies on, where no such event exists on any band.
+    private fun pipeline(name: String, shader: String): com.mojang.blaze3d.pipeline.RenderPipeline =
+        com.mojang.blaze3d.pipeline.RenderPipeline.builder(matricesSnippet())
+            .withLocation("pipeline/" + name)
+            .withVertexShader(rl(shader))
+            .withFragmentShader(rl(shader))
+            .withVertexFormat(FORMAT, VertexFormat.Mode.QUADS)
+            .withBlend(com.mojang.blaze3d.pipeline.BlendFunction.LIGHTNING)
+            .withCull(false)
+            .withDepthWrite(true)
+            .build()
+
+    private val CUBE_PIPELINE = pipeline("bpm_rift_cube", "core/rift_cube")
+    private val TEAR_PIPELINE = pipeline("bpm_rift_tear", "core/rift_tear")
+
+    // A pipeline is a value, so there is nothing to wait for.
     override val ready: Boolean get() = true
     *///?} elif >=1.21.2 {
     /*private val CUBE_PROGRAM = net.minecraft.client.renderer.ShaderProgram(
@@ -137,6 +172,19 @@ object RiftShader : bpm.platform.client.RiftLook {
                 .bufferSize(256)
                 .createRenderSetup(),
         )
+    *///?} elif >=1.21.5 {
+    /*// Same pipeline, older way of naming one: a CompositeState with nothing left in it, because every
+    // piece of state this render type used to carry now lives in the pipeline. The buffer size is the
+    // one thing that never did -- it is a batching hint, not GPU state.
+    private fun pipelineType(name: String, pipeline: com.mojang.blaze3d.pipeline.RenderPipeline): RenderType =
+        net.minecraft.client.renderer.RenderType.create(
+            name,
+            256,
+            false,
+            false,
+            pipeline,
+            net.minecraft.client.renderer.RenderType.CompositeState.builder().createCompositeState(false),
+        )
     *///?} else {
     /*
      * Everything the composite state says below is now a property of the pipeline itself: the blend, the
@@ -161,6 +209,9 @@ object RiftShader : bpm.platform.client.RiftLook {
     //?}
 
     //? if >=1.21.9 {
+    /*private val CUBE: RenderType = pipelineType("bpm_rift_cube", CUBE_PIPELINE)
+    private val TEAR: RenderType = pipelineType("bpm_rift_tear", TEAR_PIPELINE)
+    *///?} elif >=1.21.5 {
     /*private val CUBE: RenderType = pipelineType("bpm_rift_cube", CUBE_PIPELINE)
     private val TEAR: RenderType = pipelineType("bpm_rift_tear", TEAR_PIPELINE)
     *///?} elif >=1.21.2 {
