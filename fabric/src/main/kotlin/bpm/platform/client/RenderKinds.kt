@@ -880,16 +880,7 @@ fun targetHandle(target: com.mojang.blaze3d.pipeline.RenderTarget): Long? {
  * `ItemRenderer.renderStatic`, so the same trick needs a different first step; the picker falls back to
  * labels there, as it did everywhere before this.
  */
-//? if >=26.1 {
-/*// 26.1 answers false for now. It has no `MultiBufferSource` to route an item's quads through and
-// builds its pipelines against bind groups, so the drawing half needs a third body; the quad routing
-// above it would be identical. The picker falls back to labels here.
-fun renderItemPreview(
-    mc: net.minecraft.client.Minecraft,
-    target: com.mojang.blaze3d.pipeline.RenderTarget,
-    stack: net.minecraft.world.item.ItemStack,
-): Boolean = false
-*///?} elif >=1.21.5 <1.21.6 {
+//? if >=1.21.5 <1.21.6 {
 /*// 1.21.5 answers false for now. Its pipelines take loose uniforms and its render pass takes the target
 // texture rather than a view, so the drawing half needs a third body; the quad routing above it would be
 // identical. The picker falls back to labels here, as it did everywhere before this.

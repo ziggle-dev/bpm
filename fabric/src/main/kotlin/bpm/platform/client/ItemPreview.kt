@@ -21,35 +21,8 @@ package bpm.platform.client
  * lit by a fixed rig anyway; flat and correct beats lit and unreachable.
  */
 
-//? if >=1.21.6 <26.1 {
-/*/** One buffer for every render type the model asks for. */
-private class OneBuffer(
-    private val consumer: com.mojang.blaze3d.vertex.VertexConsumer,
-) : net.minecraft.client.renderer.MultiBufferSource {
-    override fun getBuffer(type: bpm.platform.RenderType): com.mojang.blaze3d.vertex.VertexConsumer = consumer
-}
-
-/**
- * Flat, textured, depth-tested quads.
- *
- * Depth matters here where it does not for ImGui: a block model is a solid, and without a depth test its
- * back faces paint over its front ones. The offscreen target carries a depth buffer for this.
- */
-internal val previewPipeline: com.mojang.blaze3d.pipeline.RenderPipeline by lazy {
-    imguiPipelineBuilder()
-        .withLocation("pipeline/bpm_item_preview")
-        .withVertexFormat(
-            com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX_COLOR,
-            com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS,
-        )
-        .withBlend(com.mojang.blaze3d.pipeline.BlendFunction.TRANSLUCENT)
-        .withCull(true)
-        .withDepthWrite(true)
-        .withDepthTestFunction(com.mojang.blaze3d.platform.DepthTestFunction.LESS_DEPTH_TEST)
-        .build()
-}
-
-/**
+//? if >=1.21.6 {
+/*/**
  * Draw [stack] into [target] as a thumbnail, in a 16-unit space looked at the way the GUI looks at an
  * item.
  *
@@ -61,24 +34,20 @@ fun renderItemPreview(
     target: com.mojang.blaze3d.pipeline.RenderTarget,
     stack: net.minecraft.world.item.ItemStack,
 ): Boolean {
-    val colour = target.colorTexture ?: return false
-    val depth = target.depthTexture
+    val colour = previewColour(target) ?: return false
+    val depth = previewDepth(target)
     val atlas = blockAtlasTexture(mc) ?: return false
 
     val allocator = com.mojang.blaze3d.vertex.ByteBufferBuilder(4096)
     try {
-        val builder = com.mojang.blaze3d.vertex.BufferBuilder(
-            allocator,
-            com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS,
-            com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX_COLOR,
-        )
+        val builder = previewBuilder(allocator)
 
         // The transform vanilla's GuiGraphics.renderItem applies: centre the item in its 16-unit cell and
         // scale it up, with Y flipped because the model is built Y-up and a GUI counts downwards.
         val pose = com.mojang.blaze3d.vertex.PoseStack()
         pose.translate(8.0, 8.0, 0.0)
         pose.scale(16f, -16f, 16f)
-        emitItemQuads(mc, stack, pose, OneBuffer(FlatConsumer(builder)))
+        emitItemQuads(mc, stack, pose, FlatConsumer(builder))
 
         val mesh = builder.build() ?: return false
         mesh.use { drawPreviewMesh(it, colour, depth, atlas, target.width, target.height) }
