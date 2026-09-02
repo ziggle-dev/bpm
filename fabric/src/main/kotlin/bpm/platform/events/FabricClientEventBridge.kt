@@ -58,7 +58,7 @@ object FabricClientEventBridge {
                     camera.pos,
                     org.joml.Matrix4f(camera.projectionMatrix),
                     org.joml.Matrix4f(pose.last().pose()),
-                    Minecraft.getInstance().deltaTracker,
+                    bpm.platform.client.FrameDelta(Minecraft.getInstance().deltaTracker),
                 ),
             )
         }
@@ -76,7 +76,7 @@ object FabricClientEventBridge {
                     camera.position(),
                     projectionOf(mc, camera),
                     org.joml.Matrix4f(pose.last().pose()),
-                    mc.deltaTracker,
+                    bpm.platform.client.FrameDelta(mc.deltaTracker),
                 ),
             )
         }
@@ -88,7 +88,7 @@ object FabricClientEventBridge {
                     ctx.camera().position,
                     ctx.projectionMatrix(),
                     org.joml.Matrix4f(ctx.matrixStack()!!.last().pose()),
-                    ctx.tickCounter(),
+                    bpm.platform.client.FrameDelta(ctx.tickCounter()),
                 ),
             )
         }

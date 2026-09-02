@@ -126,7 +126,7 @@ object NeoClientEventBridge {
                     // code that is free to multiply into it, and writing through a view the game
                     // still owns would corrupt the frame rather than fail.
                     org.joml.Matrix4f(e.modelViewMatrix),
-                    mc.deltaTracker,
+                    bpm.platform.client.FrameDelta(mc.deltaTracker),
                 )
             )
         })

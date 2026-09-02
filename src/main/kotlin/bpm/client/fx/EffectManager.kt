@@ -405,7 +405,7 @@ object EffectManager {
         val level = mc.level ?: return
         val draw = bpm.platform.client.immediateWorldDraw()
         val cam = event.eye
-        val partial = event.delta.getGameTimeDeltaPartialTick(false)
+        val partial = event.delta.partial(false)
         // Two passes, energy second.
         //
         // The liquid writes depth, as it should — it is a solid column and a wall ought to hide it. The arc
@@ -566,10 +566,10 @@ object EffectManager {
         light: Int,
     ) {
         val m = last.pose()
-        val u0 = sprite.getU(0.2f)
-        val u1 = sprite.getU(0.8f)
-        val v0 = sprite.getV(0.2f)
-        val v1 = sprite.getV(0.8f)
+        val u0 = bpm.platform.client.spriteU(sprite, 0.2f)
+        val u1 = bpm.platform.client.spriteU(sprite, 0.8f)
+        val v0 = bpm.platform.client.spriteV(sprite, 0.2f)
+        val v1 = bpm.platform.client.spriteV(sprite, 0.8f)
 
         fun face(nx: Float, ny: Float, nz: Float, corners: Array<FloatArray>) {
             val uv = arrayOf(floatArrayOf(u0, v1), floatArrayOf(u1, v1), floatArrayOf(u1, v0), floatArrayOf(u0, v0))
@@ -654,8 +654,8 @@ object EffectManager {
         val buffer = draw.consumer(bpm.platform.client.translucentCull(net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS))
         val last = pose.last()
         val m = last.pose()
-        val u0 = sprite.getU(0.18f)
-        val u1 = sprite.getU(0.82f)
+        val u0 = bpm.platform.client.spriteU(sprite, 0.18f)
+        val u1 = bpm.platform.client.spriteU(sprite, 0.82f)
 
         fun width(i: Int): Double {
             val t = i / STREAM_STEPS.toDouble()
@@ -670,8 +670,8 @@ object EffectManager {
         }
 
         for (i in 0 until STREAM_STEPS) {
-            val vA = sprite.getV(0.05f + 0.9f * (i / STREAM_STEPS.toFloat()))
-            val vB = sprite.getV(0.05f + 0.9f * ((i + 1) / STREAM_STEPS.toFloat()))
+            val vA = bpm.platform.client.spriteV(sprite, 0.05f + 0.9f * (i / STREAM_STEPS.toFloat()))
+            val vB = bpm.platform.client.spriteV(sprite, 0.05f + 0.9f * ((i + 1) / STREAM_STEPS.toFloat()))
             for (k in 0 until 4) {
                 val k2 = (k + 1) % 4
                 val n = corner(i, k2).subtract(corner(i, k)).cross(dir).let {

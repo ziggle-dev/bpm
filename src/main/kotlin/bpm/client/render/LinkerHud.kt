@@ -122,7 +122,7 @@ object LinkerHud {
         val range = LinkerItem.reach(be, player)
         // Where things are THIS FRAME, not this tick. A player's model is drawn interpolated, so anything
         // hung on them has to be too or it judders a tick behind the head it belongs to.
-        val partial = event.delta.getGameTimeDeltaPartialTick(true)
+        val partial = event.delta.partial(true)
 
         // One pass for everything: blend, cull and depth are the render type's business now, and the
         // width rides on the vertices from 1.21.9. See [bpm.platform.client.LinePass].

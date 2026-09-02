@@ -212,5 +212,5 @@ class WorldRender(
     val eye: net.minecraft.world.phys.Vec3,
     val projection: org.joml.Matrix4f,
     val modelView: org.joml.Matrix4f,
-    val delta: net.minecraft.client.DeltaTracker,
+    val delta: bpm.platform.client.FrameDelta,
 )
