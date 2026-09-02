@@ -42,19 +42,16 @@ class WardenRenderer(context: EntityRendererProvider.Context) : bpm.platform.cli
      * ignores all of it. So the authoritative bolt keeps its offset and the tell that reads at range — the
      * charge at each claw — comes off the bone, which means it tracks the arm wherever the clip puts it.
      */
-    override fun renderRecursively(
-        poseStack: PoseStack, animatable: QuantumWardenEntity, bone: GeoBone, renderType: RenderType,
-        bufferSource: MultiBufferSource, buffer: VertexConsumer, isReRender: Boolean, partialTick: Float,
-        packedLight: Int, packedOverlay: Int, colour: Int,
-    ) {
-        if (!isReRender && (bone.name == BEAM_L || bone.name == BEAM_R)) {
-            val local = poseStack.last().pose().transformPosition(Vector3f(0f, 0f, 0f))
-            val cam = Minecraft.getInstance().gameRenderer.mainCamera.position
-            val at = Vec3(local.x + cam.x, local.y + cam.y, local.z + cam.z)
-            BoneAnchors.capture(animatable.id, bone.name, at)
-            spark(animatable, at)
+    override fun onBones(bones: bpm.platform.client.BoneAccess, entityId: Int) {
+        for (claw in listOf(BEAM_L, BEAM_R)) {
+            bones.watch(claw) { at ->
+                bpm.client.render.BoneAnchors.capture(entityId, claw, at)
+                // The warden is looked up rather than held: a render state exists precisely so the draw
+                // pass does not keep the entity, and one map lookup a frame is the honest price of that.
+                (net.minecraft.client.Minecraft.getInstance().level?.getEntity(entityId) as? QuantumWardenEntity)
+                    ?.let { spark(it, at) }
+            }
         }
-        super.renderRecursively(poseStack, animatable, bone, renderType, bufferSource, buffer, isReRender, partialTick, packedLight, packedOverlay, colour)
     }
 
     /** A charge at the claw — thicker once the plates are down, which is when it is worth closing on. */

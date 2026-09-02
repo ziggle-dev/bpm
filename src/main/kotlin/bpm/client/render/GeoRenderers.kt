@@ -85,17 +85,8 @@ class ControllerRenderer : bpm.platform.client.GeoBlockRendererBase<ControllerBl
      * controller's end of a transfer was wrong by a few pixels on most frames and by design. At this point
      * in the walk the pose is the bone's own transform, so it is the answer rather than an estimate of it.
      */
-    override fun renderRecursively(
-        poseStack: PoseStack, animatable: ControllerBlockEntity, bone: GeoBone, renderType: RenderType,
-        bufferSource: MultiBufferSource, buffer: VertexConsumer, isReRender: Boolean, partialTick: Float,
-        packedLight: Int, packedOverlay: Int, colour: Int,
-    ) {
-        if (!isReRender && bone.name == CORE) {
-            val local = poseStack.last().pose().transformPosition(Vector3f(0f, 0f, 0f))
-            val cam = Minecraft.getInstance().gameRenderer.mainCamera.position
-            BoneAnchors.capture(animatable.blockPos, CORE, Vec3(local.x + cam.x, local.y + cam.y, local.z + cam.z))
-        }
-        super.renderRecursively(poseStack, animatable, bone, renderType, bufferSource, buffer, isReRender, partialTick, packedLight, packedOverlay, colour)
+    override fun onBones(bones: bpm.platform.client.BoneAccess, pos: net.minecraft.core.BlockPos, state: net.minecraft.world.level.block.state.BlockState) {
+        bones.watch(CORE) { world -> BoneAnchors.capture(pos, CORE, world) }
     }
 
     companion object {

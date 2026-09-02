@@ -175,37 +175,36 @@ class MonitorRenderer : bpm.platform.client.GeoBlockRendererBase<bpm.world.devic
         MonitorScreenRenderer.draw(animatable, poseStack, bufferSource)
     }
 
-    override fun renderRecursively(
-        poseStack: PoseStack, animatable: bpm.world.devices.MonitorBlockEntity, bone: GeoBone, renderType: RenderType,
-        bufferSource: MultiBufferSource, buffer: com.mojang.blaze3d.vertex.VertexConsumer, isReRender: Boolean, partialTick: Float,
-        packedLight: Int, packedOverlay: Int, colour: Int,
-    ) {
-        val s = animatable.blockState
-        val up = s.getValue(bpm.world.devices.MonitorBlock.UP)
-        val down = s.getValue(bpm.world.devices.MonitorBlock.DOWN)
-        val left = s.getValue(bpm.world.devices.MonitorBlock.LEFT)
-        val right = s.getValue(bpm.world.devices.MonitorBlock.RIGHT)
-        val show = when (bone.name) {
-            "bezel_up" -> up
-            "bezel_down" -> down
-            "bezel_left" -> left
-            "bezel_right" -> right
-            "bezel_up_l" -> up && !left
-            "bezel_up_r" -> up && !right
-            "bezel_down_l" -> down && !left
-            "bezel_down_r" -> down && !right
-            "bezel_left_u" -> left && !up
-            "bezel_left_d" -> left && !down
-            "bezel_right_u" -> right && !up
-            "bezel_right_d" -> right && !down
-            "corner_ul" -> up && left
-            "corner_ur" -> up && right
-            "corner_dl" -> down && left
-            "corner_dr" -> down && right
-            else -> true
-        }
-        if (!show) return
-        super.renderRecursively(poseStack, animatable, bone, renderType, bufferSource, buffer, isReRender, partialTick, packedLight, packedOverlay, colour)
+    /**
+     * A monitor tile only draws the bezel edges that face outward, so a wall of them reads as one panel.
+     *
+     * The block state says which neighbours are present; every bone the state says to omit is named here
+     * once per pass, rather than the model being walked and each bone asked as it comes up.
+     */
+    override fun onBones(bones: bpm.platform.client.BoneAccess, pos: net.minecraft.core.BlockPos, state: net.minecraft.world.level.block.state.BlockState) {
+        val up = state.getValue(bpm.world.devices.MonitorBlock.UP)
+        val down = state.getValue(bpm.world.devices.MonitorBlock.DOWN)
+        val left = state.getValue(bpm.world.devices.MonitorBlock.LEFT)
+        val right = state.getValue(bpm.world.devices.MonitorBlock.RIGHT)
+        val shown = mapOf(
+            "bezel_up" to up,
+            "bezel_down" to down,
+            "bezel_left" to left,
+            "bezel_right" to right,
+            "bezel_up_l" to (up && !left),
+            "bezel_up_r" to (up && !right),
+            "bezel_down_l" to (down && !left),
+            "bezel_down_r" to (down && !right),
+            "bezel_left_u" to (left && !up),
+            "bezel_left_d" to (left && !down),
+            "bezel_right_u" to (right && !up),
+            "bezel_right_d" to (right && !down),
+            "corner_ul" to (up && left),
+            "corner_ur" to (up && right),
+            "corner_dl" to (down && left),
+            "corner_dr" to (down && right),
+        )
+        bones.hide(shown.filterValues { !it }.keys)
     }
 }
 
@@ -232,13 +231,8 @@ object DeviceItemExtensions {
                         bpm.platform.client.entityTranslucent(texture)
 
                     /** As an item the gate is just its projector: the rift, its rim and the clamps only exist in the world. */
-                    override fun renderRecursively(
-                        poseStack: PoseStack, animatable: DeviceBlockItem, bone: GeoBone, renderType: RenderType,
-                        bufferSource: MultiBufferSource, buffer: com.mojang.blaze3d.vertex.VertexConsumer, isReRender: Boolean, partialTick: Float,
-                        packedLight: Int, packedOverlay: Int, colour: Int,
-                    ) {
-                        if (bone.name in HIDDEN_IN_ITEM[model].orEmpty()) return
-                        super.renderRecursively(poseStack, animatable, bone, renderType, bufferSource, buffer, isReRender, partialTick, packedLight, packedOverlay, colour)
+                    override fun onBones(bones: bpm.platform.client.BoneAccess) {
+                        bones.hide(HIDDEN_IN_ITEM[model].orEmpty())
                     }
                 }
             }
