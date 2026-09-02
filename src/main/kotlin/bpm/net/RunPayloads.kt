@@ -2,8 +2,11 @@ package bpm.net
 
 import net.minecraft.core.BlockPos
 import net.minecraft.network.FriendlyByteBuf
-import net.minecraft.network.codec.StreamCodec
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload
+import bpm.platform.net.BpmPayload
+import bpm.platform.net.PayloadCodec
+import bpm.platform.net.PayloadType
+import bpm.platform.net.payloadCodec
+import bpm.platform.net.payloadType
 import bpm.platform.ResourceLocation
 
 /*
@@ -14,10 +17,10 @@ import bpm.platform.ResourceLocation
 
 private fun rid(name: String): ResourceLocation = ResourceLocation.fromNamespaceAndPath(bpm.Bpm.ID, name)
 
-private inline fun <T : CustomPacketPayload> rcodec(
-    crossinline write: (FriendlyByteBuf, T) -> Unit,
-    crossinline read: (FriendlyByteBuf) -> T,
-): StreamCodec<FriendlyByteBuf, T> = StreamCodec.of({ buf, v -> write(buf, v) }, { buf -> read(buf) })
+private fun <T : BpmPayload> rcodec(
+    write: (FriendlyByteBuf, T) -> Unit,
+    read: (FriendlyByteBuf) -> T,
+): PayloadCodec<T> = payloadCodec(write, read)
 
 private fun FriendlyByteBuf.writeInts(ids: IntArray) {
     writeVarInt(ids.size)
@@ -38,11 +41,11 @@ private fun FriendlyByteBuf.writeOpt(s: String?, max: Int = 512) {
 private fun FriendlyByteBuf.readOpt(max: Int = 512): String? = if (readBoolean()) readUtf(max) else null
 
 /** Client → server: stream this controller's run view to me — or stop. */
-class RunSubscribePayload(val pos: BlockPos, val on: Boolean) : CustomPacketPayload {
+class RunSubscribePayload(val pos: BlockPos, val on: Boolean) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<RunSubscribePayload>(rid("run_subscribe"))
+        val TYPE = payloadType<RunSubscribePayload>(rid("run_subscribe"))
         val CODEC = rcodec<RunSubscribePayload>({ b, v -> b.writeBlockPos(v.pos); b.writeBoolean(v.on) }, { b -> RunSubscribePayload(b.readBlockPos(), b.readBoolean()) })
     }
 }
@@ -75,11 +78,11 @@ class RunFramePayload(
     val removeLinks: IntArray,
     val contexts: List<ContextDto>?,
     val error: String?,
-) : CustomPacketPayload {
+) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<RunFramePayload>(rid("run_frame"))
+        val TYPE = payloadType<RunFramePayload>(rid("run_frame"))
         val CODEC = rcodec<RunFramePayload>(
             { b, v ->
                 b.writeBlockPos(v.pos); b.writeBoolean(v.full); b.writeUtf(v.phase, 32); b.writeBoolean(v.paused); b.writeVarLong(v.stopToken)
@@ -110,11 +113,11 @@ class LogDto(val level: Int, val nodeId: Int, val message: String, val repeats: 
 }
 
 /** Server → client: log records since the last batch (at most [LogDto.MAX] per tick). */
-class RunLogPayload(val pos: BlockPos, val records: List<LogDto>, val cleared: Boolean) : CustomPacketPayload {
+class RunLogPayload(val pos: BlockPos, val records: List<LogDto>, val cleared: Boolean) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<RunLogPayload>(rid("run_log"))
+        val TYPE = payloadType<RunLogPayload>(rid("run_log"))
         val CODEC = rcodec<RunLogPayload>(
             { b, v -> b.writeBlockPos(v.pos); b.writeBoolean(v.cleared); b.writeVarInt(v.records.size); v.records.forEach { it.write(b) } },
             { b -> val pos = b.readBlockPos(); val cleared = b.readBoolean(); val n = b.readVarInt(); require(n in 0..LogDto.MAX); RunLogPayload(pos, List(n) { LogDto.read(b) }, cleared) },
@@ -199,11 +202,11 @@ class RunPauseMsg(
 }
 
 /** Client → server: the scopes of a deeper frame. */
-class RunScopesRequestPayload(val pos: BlockPos, val contextId: Int, val frameIndex: Int) : CustomPacketPayload {
+class RunScopesRequestPayload(val pos: BlockPos, val contextId: Int, val frameIndex: Int) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<RunScopesRequestPayload>(rid("run_scopes_request"))
+        val TYPE = payloadType<RunScopesRequestPayload>(rid("run_scopes_request"))
         val CODEC = rcodec<RunScopesRequestPayload>(
             { b, v -> b.writeBlockPos(v.pos); b.writeVarInt(v.contextId); b.writeVarInt(v.frameIndex) },
             { b -> RunScopesRequestPayload(b.readBlockPos(), b.readVarInt(), b.readVarInt()) },
@@ -211,11 +214,11 @@ class RunScopesRequestPayload(val pos: BlockPos, val contextId: Int, val frameIn
     }
 }
 
-class RunScopesPayload(val pos: BlockPos, val contextId: Int, val frameIndex: Int, val scopes: List<ScopeDto>) : CustomPacketPayload {
+class RunScopesPayload(val pos: BlockPos, val contextId: Int, val frameIndex: Int, val scopes: List<ScopeDto>) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<RunScopesPayload>(rid("run_scopes"))
+        val TYPE = payloadType<RunScopesPayload>(rid("run_scopes"))
         val CODEC = rcodec<RunScopesPayload>(
             { b, v -> b.writeBlockPos(v.pos); b.writeVarInt(v.contextId); b.writeVarInt(v.frameIndex); b.writeVarInt(v.scopes.size); v.scopes.forEach { it.write(b) } },
             { b -> val pos = b.readBlockPos(); val c = b.readVarInt(); val f = b.readVarInt(); val n = b.readVarInt(); require(n in 0..32); RunScopesPayload(pos, c, f, List(n) { ScopeDto.read(b) }) },
@@ -224,11 +227,11 @@ class RunScopesPayload(val pos: BlockPos, val contextId: Int, val frameIndex: In
 }
 
 /** Client → server: arm, disarm or remove a breakpoint on a node of the controller's program. */
-class BreakpointSetPayload(val pos: BlockPos, val nodeId: Int, val enabled: Boolean, val remove: Boolean) : CustomPacketPayload {
+class BreakpointSetPayload(val pos: BlockPos, val nodeId: Int, val enabled: Boolean, val remove: Boolean) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<BreakpointSetPayload>(rid("breakpoint_set"))
+        val TYPE = payloadType<BreakpointSetPayload>(rid("breakpoint_set"))
         val CODEC = rcodec<BreakpointSetPayload>(
             { b, v -> b.writeBlockPos(v.pos); b.writeVarInt(v.nodeId); b.writeBoolean(v.enabled); b.writeBoolean(v.remove) },
             { b -> BreakpointSetPayload(b.readBlockPos(), b.readVarInt(), b.readBoolean(), b.readBoolean()) },
@@ -237,11 +240,11 @@ class BreakpointSetPayload(val pos: BlockPos, val nodeId: Int, val enabled: Bool
 }
 
 /** Server → client: the controller's whole breakpoint table. */
-class BreakpointsPayload(val pos: BlockPos, val nodeIds: IntArray, val enabled: BooleanArray) : CustomPacketPayload {
+class BreakpointsPayload(val pos: BlockPos, val nodeIds: IntArray, val enabled: BooleanArray) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<BreakpointsPayload>(rid("breakpoints"))
+        val TYPE = payloadType<BreakpointsPayload>(rid("breakpoints"))
         val CODEC = rcodec<BreakpointsPayload>(
             { b, v -> b.writeBlockPos(v.pos); b.writeInts(v.nodeIds); v.enabled.forEach { b.writeBoolean(it) } },
             { b -> val pos = b.readBlockPos(); val ids = b.readInts(); BreakpointsPayload(pos, ids, BooleanArray(ids.size) { b.readBoolean() }) },
@@ -250,11 +253,11 @@ class BreakpointsPayload(val pos: BlockPos, val nodeIds: IntArray, val enabled: 
 }
 
 /** Client → server: set a variable of the running program from its text (numbers, booleans, or text). */
-class SetVariablePayload(val pos: BlockPos, val name: String, val text: String) : CustomPacketPayload {
+class SetVariablePayload(val pos: BlockPos, val name: String, val text: String) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<SetVariablePayload>(rid("set_variable"))
+        val TYPE = payloadType<SetVariablePayload>(rid("set_variable"))
         val CODEC = rcodec<SetVariablePayload>(
             { b, v -> b.writeBlockPos(v.pos); b.writeUtf(v.name, 128); b.writeUtf(v.text, 512) },
             { b -> SetVariablePayload(b.readBlockPos(), b.readUtf(128), b.readUtf(512)) },
@@ -263,11 +266,11 @@ class SetVariablePayload(val pos: BlockPos, val name: String, val text: String) 
 }
 
 /** Client → server: change a literal of the running program (a live tune; the document itself is committed separately). */
-class SetLiteralPayload(val pos: BlockPos, val nodeId: Int, val pin: String, val text: String) : CustomPacketPayload {
+class SetLiteralPayload(val pos: BlockPos, val nodeId: Int, val pin: String, val text: String) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<SetLiteralPayload>(rid("set_literal"))
+        val TYPE = payloadType<SetLiteralPayload>(rid("set_literal"))
         val CODEC = rcodec<SetLiteralPayload>(
             { b, v -> b.writeBlockPos(v.pos); b.writeVarInt(v.nodeId); b.writeUtf(v.pin, 64); b.writeUtf(v.text, 512) },
             { b -> SetLiteralPayload(b.readBlockPos(), b.readVarInt(), b.readUtf(64), b.readUtf(512)) },

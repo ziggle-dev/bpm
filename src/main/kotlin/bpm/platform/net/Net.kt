@@ -1,16 +1,14 @@
 package bpm.platform.net
 
-import net.minecraft.network.RegistryFriendlyByteBuf
-import net.minecraft.network.codec.StreamCodec
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.server.level.ServerPlayer
 
 /**
  * Registering and sending payloads, without naming whose networking does it.
  *
- * The payloads themselves need no seam at all: `bpm.net.Payloads` and `bpm.net.RunPayloads` are written
- * against vanilla's `CustomPacketPayload` and `StreamCodec` and carry no loader types, so all forty-odd
- * of them cross unchanged. What differs is where you hand them in, and how you send one.
+ * The payloads themselves need no LOADER seam: `bpm.net.Payloads` and `bpm.net.RunPayloads` carry no
+ * loader types, so all forty-odd of them cross between NeoForge and Fabric unchanged. They do need a
+ * VERSION seam, because `CustomPacketPayload` and `StreamCodec` only exist from 1.20.5 -- see
+ * [bpm.platform.net.BpmPayload]. What differs per loader is where you hand one in, and how you send it.
  *
  * Handlers take a `ServerPlayer` rather than a context object. That is not a simplification for its own
  * sake — once the catalogue handshake moved to the play phase, `player()` was the only thing any handler
@@ -18,27 +16,27 @@ import net.minecraft.server.level.ServerPlayer
  * of twenty-five methods.
  */
 interface PlatformNet {
-    fun <P : CustomPacketPayload> toServer(
-        type: CustomPacketPayload.Type<P>,
-        codec: StreamCodec<in RegistryFriendlyByteBuf, P>,
+    fun <P : BpmPayload> toServer(
+        type: PayloadType<P>,
+        codec: PayloadCodec<P>,
         handler: (P, ServerPlayer) -> Unit,
     )
 
-    fun <P : CustomPacketPayload> toClient(
-        type: CustomPacketPayload.Type<P>,
-        codec: StreamCodec<in RegistryFriendlyByteBuf, P>,
+    fun <P : BpmPayload> toClient(
+        type: PayloadType<P>,
+        codec: PayloadCodec<P>,
         handler: (P) -> Unit,
     )
 
-    fun <P : CustomPacketPayload> bidirectional(
-        type: CustomPacketPayload.Type<P>,
-        codec: StreamCodec<in RegistryFriendlyByteBuf, P>,
+    fun <P : BpmPayload> bidirectional(
+        type: PayloadType<P>,
+        codec: PayloadCodec<P>,
         onServer: (P, ServerPlayer) -> Unit,
         onClient: (P) -> Unit,
     )
 
-    fun sendToServer(payload: CustomPacketPayload)
-    fun sendToPlayer(player: ServerPlayer, payload: CustomPacketPayload)
+    fun sendToServer(payload: BpmPayload)
+    fun sendToPlayer(player: ServerPlayer, payload: BpmPayload)
 }
 
 /**
@@ -55,26 +53,26 @@ object Net {
         backend = impl
     }
 
-    fun <P : CustomPacketPayload> toServer(
-        type: CustomPacketPayload.Type<P>,
-        codec: StreamCodec<in RegistryFriendlyByteBuf, P>,
+    fun <P : BpmPayload> toServer(
+        type: PayloadType<P>,
+        codec: PayloadCodec<P>,
         handler: (P, ServerPlayer) -> Unit,
     ) = backend.toServer(type, codec, handler)
 
-    fun <P : CustomPacketPayload> toClient(
-        type: CustomPacketPayload.Type<P>,
-        codec: StreamCodec<in RegistryFriendlyByteBuf, P>,
+    fun <P : BpmPayload> toClient(
+        type: PayloadType<P>,
+        codec: PayloadCodec<P>,
         handler: (P) -> Unit,
     ) = backend.toClient(type, codec, handler)
 
-    fun <P : CustomPacketPayload> bidirectional(
-        type: CustomPacketPayload.Type<P>,
-        codec: StreamCodec<in RegistryFriendlyByteBuf, P>,
+    fun <P : BpmPayload> bidirectional(
+        type: PayloadType<P>,
+        codec: PayloadCodec<P>,
         onServer: (P, ServerPlayer) -> Unit,
         onClient: (P) -> Unit,
     ) = backend.bidirectional(type, codec, onServer, onClient)
 
-    fun sendToServer(payload: CustomPacketPayload) = backend.sendToServer(payload)
+    fun sendToServer(payload: BpmPayload) = backend.sendToServer(payload)
 
-    fun sendToPlayer(player: ServerPlayer, payload: CustomPacketPayload) = backend.sendToPlayer(player, payload)
+    fun sendToPlayer(player: ServerPlayer, payload: BpmPayload) = backend.sendToPlayer(player, payload)
 }

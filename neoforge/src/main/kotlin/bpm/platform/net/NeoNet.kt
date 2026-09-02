@@ -1,9 +1,7 @@
 package bpm.platform.net
 
 import net.minecraft.network.RegistryFriendlyByteBuf
-import net.minecraft.network.codec.StreamCodec
 import net.minecraft.network.protocol.PacketFlow
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.server.level.ServerPlayer
 import net.neoforged.neoforge.network.PacketDistributor
 import net.neoforged.neoforge.network.registration.PayloadRegistrar
@@ -20,9 +18,9 @@ object NeoNet : PlatformNet {
 
     private val pending = ArrayList<(PayloadRegistrar) -> Unit>()
 
-    override fun <P : CustomPacketPayload> toServer(
-        type: CustomPacketPayload.Type<P>,
-        codec: StreamCodec<in RegistryFriendlyByteBuf, P>,
+    override fun <P : BpmPayload> toServer(
+        type: PayloadType<P>,
+        codec: PayloadCodec<P>,
         handler: (P, ServerPlayer) -> Unit,
     ) {
         pending += { r ->
@@ -30,17 +28,17 @@ object NeoNet : PlatformNet {
         }
     }
 
-    override fun <P : CustomPacketPayload> toClient(
-        type: CustomPacketPayload.Type<P>,
-        codec: StreamCodec<in RegistryFriendlyByteBuf, P>,
+    override fun <P : BpmPayload> toClient(
+        type: PayloadType<P>,
+        codec: PayloadCodec<P>,
         handler: (P) -> Unit,
     ) {
         pending += { r -> r.playToClient(type, codec) { p, _ -> handler(p) } }
     }
 
-    override fun <P : CustomPacketPayload> bidirectional(
-        type: CustomPacketPayload.Type<P>,
-        codec: StreamCodec<in RegistryFriendlyByteBuf, P>,
+    override fun <P : BpmPayload> bidirectional(
+        type: PayloadType<P>,
+        codec: PayloadCodec<P>,
         onServer: (P, ServerPlayer) -> Unit,
         onClient: (P) -> Unit,
     ) {
@@ -91,13 +89,13 @@ object NeoNet : PlatformNet {
      * on dedicated servers too.
      */
     //? if >=1.21.6 {
-    /*override fun sendToServer(payload: CustomPacketPayload) =
+    /*override fun sendToServer(payload: BpmPayload) =
         net.neoforged.neoforge.client.network.ClientPacketDistributor.sendToServer(payload)
     *///?} else {
-    override fun sendToServer(payload: CustomPacketPayload) = PacketDistributor.sendToServer(payload)
+    override fun sendToServer(payload: BpmPayload) = PacketDistributor.sendToServer(payload)
     //?}
 
-    override fun sendToPlayer(player: ServerPlayer, payload: CustomPacketPayload) =
+    override fun sendToPlayer(player: ServerPlayer, payload: BpmPayload) =
         PacketDistributor.sendToPlayer(player, payload)
 
     fun onRegisterPayloads(event: net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent) {

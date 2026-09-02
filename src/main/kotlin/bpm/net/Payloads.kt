@@ -11,8 +11,11 @@ import io.netty.buffer.ByteBufUtil
 import io.netty.buffer.Unpooled
 import net.minecraft.core.BlockPos
 import net.minecraft.network.FriendlyByteBuf
-import net.minecraft.network.codec.StreamCodec
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload
+import bpm.platform.net.BpmPayload
+import bpm.platform.net.PayloadCodec
+import bpm.platform.net.PayloadType
+import bpm.platform.net.payloadCodec
+import bpm.platform.net.payloadType
 import bpm.platform.ResourceLocation
 import java.util.UUID
 import bpm.platform.listOr
@@ -28,10 +31,16 @@ private fun id(name: String): ResourceLocation = ResourceLocation.fromNamespaceA
 /** "No document" on the wire. */
 val NIL_UUID: UUID = UUID(0, 0)
 
-private inline fun <T : CustomPacketPayload> codec(
-    crossinline write: (FriendlyByteBuf, T) -> Unit,
-    crossinline read: (FriendlyByteBuf) -> T,
-): StreamCodec<FriendlyByteBuf, T> = StreamCodec.of({ buf, v -> write(buf, v) }, { buf -> read(buf) })
+/**
+ * The wire form of a payload, built from a write and a read.
+ *
+ * A thin name over [payloadCodec], kept because forty-one call sites below read better for it. The seam
+ * is what makes the two functions mean the same thing on a band with no `StreamCodec`.
+ */
+private fun <T : BpmPayload> codec(
+    write: (FriendlyByteBuf, T) -> Unit,
+    read: (FriendlyByteBuf) -> T,
+): PayloadCodec<T> = payloadCodec(write, read)
 
 private fun FriendlyByteBuf.writeStrings(list: List<String>) {
     writeVarInt(list.size)
@@ -61,21 +70,21 @@ private fun FriendlyByteBuf.readOptString(): String? = if (readBoolean()) readUt
 // ---- configuration ----------------------------------------------------------------------------------------
 
 /** Server → client during configuration: the catalogue the server runs. */
-class CatalogHelloPayload(val hash: String, val packs: List<String>) : CustomPacketPayload {
+class CatalogHelloPayload(val hash: String, val packs: List<String>) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<CatalogHelloPayload>(id("catalog_hello"))
+        val TYPE = payloadType<CatalogHelloPayload>(id("catalog_hello"))
         val CODEC = codec({ b, v -> b.writeUtf(v.hash); b.writeStrings(v.packs) }, { b -> CatalogHelloPayload(b.readUtf(), b.readStrings()) })
     }
 }
 
 /** Client → server: the catalogue the client built. */
-class CatalogAckPayload(val hash: String, val packs: List<String>) : CustomPacketPayload {
+class CatalogAckPayload(val hash: String, val packs: List<String>) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<CatalogAckPayload>(id("catalog_ack"))
+        val TYPE = payloadType<CatalogAckPayload>(id("catalog_ack"))
         val CODEC = codec({ b, v -> b.writeUtf(v.hash); b.writeStrings(v.packs) }, { b -> CatalogAckPayload(b.readUtf(), b.readStrings()) })
     }
 }
@@ -83,11 +92,11 @@ class CatalogAckPayload(val hash: String, val packs: List<String>) : CustomPacke
 // ---- chunks -------------------------------------------------------------------------------------------------
 
 /** One piece of a big message, either direction. */
-class ChunkPayload(val chunk: Chunk) : CustomPacketPayload {
+class ChunkPayload(val chunk: Chunk) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<ChunkPayload>(id("chunk"))
+        val TYPE = payloadType<ChunkPayload>(id("chunk"))
         val CODEC = codec(
             { b, v ->
                 val c = v.chunk
@@ -105,21 +114,21 @@ class ChunkPayload(val chunk: Chunk) : CustomPacketPayload {
 // ---- library --------------------------------------------------------------------------------------------------
 
 /** Client → server: send me the library; also subscribes to [LibraryChangedPayload]. */
-class LibraryListRequestPayload : CustomPacketPayload {
+class LibraryListRequestPayload : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<LibraryListRequestPayload>(id("library_list_request"))
+        val TYPE = payloadType<LibraryListRequestPayload>(id("library_list_request"))
         val CODEC = codec({ _, _ -> }, { _ -> LibraryListRequestPayload() })
     }
 }
 
 /** Server → client: the library moved; [docId] names the document that changed (null = several). */
-class LibraryChangedPayload(val libraryVersion: Int, val docId: UUID?, val deleted: Boolean) : CustomPacketPayload {
+class LibraryChangedPayload(val libraryVersion: Int, val docId: UUID?, val deleted: Boolean) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<LibraryChangedPayload>(id("library_changed"))
+        val TYPE = payloadType<LibraryChangedPayload>(id("library_changed"))
         val CODEC = codec(
             { b, v -> b.writeVarInt(v.libraryVersion); b.writeOptUuid(v.docId); b.writeBoolean(v.deleted) },
             { b -> LibraryChangedPayload(b.readVarInt(), b.readOptUuid(), b.readBoolean()) },
@@ -127,39 +136,39 @@ class LibraryChangedPayload(val libraryVersion: Int, val docId: UUID?, val delet
     }
 }
 
-class DocRenamePayload(val docId: UUID, val name: String) : CustomPacketPayload {
+class DocRenamePayload(val docId: UUID, val name: String) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<DocRenamePayload>(id("doc_rename"))
+        val TYPE = payloadType<DocRenamePayload>(id("doc_rename"))
         val CODEC = codec({ b, v -> b.writeUUID(v.docId); b.writeUtf(v.name, 64) }, { b -> DocRenamePayload(b.readUUID(), b.readUtf(64)) })
     }
 }
 
-class DocDeletePayload(val docId: UUID) : CustomPacketPayload {
+class DocDeletePayload(val docId: UUID) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<DocDeletePayload>(id("doc_delete"))
+        val TYPE = payloadType<DocDeletePayload>(id("doc_delete"))
         val CODEC = codec({ b, v -> b.writeUUID(v.docId) }, { b -> DocDeletePayload(b.readUUID()) })
     }
 }
 
-class DocDuplicatePayload(val docId: UUID, val name: String) : CustomPacketPayload {
+class DocDuplicatePayload(val docId: UUID, val name: String) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<DocDuplicatePayload>(id("doc_duplicate"))
+        val TYPE = payloadType<DocDuplicatePayload>(id("doc_duplicate"))
         val CODEC = codec({ b, v -> b.writeUUID(v.docId); b.writeUtf(v.name, 64) }, { b -> DocDuplicatePayload(b.readUUID(), b.readUtf(64)) })
     }
 }
 
 /** Client → server: send me this document (as a viewer unless I hold its lease). */
-class DocFetchPayload(val docId: UUID) : CustomPacketPayload {
+class DocFetchPayload(val docId: UUID) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<DocFetchPayload>(id("doc_fetch"))
+        val TYPE = payloadType<DocFetchPayload>(id("doc_fetch"))
         val CODEC = codec({ b, v -> b.writeUUID(v.docId) }, { b -> DocFetchPayload(b.readUUID()) })
     }
 }
@@ -170,13 +179,13 @@ class DocFetchPayload(val docId: UUID) : CustomPacketPayload {
  * Client → server: open a document in the editor, optionally wanting the lease and watching a controller.
  * With [docId] = NIL and a [controller], opens that controller's own graph, creating it on first use.
  */
-class EditorOpenPayload(val docId: UUID, val wantEdit: Boolean, val controller: BlockPos?) : CustomPacketPayload {
+class EditorOpenPayload(val docId: UUID, val wantEdit: Boolean, val controller: BlockPos?) : BpmPayload {
     override fun type() = TYPE
 
     val isControllerGraph: Boolean get() = docId == NIL_UUID && controller != null
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<EditorOpenPayload>(id("editor_open"))
+        val TYPE = payloadType<EditorOpenPayload>(id("editor_open"))
         val CODEC = codec(
             { b, v -> b.writeUUID(v.docId); b.writeBoolean(v.wantEdit); b.writeBoolean(v.controller != null); v.controller?.let { b.writeBlockPos(it) } },
             { b -> EditorOpenPayload(b.readUUID(), b.readBoolean(), if (b.readBoolean()) b.readBlockPos() else null) },
@@ -184,48 +193,48 @@ class EditorOpenPayload(val docId: UUID, val wantEdit: Boolean, val controller: 
     }
 }
 
-class EditorClosePayload(val docId: UUID) : CustomPacketPayload {
+class EditorClosePayload(val docId: UUID) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<EditorClosePayload>(id("editor_close"))
+        val TYPE = payloadType<EditorClosePayload>(id("editor_close"))
         val CODEC = codec({ b, v -> b.writeUUID(v.docId) }, { b -> EditorClosePayload(b.readUUID()) })
     }
 }
 
-class SessionHeartbeatPayload(val docId: UUID) : CustomPacketPayload {
+class SessionHeartbeatPayload(val docId: UUID) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<SessionHeartbeatPayload>(id("session_heartbeat"))
+        val TYPE = payloadType<SessionHeartbeatPayload>(id("session_heartbeat"))
         val CODEC = codec({ b, v -> b.writeUUID(v.docId) }, { b -> SessionHeartbeatPayload(b.readUUID()) })
     }
 }
 
-class LeaseRequestPayload(val docId: UUID, val steal: Boolean) : CustomPacketPayload {
+class LeaseRequestPayload(val docId: UUID, val steal: Boolean) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<LeaseRequestPayload>(id("lease_request"))
+        val TYPE = payloadType<LeaseRequestPayload>(id("lease_request"))
         val CODEC = codec({ b, v -> b.writeUUID(v.docId); b.writeBoolean(v.steal) }, { b -> LeaseRequestPayload(b.readUUID(), b.readBoolean()) })
     }
 }
 
-class LeaseReleasePayload(val docId: UUID) : CustomPacketPayload {
+class LeaseReleasePayload(val docId: UUID) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<LeaseReleasePayload>(id("lease_release"))
+        val TYPE = payloadType<LeaseReleasePayload>(id("lease_release"))
         val CODEC = codec({ b, v -> b.writeUUID(v.docId) }, { b -> LeaseReleasePayload(b.readUUID()) })
     }
 }
 
 /** Server → client: your role on a document and who holds it now. */
-class SessionStatePayload(val docId: UUID, val role: Role, val holderName: String, val version: Int, val reason: SessionReason) : CustomPacketPayload {
+class SessionStatePayload(val docId: UUID, val role: Role, val holderName: String, val version: Int, val reason: SessionReason) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<SessionStatePayload>(id("session_state"))
+        val TYPE = payloadType<SessionStatePayload>(id("session_state"))
         val CODEC = codec(
             { b, v -> b.writeUUID(v.docId); b.writeEnum(v.role); b.writeUtf(v.holderName, 64); b.writeVarInt(v.version); b.writeEnum(v.reason) },
             { b -> SessionStatePayload(b.readUUID(), b.readEnum(Role::class.java), b.readUtf(64), b.readVarInt(), b.readEnum(SessionReason::class.java)) },
@@ -256,11 +265,11 @@ class DocCommitResultPayload(
     val message: String,
     val issues: List<IssueDto>,
     val deployed: Int,
-) : CustomPacketPayload {
+) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<DocCommitResultPayload>(id("doc_commit_result"))
+        val TYPE = payloadType<DocCommitResultPayload>(id("doc_commit_result"))
         val CODEC = codec(
             { b, v ->
                 b.writeUUID(v.docId); b.writeVarInt(v.commitId); b.writeEnum(v.status); b.writeVarInt(v.version); b.writeUtf(v.sha256, 64)
@@ -283,20 +292,20 @@ enum class RunAction { START, STOP, RESTART, PAUSE, RESUME, STEP_OVER, STEP_INTO
 
 enum class LinkOp { RENAME, REMOVE }
 
-class ControllerBindPayload(val pos: BlockPos, val docId: UUID?) : CustomPacketPayload {
+class ControllerBindPayload(val pos: BlockPos, val docId: UUID?) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<ControllerBindPayload>(id("controller_bind"))
+        val TYPE = payloadType<ControllerBindPayload>(id("controller_bind"))
         val CODEC = codec({ b, v -> b.writeBlockPos(v.pos); b.writeOptUuid(v.docId) }, { b -> ControllerBindPayload(b.readBlockPos(), b.readOptUuid()) })
     }
 }
 
-class ControllerFlagsPayload(val pos: BlockPos, val enabled: Boolean, val debugBuild: Boolean) : CustomPacketPayload {
+class ControllerFlagsPayload(val pos: BlockPos, val enabled: Boolean, val debugBuild: Boolean) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<ControllerFlagsPayload>(id("controller_flags"))
+        val TYPE = payloadType<ControllerFlagsPayload>(id("controller_flags"))
         val CODEC = codec(
             { b, v -> b.writeBlockPos(v.pos); b.writeBoolean(v.enabled); b.writeBoolean(v.debugBuild) },
             { b -> ControllerFlagsPayload(b.readBlockPos(), b.readBoolean(), b.readBoolean()) },
@@ -304,20 +313,20 @@ class ControllerFlagsPayload(val pos: BlockPos, val enabled: Boolean, val debugB
     }
 }
 
-class RunControlPayload(val pos: BlockPos, val action: RunAction) : CustomPacketPayload {
+class RunControlPayload(val pos: BlockPos, val action: RunAction) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<RunControlPayload>(id("run_control"))
+        val TYPE = payloadType<RunControlPayload>(id("run_control"))
         val CODEC = codec({ b, v -> b.writeBlockPos(v.pos); b.writeEnum(v.action) }, { b -> RunControlPayload(b.readBlockPos(), b.readEnum(RunAction::class.java)) })
     }
 }
 
-class LinkEditPayload(val pos: BlockPos, val op: LinkOp, val name: String, val newName: String) : CustomPacketPayload {
+class LinkEditPayload(val pos: BlockPos, val op: LinkOp, val name: String, val newName: String) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<LinkEditPayload>(id("link_edit"))
+        val TYPE = payloadType<LinkEditPayload>(id("link_edit"))
         val CODEC = codec(
             { b, v -> b.writeBlockPos(v.pos); b.writeEnum(v.op); b.writeUtf(v.name, 64); b.writeUtf(v.newName, 64) },
             { b -> LinkEditPayload(b.readBlockPos(), b.readEnum(LinkOp::class.java), b.readUtf(64), b.readUtf(64)) },
@@ -326,11 +335,11 @@ class LinkEditPayload(val pos: BlockPos, val op: LinkOp, val name: String, val n
 }
 
 /** Client → server: sneak + attack on air with the linker in [hand] — fire the tracking pulse. */
-class LinkerTrackPayload(val hand: net.minecraft.world.InteractionHand) : CustomPacketPayload {
+class LinkerTrackPayload(val hand: net.minecraft.world.InteractionHand) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<LinkerTrackPayload>(id("linker_track"))
+        val TYPE = payloadType<LinkerTrackPayload>(id("linker_track"))
         val CODEC = codec(
             { b, v -> b.writeEnum(v.hand) },
             { b -> LinkerTrackPayload(b.readEnum(net.minecraft.world.InteractionHand::class.java)) },
@@ -339,11 +348,11 @@ class LinkerTrackPayload(val hand: net.minecraft.world.InteractionHand) : Custom
 }
 
 /** Client → server: keep me posted on this controller (status every second, links on change) — or stop. */
-class ControllerWatchPayload(val pos: BlockPos, val watch: Boolean) : CustomPacketPayload {
+class ControllerWatchPayload(val pos: BlockPos, val watch: Boolean) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<ControllerWatchPayload>(id("controller_watch"))
+        val TYPE = payloadType<ControllerWatchPayload>(id("controller_watch"))
         val CODEC = codec({ b, v -> b.writeBlockPos(v.pos); b.writeBoolean(v.watch) }, { b -> ControllerWatchPayload(b.readBlockPos(), b.readBoolean()) })
     }
 }
@@ -370,11 +379,11 @@ class ControllerStatusPayload(
     /** What the core tier allows, so the panel can say `12/16` rather than just `12`. */
     val maxLinks: Int = 0,
     val maxPresence: Int = 0,
-) : CustomPacketPayload {
+) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<ControllerStatusPayload>(id("controller_status"))
+        val TYPE = payloadType<ControllerStatusPayload>(id("controller_status"))
         val CODEC = codec(
             { b, v ->
                 b.writeBlockPos(v.pos); b.writeEnum(v.status); b.writeOptUuid(v.docId); b.writeUtf(v.docName, 64); b.writeVarInt(v.docVersion)
@@ -414,11 +423,11 @@ class HudPanelPayload(
     val width: Int,
     val scale: Float,
     val widgets: ListTag,
-) : CustomPacketPayload {
+) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<HudPanelPayload>(id("hud_panel"))
+        val TYPE = payloadType<HudPanelPayload>(id("hud_panel"))
         val CODEC = codec<HudPanelPayload>(
             { b, v ->
                 b.writeBlockPos(v.controller); b.writeUtf(v.anchor, 16)
@@ -447,11 +456,11 @@ class HudInputPayload(
     val press: Boolean,
     val value: Float,
     val text: String = "",
-) : CustomPacketPayload {
+) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<HudInputPayload>(id("hud_input"))
+        val TYPE = payloadType<HudInputPayload>(id("hud_input"))
         val CODEC = codec<HudInputPayload>(
             { b, v ->
                 b.writeBlockPos(v.controller); b.writeUtf(v.id, 64); b.writeBoolean(v.press)
@@ -469,11 +478,11 @@ class HudInputPayload(
  * number on trust: it re-runs the same hit-test against that player's own look ray, so a drag is believed
  * only from someone actually looking at that slider.
  */
-class MonitorDragPayload(val origin: BlockPos, val id: String, val along: Float) : CustomPacketPayload {
+class MonitorDragPayload(val origin: BlockPos, val id: String, val along: Float) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<MonitorDragPayload>(id("monitor_drag"))
+        val TYPE = payloadType<MonitorDragPayload>(id("monitor_drag"))
         val CODEC = codec<MonitorDragPayload>(
             { b, v -> b.writeBlockPos(v.origin); b.writeUtf(v.id, 64); b.writeFloat(v.along) },
             { b -> MonitorDragPayload(b.readBlockPos(), b.readUtf(64), b.readFloat()) },
@@ -482,11 +491,11 @@ class MonitorDragPayload(val origin: BlockPos, val id: String, val along: Float)
 }
 
 /** Client -> server: what someone typed into a monitor's text field. */
-class MonitorTextPayload(val origin: BlockPos, val id: String, val text: String) : CustomPacketPayload {
+class MonitorTextPayload(val origin: BlockPos, val id: String, val text: String) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<MonitorTextPayload>(id("monitor_text"))
+        val TYPE = payloadType<MonitorTextPayload>(id("monitor_text"))
         val CODEC = codec<MonitorTextPayload>(
             { b, v -> b.writeBlockPos(v.origin); b.writeUtf(v.id, 64); b.writeUtf(v.text, MAX_TEXT) },
             { b -> MonitorTextPayload(b.readBlockPos(), b.readUtf(64), b.readUtf(MAX_TEXT)) },
@@ -512,11 +521,11 @@ class KeyWatchDto(val name: String, val consumeAlways: Boolean, val consumeWithM
  * Without it a client would have to send every keystroke, which is a keylogger and a packet flood both. The
  * set is the union of what every running graph has actually named - see `bpm.runtime.KeyWatch`.
  */
-class KeyWatchPayload(val keys: List<KeyWatchDto>) : CustomPacketPayload {
+class KeyWatchPayload(val keys: List<KeyWatchDto>) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<KeyWatchPayload>(id("key_watch"))
+        val TYPE = payloadType<KeyWatchPayload>(id("key_watch"))
         val CODEC = codec<KeyWatchPayload>(
             { b, v ->
                 b.writeVarInt(v.keys.size)
@@ -539,11 +548,11 @@ class KeyWatchPayload(val keys: List<KeyWatchDto>) : CustomPacketPayload {
  * target could poke a machine it was never tethered to. Each controller then decides for itself whether it
  * wanted the modifier, so two graphs can want `W` and `alt+W` without either seeing the other's press.
  */
-class KeyEdgePayload(val key: String, val down: Boolean, val modifier: Boolean) : CustomPacketPayload {
+class KeyEdgePayload(val key: String, val down: Boolean, val modifier: Boolean) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<KeyEdgePayload>(id("key_edge"))
+        val TYPE = payloadType<KeyEdgePayload>(id("key_edge"))
         val CODEC = codec<KeyEdgePayload>(
             { b, v -> b.writeUtf(v.key, 32); b.writeBoolean(v.down); b.writeBoolean(v.modifier) },
             { b -> KeyEdgePayload(b.readUtf(32), b.readBoolean(), b.readBoolean()) },
@@ -567,11 +576,11 @@ class LinkDto(val name: String, val pos: BlockPos, val side: Int, val dimension:
 }
 
 /** Server → client: a controller's whole link table. */
-class LinkTableSyncPayload(val pos: BlockPos, val links: List<LinkDto>) : CustomPacketPayload {
+class LinkTableSyncPayload(val pos: BlockPos, val links: List<LinkDto>) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<LinkTableSyncPayload>(id("link_table"))
+        val TYPE = payloadType<LinkTableSyncPayload>(id("link_table"))
         val CODEC = codec(
             { b, v -> b.writeBlockPos(v.pos); b.writeVarInt(v.links.size); v.links.forEach { it.write(b) } },
             { b ->
@@ -587,11 +596,11 @@ class LinkTableSyncPayload(val pos: BlockPos, val links: List<LinkDto>) : Custom
  * Server → client, to a document's holder: a link was renamed and the stored document rewritten to match —
  * make the same edit to the open copy and rebase it on [version] (so uncommitted work survives).
  */
-class LinkRenamedPayload(val docId: UUID, val oldName: String, val newName: String, val version: Int, val sha256: String) : CustomPacketPayload {
+class LinkRenamedPayload(val docId: UUID, val oldName: String, val newName: String, val version: Int, val sha256: String) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<LinkRenamedPayload>(id("link_renamed"))
+        val TYPE = payloadType<LinkRenamedPayload>(id("link_renamed"))
         val CODEC = codec(
             { b, v -> b.writeUUID(v.docId); b.writeUtf(v.oldName, 64); b.writeUtf(v.newName, 64); b.writeVarInt(v.version); b.writeUtf(v.sha256, 128) },
             { b -> LinkRenamedPayload(b.readUUID(), b.readUtf(64), b.readUtf(64), b.readVarInt(), b.readUtf(128)) },
@@ -630,11 +639,11 @@ class EffectPayload(
     /** The entity an end is riding, or 0 for a fixed one — a presence link's end walks about. */
     val originEntity: Int = 0,
     val targetEntity: Int = 0,
-) : CustomPacketPayload {
+) : BpmPayload {
     override fun type() = TYPE
 
     companion object {
-        val TYPE = CustomPacketPayload.Type<EffectPayload>(id("effect"))
+        val TYPE = payloadType<EffectPayload>(id("effect"))
         val CODEC = codec(
             { b, v ->
                 b.writeBlockPos(v.controller); b.writeVarInt(v.stream); b.writeEnum(v.op); b.writeEnum(v.kind)

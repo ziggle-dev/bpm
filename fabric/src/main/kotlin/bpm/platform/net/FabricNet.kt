@@ -3,8 +3,6 @@ package bpm.platform.net
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.minecraft.network.RegistryFriendlyByteBuf
-import net.minecraft.network.codec.StreamCodec
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.server.level.ServerPlayer
 
 /**
@@ -43,9 +41,9 @@ private fun toClientTypes(): PayloadTypeRegistry<RegistryFriendlyByteBuf> = Payl
 
 object FabricNet : PlatformNet {
 
-    override fun <P : CustomPacketPayload> toServer(
-        type: CustomPacketPayload.Type<P>,
-        codec: StreamCodec<in RegistryFriendlyByteBuf, P>,
+    override fun <P : BpmPayload> toServer(
+        type: PayloadType<P>,
+        codec: PayloadCodec<P>,
         handler: (P, ServerPlayer) -> Unit,
     ) {
         toServerTypes().register(type, codec)
@@ -55,18 +53,18 @@ object FabricNet : PlatformNet {
         }
     }
 
-    override fun <P : CustomPacketPayload> toClient(
-        type: CustomPacketPayload.Type<P>,
-        codec: StreamCodec<in RegistryFriendlyByteBuf, P>,
+    override fun <P : BpmPayload> toClient(
+        type: PayloadType<P>,
+        codec: PayloadCodec<P>,
         handler: (P) -> Unit,
     ) {
         toClientTypes().register(type, codec)
         if (bpm.platform.Platform.isClient) FabricClientNet.receive(type, handler)
     }
 
-    override fun <P : CustomPacketPayload> bidirectional(
-        type: CustomPacketPayload.Type<P>,
-        codec: StreamCodec<in RegistryFriendlyByteBuf, P>,
+    override fun <P : BpmPayload> bidirectional(
+        type: PayloadType<P>,
+        codec: PayloadCodec<P>,
         onServer: (P, ServerPlayer) -> Unit,
         onClient: (P) -> Unit,
     ) {
@@ -78,8 +76,8 @@ object FabricNet : PlatformNet {
         if (bpm.platform.Platform.isClient) FabricClientNet.receive(type, onClient)
     }
 
-    override fun sendToServer(payload: CustomPacketPayload) = FabricClientNet.send(payload)
+    override fun sendToServer(payload: BpmPayload) = FabricClientNet.send(payload)
 
-    override fun sendToPlayer(player: ServerPlayer, payload: CustomPacketPayload) =
+    override fun sendToPlayer(player: ServerPlayer, payload: BpmPayload) =
         ServerPlayNetworking.send(player, payload)
 }
