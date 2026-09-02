@@ -173,7 +173,10 @@ private class GpuImGuiBackend : ImGuiBackend {
             run {
                 pass.setVertexBuffer(0, vbo)
                 pass.setIndexBuffer(ibo, com.mojang.blaze3d.vertex.VertexFormat.IndexType.SHORT)
+                // Whatever the last command bound; the font is by far the common case, so it is bound
+                // once here and only re-bound when a command asks for something else.
                 bindImGuiFont(pass, atlasFont)
+                var bound = FONT_ID
 
                 for (list in 0 until lists) {
                     for (command in 0 until data.getCmdListCmdBufferSize(list)) {
@@ -181,6 +184,23 @@ private class GpuImGuiBackend : ImGuiBackend {
                         if (elements == 0) continue
                         val clip = data.getCmdListCmdBufferClipRect(list, command)
                         if (clip.z <= clip.x || clip.w <= clip.y) continue
+
+                        /*
+                         * The texture this command wants. A command referring to a handle nobody
+                         * registered is SKIPPED rather than drawn with the font: drawing it would paint a
+                         * slab of font atlas where an icon belongs, which reads as corruption, where
+                         * skipping reads as "not ready yet" -- which is what it is.
+                         */
+                        val wanted = data.getCmdListCmdBufferTextureId(list, command)
+                        if (wanted != bound) {
+                            if (wanted == FONT_ID) {
+                                bindImGuiFont(pass, atlasFont)
+                            } else {
+                                val texture = ImGuiTextures.lookup(wanted) ?: continue
+                                bindImGuiTexture(pass, texture)
+                            }
+                            bound = wanted
+                        }
                         scissor(pass, data, window.height, clip.x, clip.y, clip.z, clip.w)
                         // The vertex offset is already in the index values -- see the upload above.
                         imguiDrawIndexed(
@@ -234,6 +254,42 @@ private class GpuImGuiBackend : ImGuiBackend {
         const val FONT_ID = 1L
     }
 }
+
+/**
+ * The handles ImGui draws with, on a band that has no integer texture names.
+ *
+ * Before 1.21.5 a handle WAS the OpenGL name: the game handed one out, ImGui stored it in a draw
+ * command, and the backend bound it. From 1.21.5 there are no names anywhere, so the mod issues its own
+ * and keeps the mapping. `IconRegion.texture` is a `Long` for exactly this reason -- it was widened in
+ * vscript ahead of this, and on 1.21.1 the number really is a GL name.
+ *
+ * Handles are stable per texture: a slot re-rendered every few seconds keeps its handle, and the icon
+ * strip does not churn. Nothing is evicted, because the things registered here are a fixed set -- one
+ * per preview slot, one per player skin on screen -- and they outlive any individual frame.
+ */
+internal object ImGuiTextures {
+
+    private val byHandle = HashMap<Long, ImGuiTexture>()
+    private val handles = HashMap<com.mojang.blaze3d.textures.GpuTexture, Long>()
+
+    /** 1 is the font; everything else counts up from 2. */
+    private var next = 2L
+
+    fun handleFor(texture: com.mojang.blaze3d.textures.GpuTexture): Long =
+        handles.getOrPut(texture) {
+            val handle = next++
+            byHandle[handle] = imguiTextureOf(texture)
+            handle
+        }
+
+    fun lookup(handle: Long): ImGuiTexture? = byHandle[handle]
+
+    /** Forget a texture that has been closed, so a recycled GpuTexture cannot answer to a stale handle. */
+    fun forget(texture: com.mojang.blaze3d.textures.GpuTexture) {
+        handles.remove(texture)?.let { byHandle.remove(it) }
+    }
+}
+
 *///?} else {
 /**
  * ImGui through raw OpenGL, which is how it has always worked and still does on these bands.

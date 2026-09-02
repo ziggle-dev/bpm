@@ -58,6 +58,29 @@ internal fun bindImGuiFont(pass: com.mojang.blaze3d.systems.RenderPass, font: Im
     pass.bindTexture("Sampler0", font.view, font.sampler)
 }
 
+/** An arbitrary texture ImGui may reference by handle -- a player skin, a rendered thumbnail. */
+internal class ImGuiTexture(
+    val view: com.mojang.blaze3d.textures.GpuTextureView,
+    val sampler: com.mojang.blaze3d.textures.GpuSampler,
+)
+
+internal fun imguiTextureOf(texture: com.mojang.blaze3d.textures.GpuTexture): ImGuiTexture =
+    ImGuiTexture(
+        com.mojang.blaze3d.systems.RenderSystem.getDevice().createTextureView(texture),
+        com.mojang.blaze3d.systems.RenderSystem.getDevice().createSampler(
+            com.mojang.blaze3d.textures.AddressMode.CLAMP_TO_EDGE,
+            com.mojang.blaze3d.textures.AddressMode.CLAMP_TO_EDGE,
+            com.mojang.blaze3d.textures.FilterMode.NEAREST,
+            com.mojang.blaze3d.textures.FilterMode.NEAREST,
+            1,
+            java.util.OptionalDouble.empty(),
+        ),
+    )
+
+internal fun bindImGuiTexture(pass: com.mojang.blaze3d.systems.RenderPass, texture: ImGuiTexture) {
+    pass.bindTexture("Sampler0", texture.view, texture.sampler)
+}
+
 internal fun imguiPipeline(): com.mojang.blaze3d.pipeline.RenderPipeline =
     com.mojang.blaze3d.pipeline.RenderPipeline.builder(net.minecraft.client.renderer.RenderPipelines.MATRICES_PROJECTION_SNIPPET)
         .withLocation("pipeline/bpm_imgui")
@@ -158,6 +181,24 @@ internal fun bindImGuiFont(pass: com.mojang.blaze3d.systems.RenderPass, font: Im
     pass.bindSampler("Sampler0", font.view)
 }
 
+// The filter is NEAREST here where the font's is LINEAR: these are item thumbnails and player faces,
+// drawn at or near their own size, and smoothing them only makes them muddy.
+internal class ImGuiTexture(val view: com.mojang.blaze3d.textures.GpuTextureView)
+
+internal fun imguiTextureOf(texture: com.mojang.blaze3d.textures.GpuTexture): ImGuiTexture {
+    texture.setAddressMode(com.mojang.blaze3d.textures.AddressMode.CLAMP_TO_EDGE)
+    texture.setTextureFilter(
+        com.mojang.blaze3d.textures.FilterMode.NEAREST,
+        com.mojang.blaze3d.textures.FilterMode.NEAREST,
+        false,
+    )
+    return ImGuiTexture(com.mojang.blaze3d.systems.RenderSystem.getDevice().createTextureView(texture))
+}
+
+internal fun bindImGuiTexture(pass: com.mojang.blaze3d.systems.RenderPass, texture: ImGuiTexture) {
+    pass.bindSampler("Sampler0", texture.view)
+}
+
 internal fun imguiPipeline(): com.mojang.blaze3d.pipeline.RenderPipeline =
     com.mojang.blaze3d.pipeline.RenderPipeline.builder(net.minecraft.client.renderer.RenderPipelines.MATRICES_PROJECTION_SNIPPET)
         .withLocation("pipeline/bpm_imgui")
@@ -250,6 +291,22 @@ internal fun createImGuiFont(
 
 internal fun bindImGuiFont(pass: com.mojang.blaze3d.systems.RenderPass, font: ImGuiFont) {
     pass.bindSampler("Sampler0", font.texture)
+}
+
+internal class ImGuiTexture(val texture: com.mojang.blaze3d.textures.GpuTexture)
+
+internal fun imguiTextureOf(texture: com.mojang.blaze3d.textures.GpuTexture): ImGuiTexture {
+    texture.setAddressMode(com.mojang.blaze3d.textures.AddressMode.CLAMP_TO_EDGE)
+    texture.setTextureFilter(
+        com.mojang.blaze3d.textures.FilterMode.NEAREST,
+        com.mojang.blaze3d.textures.FilterMode.NEAREST,
+        false,
+    )
+    return ImGuiTexture(texture)
+}
+
+internal fun bindImGuiTexture(pass: com.mojang.blaze3d.systems.RenderPass, texture: ImGuiTexture) {
+    pass.bindSampler("Sampler0", texture.texture)
 }
 
 // Built from GUI_TEXTURED_SNIPPET rather than assembled by hand: that is vanilla's own recipe for
