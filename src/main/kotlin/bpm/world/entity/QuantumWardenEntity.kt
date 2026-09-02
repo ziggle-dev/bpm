@@ -137,13 +137,12 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
         attackIn = 40
     }
 
-    override fun defineSynchedData(builder: SynchedEntityData.Builder) {
-        super.defineSynchedData(builder)
-        builder.define(STAGE, 1)
-        builder.define(SHIELD, false)
-        builder.define(EXPOSED, false)
-        builder.define(GROUNDED, false)
-        builder.define(DISABLED, false)
+    override fun defineSynched(sink: bpm.platform.SynchedSink) {
+        sink.define(STAGE, 1)
+        sink.define(SHIELD, false)
+        sink.define(EXPOSED, false)
+        sink.define(GROUNDED, false)
+        sink.define(DISABLED, false)
     }
 
     fun setExposed(value: Boolean, ticks: Int = 0) {

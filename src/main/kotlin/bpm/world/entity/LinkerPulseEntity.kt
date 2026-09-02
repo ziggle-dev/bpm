@@ -27,7 +27,7 @@ import bpm.platform.showMessage
  * a scratch on the closed cage. Only the *special* (sneak + click, three a recharge, a long cooldown), which
  * locks on the Warden and turns until it lands, takes it down.
  */
-class LinkerPulseEntity(type: EntityType<out LinkerPulseEntity>, level: Level) : Projectile(type, level) {
+class LinkerPulseEntity(type: EntityType<out LinkerPulseEntity>, level: Level) : bpm.platform.SynchedProjectile(type, level) {
     private var age = 0
     private var life = LIFE
     private var speed = SPEED
@@ -61,8 +61,8 @@ class LinkerPulseEntity(type: EntityType<out LinkerPulseEntity>, level: Level) :
         deltaMovement = deltaMovement.normalize().scale(speed)
     }
 
-    override fun defineSynchedData(builder: SynchedEntityData.Builder) {
-        builder.define(TRACKING, false)
+    override fun defineSynched(sink: bpm.platform.SynchedSink) {
+        sink.define(TRACKING, false)
     }
 
     override fun tick() {

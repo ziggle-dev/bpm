@@ -21,6 +21,26 @@ import net.minecraft.world.level.Level
  */
 abstract class BossMonster(type: EntityType<out Monster>, level: Level) : Monster(type, level) {
 
+    /**
+     * Declare this entity's synched fields.
+     *
+     * The vanilla override differs in ARITY across 1.20.5, which a subclass cannot express twice, so it
+     * lives here and forwards to this.
+     */
+    protected abstract fun defineSynched(sink: SynchedSink)
+
+    //? if >=1.20.5 {
+    final override fun defineSynchedData(builder: net.minecraft.network.syncher.SynchedEntityData.Builder) {
+        super.defineSynchedData(builder)
+        defineSynched(SynchedSink(builder))
+    }
+    //?} else {
+    /*final override fun defineSynchedData() {
+        super.defineSynchedData()
+        defineSynched(SynchedSink(entityData))
+    }
+    *///?}
+
     /** One server tick of the fight. */
     protected abstract fun fightTick(level: ServerLevel)
 
