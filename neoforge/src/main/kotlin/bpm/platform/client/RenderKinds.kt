@@ -873,14 +873,14 @@ fun targetHandle(target: com.mojang.blaze3d.pipeline.RenderTarget): Long? {
 /**
  * Draw [stack] into [target] as a thumbnail, in a 16-unit GUI space against an identity model-view.
  *
- * Three bodies, and on 1.21.6-1.21.8 NONE of them: that band's is in [bpm.platform.client] `ItemPreview`,
- * because getting an item's quads into a pass of our own is a page of code rather than a branch. Here the
- * arms are wrapped around the whole function so that band declares nothing at all and the other file
+ * One body here, and from 1.21.6 up NONE: those bands live in [bpm.platform.client] `ItemPreview`,
+ * because getting an item's quads into a pass of our own is a page of code rather than a branch. The
+ * arms are wrapped around the whole function so those bands declare nothing at all and the other file
  * owns the name.
  *
- * 1.21.9 still answers false. Its item rendering goes through the submit model rather than
- * `ItemRenderer.renderStatic`, so the same trick needs a different first step; the picker falls back to
- * labels there, as it did everywhere before this.
+ * 1.21.5 is the ONLY band with no thumbnail, for the reason on its arm below; the picker falls back to a
+ * label there. Everything from 1.21.6 up draws one, 26.1 included -- an earlier version of this note said
+ * 1.21.9 answered false, which stopped being true when that band got its own body in `ItemPreviewGpu`.
  */
 //? if >=1.21.5 <1.21.6 {
 /*// 1.21.5 answers false for now. Its pipelines take loose uniforms and its render pass takes the target
