@@ -55,7 +55,7 @@ interface FluidBehaviour {
 object Fluids {
     private var backend: FluidBehaviour = object : FluidBehaviour {
         override fun vaporizesIn(level: ServerLevel, pos: BlockPos, volume: FluidVolume): Boolean =
-            level.dimensionType().ultraWarm() && volume.fluid.`is`(FluidTags.WATER)
+            bpm.platform.waterEvaporatesIn(level, pos) && volume.fluid.`is`(FluidTags.WATER)
 
         override fun vaporize(level: ServerLevel, pos: BlockPos, volume: FluidVolume) {
             level.playSound(null, pos, SoundEvents.FIRE_EXTINGUISH, net.minecraft.sounds.SoundSource.BLOCKS, 0.5f, 2.6f)

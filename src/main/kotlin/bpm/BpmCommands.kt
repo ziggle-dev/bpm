@@ -29,7 +29,7 @@ import bpm.catalog.BpmCatalog
  */
 object BpmCommands {
     fun register(event: bpm.platform.events.CommandRegistration) {
-        val root = Commands.literal("bpm").requires { it.hasPermission(2) }
+        val root = Commands.literal("bpm").requires { bpm.platform.mayAdminister(it) }
             .then(Commands.literal("stats").executes { ctx -> reply(ctx, RuntimeManager.stats()); 1 })
             .then(Commands.literal("ticks").executes { ctx -> reply(ctx, tickReport(ctx.source.server)); 1 })
             .then(
@@ -100,7 +100,7 @@ object BpmCommands {
             .then(
                 Commands.literal("fluid").then(
                     Commands.argument("pos", BlockPosArgument.blockPos()).then(
-                        Commands.argument("fluid", net.minecraft.commands.arguments.ResourceLocationArgument.id()).then(
+                        Commands.argument("fluid", bpm.platform.idArgument()).then(
                             Commands.argument("mb", com.mojang.brigadier.arguments.IntegerArgumentType.integer(0)).executes { ctx -> fluid(ctx) },
                         ),
                     ),
@@ -267,7 +267,7 @@ object BpmCommands {
     /** `/bpm fluid <pos> <fluid> <mb>`: put some fluid into the controller's tanks (0 mB empties every tank). */
     private fun fluid(ctx: CommandContext<CommandSourceStack>): Int {
         val be = controller(ctx) ?: return 0
-        val id = net.minecraft.commands.arguments.ResourceLocationArgument.getId(ctx, "fluid")
+        val id = bpm.platform.idArgumentOf(ctx, "fluid")
         val mb = com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "mb")
         if (mb == 0) {
             be.tanks.clear()

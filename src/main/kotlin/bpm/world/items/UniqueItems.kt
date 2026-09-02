@@ -110,9 +110,9 @@ class PhaseGauntletItem(properties: Properties) : TooltipItem(properties) {
         return false
     }
 
-    override fun appendHoverText(stack: ItemStack, context: TooltipContext, tooltip: MutableList<Component>, flag: TooltipFlag) {
-        super.appendHoverText(stack, context, tooltip, flag)
-        tooltip.add(Component.literal("Charge: ${BLINKS_PER_SHARD - stack.getOrDefault(ModComponents.BLINKS.get(), 0)} blinks"))
+    override fun lore(stack: ItemStack, add: (Component) -> Unit) {
+        super.lore(stack, add)
+        add(Component.literal("Charge: ${BLINKS_PER_SHARD - stack.getOrDefault(ModComponents.BLINKS.get(), 0)} blinks"))
     }
 
     companion object {
@@ -145,12 +145,12 @@ class EntangledCompassItem(properties: Properties) : TooltipItem(properties) {
         return bpm.platform.Use.sided(stack, level.isClientSide)
     }
 
-    override fun inventoryTick(stack: ItemStack, level: Level, entity: Entity, slot: Int, selected: Boolean) {
+    override fun carriedTick(stack: ItemStack, level: ServerLevel, entity: Entity, inHand: Boolean) {
         val player = entity as? ServerPlayer ?: return
-        if (!selected && player.offhandItem !== stack) return
+        if (!inHand) return
         if (level.gameTime % 20 != 0L) return
         val mode = stack.getOrDefault(ModComponents.COMPASS_MODE.get(), MODE_ORE)
-        val target = target(level as ServerLevel, player, mode)
+        val target = target(level, player, mode)
         if (target == null) {
             say(player, "${label(mode)}: nothing within ${SCAN.toInt()} blocks")
             return

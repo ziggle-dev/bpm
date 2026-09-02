@@ -295,3 +295,90 @@ fun spawnPosOf(level: net.minecraft.world.level.Level): net.minecraft.core.Block
     *///?} else {
     level.sharedSpawnPos
     //?}
+
+/**
+ * Whether this may run the mod's operator commands.
+ *
+ * Numeric permission levels are gone at 1.21.9: a source now carries a `PermissionSet` and is asked
+ * about a named `Permission`. Level 2 -- the one every check in this mod used -- is
+ * `Permissions.COMMANDS_GAMEMASTER`, so the two spellings mean the same thing and the caller can stop
+ * naming a number it never chose for its own reasons.
+ */
+fun mayAdminister(source: net.minecraft.commands.CommandSourceStack): Boolean =
+    //? if >=1.21.9 {
+    /*source.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER)
+    *///?} else {
+    source.hasPermission(2)
+    //?}
+
+/** The same question of a player. */
+fun mayAdminister(player: net.minecraft.server.level.ServerPlayer): Boolean =
+    //? if >=1.21.9 {
+    /*player.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER)
+    *///?} else {
+    player.hasPermissions(2)
+    //?}
+
+/**
+ * A bare `namespace:path` command argument.
+ *
+ * Renamed with the type it produces: `ResourceLocationArgument` became `IdentifierArgument`, and its two
+ * static methods came with it.
+ */
+fun idArgument(): com.mojang.brigadier.arguments.ArgumentType<ResourceLocation> =
+    //? if >=1.21.9 {
+    /*net.minecraft.commands.arguments.IdentifierArgument.id()
+    *///?} else {
+    net.minecraft.commands.arguments.ResourceLocationArgument.id()
+    //?}
+
+/** The argument [name] of [context], as an id. */
+fun idArgumentOf(context: com.mojang.brigadier.context.CommandContext<net.minecraft.commands.CommandSourceStack>, name: String): ResourceLocation =
+    //? if >=1.21.9 {
+    /*net.minecraft.commands.arguments.IdentifierArgument.getId(context, name)
+    *///?} else {
+    net.minecraft.commands.arguments.ResourceLocationArgument.getId(context, name)
+    //?}
+
+/**
+ * Whether water boils off here.
+ *
+ * `DimensionType.ultraWarm()` is gone at 1.21.9: what it decided moved into the environment attribute
+ * map as `WATER_EVAPORATES`, which is a better place for it -- the flag was always about a dimension's
+ * weather rather than its shape, and it can now vary within one.
+ */
+fun waterEvaporatesIn(level: net.minecraft.world.level.Level, pos: net.minecraft.core.BlockPos): Boolean =
+    //? if >=1.21.9 {
+    /*level.environmentAttributes().getValue(net.minecraft.world.attribute.EnvironmentAttributes.WATER_EVAPORATES, pos)
+    *///?} else {
+    level.dimensionType().ultraWarm()
+    //?}
+
+/** Whether it is daytime in [level]. `isDay` became `isBrightOutside`. */
+fun isDaytime(level: net.minecraft.world.level.Level): Boolean =
+    //? if >=1.21.9 {
+    /*level.isBrightOutside
+    *///?} else {
+    level.isDay
+    //?}
+
+/** Which hotbar slot the player has selected. The field behind it went private behind an accessor. */
+fun selectedSlot(inventory: net.minecraft.world.entity.player.Inventory): Int =
+    //? if >=1.21.9 {
+    /*inventory.selectedSlot
+    *///?} else {
+    inventory.selected
+    //?}
+
+/**
+ * The slowness effect.
+ *
+ * `MobEffects.MOVEMENT_SLOWDOWN` was renamed to `SLOWNESS` -- the name players and the wiki have always
+ * used -- at 1.21.9. Nothing else about it changed.
+ */
+val SLOWNESS: net.minecraft.core.Holder<net.minecraft.world.effect.MobEffect>
+    //? if >=1.21.9 {
+    /*get() = net.minecraft.world.effect.MobEffects.SLOWNESS
+    *///?} else {
+    get() = net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN
+    //?}

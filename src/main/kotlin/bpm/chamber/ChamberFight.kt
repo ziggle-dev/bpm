@@ -313,7 +313,7 @@ object ChamberFight {
                 level.sendParticles(net.minecraft.core.particles.ParticleTypes.PORTAL, p.x, p.y + 1.0, p.z, 30, 0.3, 0.6, 0.3, 0.3)
                 p.teleportTo(to.x + 0.5, to.y + 0.25, to.z + 0.5)
                 p.setPortalCooldown(VentBlockEntity.ARRIVAL_COOLDOWN)
-                p.fallDistance = 0f
+                p.resetFallDistance()
                 level.playSound(null, to, net.minecraft.sounds.SoundEvents.ENDERMAN_TELEPORT, net.minecraft.sounds.SoundSource.BLOCKS, 0.8f, 1.2f)
                 say(p, "the dais throws you to a vent")
             }

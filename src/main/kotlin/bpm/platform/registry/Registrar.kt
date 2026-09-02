@@ -27,7 +27,7 @@ import java.util.function.Supplier
  * A handle to something registered. Deferred or not, the rule is the same: **do not call [get] during
  * class initialisation**, only once registration has run.
  */
-interface RegistryRef<T> : Supplier<T> {
+interface RegistryRef<T : Any> : Supplier<T> {
     val id: ResourceLocation
     override fun get(): T
     fun holder(): Holder<T>

@@ -249,7 +249,7 @@ class SpikeBlockEntity(pos: BlockPos, state: BlockState) : TrapBlockEntity(Devic
             for (v in victims(1.0)) {
                 if (!hit.add(v.uuid)) continue
                 v.hurt(BpmDamage.source(l, BpmDamage.SPIKE), BpmConfig.TRAP_SPIKE_DAMAGE.orDefault().toFloat())
-                v.addEffect(MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 8, 1))
+                v.addEffect(MobEffectInstance(bpm.platform.SLOWNESS, 8, 1))
             }
         }
     }
@@ -310,7 +310,7 @@ class VentBlockEntity(pos: BlockPos, state: BlockState) : TrapBlockEntity(Device
         l.sendParticles(ParticleTypes.PORTAL, from.x, from.y + 1.0, from.z, 30, 0.3, 0.6, 0.3, 0.3)
         entity.teleportTo(to.x + 0.5, to.y + 1.0, to.z + 0.5)
         entity.setPortalCooldown(ARRIVAL_COOLDOWN)
-        entity.fallDistance = 0f
+        entity.resetFallDistance()
         l.sendParticles(ParticleTypes.PORTAL, to.x + 0.5, to.y + 2.0, to.z + 0.5, 30, 0.3, 0.6, 0.3, 0.3)
         l.playSound(null, to, net.minecraft.sounds.SoundEvents.ENDERMAN_TELEPORT, net.minecraft.sounds.SoundSource.BLOCKS, 0.7f, 1.6f)
         triggerAnim("main", "charge")

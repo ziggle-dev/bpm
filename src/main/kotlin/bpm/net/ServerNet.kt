@@ -230,7 +230,7 @@ object ServerNet {
 
     /** Operators and the document's owner may rename, delete and steal. */
     private fun mayManage(player: ServerPlayer, docId: UUID): Boolean {
-        if (player.hasPermissions(2)) return true
+        if (bpm.platform.mayAdminister(player)) return true
         val owner = BpmLibrary.get(bpm.platform.serverOf(player))[docId]?.owner
         return owner == null || owner == player.uuid
     }
@@ -488,7 +488,7 @@ object ServerNet {
 
     /** The lease holder of the controller's graph, or an operator, may drive its program. */
     private fun mayControl(player: ServerPlayer, be: ControllerBlockEntity): Boolean =
-        player.hasPermissions(2) || be.docId?.let { sessions.isHolder(player.uuid, it) } == true
+        bpm.platform.mayAdminister(player) || be.docId?.let { sessions.isHolder(player.uuid, it) } == true
 
     private fun runWatchersOf(be: ControllerBlockEntity): List<ServerPlayer> {
         val server = be.level?.server ?: return emptyList()

@@ -155,7 +155,7 @@ object WorldNodes {
             title("Is Day")
             doc("Whether it is daytime.")
             result("Day", McVs.bool)
-            query { host.level.isDay }
+            query { bpm.platform.isDaytime(host.level) }
         }
         func("isRaining") {
             title("Is Raining")

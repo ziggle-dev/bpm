@@ -189,7 +189,7 @@ object PlayerNodes {
             doc("Which hotbar slot a tethered player has out, 0 to 8. -1 when the tether does not grant `state`.")
             val player = param("Player", McVs.player, "who")
             result("Slot", McVs.int)
-            query { granted(host, player(), Grant.STATE, "state")?.inventory?.selected?.toLong() ?: -1L }
+            query { granted(host, player(), Grant.STATE, "state")?.inventory?.let { bpm.platform.selectedSlot(it).toLong() } ?: -1L }
         }
         func("held") {
             title("Held Stack")

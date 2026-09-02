@@ -131,8 +131,8 @@ class QuantumTetherItem(properties: Properties) : TooltipItem(properties), GeoIt
      * says something useful. Every five seconds, and only for a bound tether: a player's *live* position comes
      * from the player, so this is only the last-seen fallback.
      */
-    override fun inventoryTick(stack: ItemStack, level: Level, entity: Entity, slot: Int, selected: Boolean) {
-        if (level.isClientSide || level.gameTime % SEEN_EVERY != 0L) return
+    override fun carriedTick(stack: ItemStack, level: net.minecraft.server.level.ServerLevel, entity: Entity, inHand: Boolean) {
+        if (level.gameTime % SEEN_EVERY != 0L) return
         val player = entity as? Player ?: return
         val bound = stack.get(ModComponents.TETHER_CONTROLLER.get()) ?: return
         if (bound.dimension() != level.dimension() || !level.isLoaded(bound.pos())) return
@@ -142,17 +142,17 @@ class QuantumTetherItem(properties: Properties) : TooltipItem(properties), GeoIt
 
     // ---- what it says -----------------------------------------------------------------------------------
 
-    override fun appendHoverText(stack: ItemStack, context: TooltipContext, tooltip: MutableList<Component>, flag: TooltipFlag) {
-        super.appendHoverText(stack, context, tooltip, flag)
+    override fun lore(stack: ItemStack, add: (Component) -> Unit) {
+        super.lore(stack, add)
         val bound = stack.get(ModComponents.TETHER_CONTROLLER.get())
         if (bound == null) {
-            tooltip.add(Component.translatable("item.bpm.quantum_tether.unbound").withStyle(ChatFormatting.GRAY))
+            add(Component.translatable("item.bpm.quantum_tether.unbound").withStyle(ChatFormatting.GRAY))
             return
         }
         val grants = grantsOf(stack)
-        tooltip.add(Component.translatable("item.bpm.quantum_tether.bound", bound.pos().toShortString()).withStyle(ChatFormatting.AQUA))
-        tooltip.add(Component.literal("${Grants.label(grants)}: ${Grants.format(grants)}").withStyle(ChatFormatting.GRAY))
-        if (Grant.TAKE in grants) tooltip.add(Component.translatable("item.bpm.quantum_tether.take").withStyle(ChatFormatting.RED))
+        add(Component.translatable("item.bpm.quantum_tether.bound", bound.pos().toShortString()).withStyle(ChatFormatting.AQUA))
+        add(Component.literal("${Grants.label(grants)}: ${Grants.format(grants)}").withStyle(ChatFormatting.GRAY))
+        if (Grant.TAKE in grants) add(Component.translatable("item.bpm.quantum_tether.take").withStyle(ChatFormatting.RED))
     }
 
     /** A bound tether glints, so it is obvious at a glance that something can reach you. */

@@ -359,7 +359,7 @@ class ClickJob(
             // it and three of the swinger) takes the sweep damage and knockback, exactly as for a player.
             // The fake player is never ticked, so it has to be TOLD it is on the ground.
             player.setOnGround(true)
-            player.fallDistance = 0f
+            player.resetFallDistance()
             player.isSprinting = false
             player.attack(who)
             pendingOk = true

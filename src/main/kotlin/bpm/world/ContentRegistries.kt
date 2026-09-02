@@ -72,9 +72,9 @@ object ContentBlocks {
 }
 
 /** An item whose lang file carries a `<key>.tooltip` line. */
-open class TooltipItem(properties: Properties) : Item(properties) {
-    override fun appendHoverText(stack: ItemStack, context: TooltipContext, tooltip: MutableList<Component>, flag: TooltipFlag) {
-        tooltip.add(Component.translatable("${descriptionId}.tooltip"))
+open class TooltipItem(properties: Properties) : bpm.platform.BpmItem(properties) {
+    override fun lore(stack: ItemStack, add: (Component) -> Unit) {
+        add(Component.translatable("${descriptionId}.tooltip"))
     }
 }
 

@@ -19,7 +19,7 @@ import net.neoforged.neoforge.common.SoundActions
 object NeoFluidBehaviour : FluidBehaviour {
 
     override fun vaporizesIn(level: ServerLevel, pos: BlockPos, volume: FluidVolume): Boolean =
-        level.dimensionType().ultraWarm() && volume.fluid.fluidType.isVaporizedOnPlacement(level, pos, volume.toStack())
+        bpm.platform.waterEvaporatesIn(level, pos) && volume.fluid.fluidType.isVaporizedOnPlacement(level, pos, volume.toStack())
 
     override fun vaporize(level: ServerLevel, pos: BlockPos, volume: FluidVolume) {
         volume.fluid.fluidType.onVaporize(null, level, pos, volume.toStack())

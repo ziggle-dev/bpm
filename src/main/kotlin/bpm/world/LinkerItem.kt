@@ -33,7 +33,7 @@ import java.util.function.Consumer
  * one dimension and within [RANGE] blocks. The face matters because capabilities are sided; direction does
  * not — it lives in the verb (`items.move(from, to)`), not on the link.
  */
-class LinkerItem(properties: Properties) : Item(properties), GeoItem {
+class LinkerItem(properties: Properties) : bpm.platform.BpmItem(properties), GeoItem {
 
     private val animCache: AnimatableInstanceCache = GeckoLibUtil.createInstanceCache(this)
 
@@ -155,13 +155,14 @@ class LinkerItem(properties: Properties) : Item(properties), GeoItem {
         return bpm.platform.Use.pass(stack)
     }
 
-    override fun appendHoverText(stack: ItemStack, context: TooltipContext, tooltip: MutableList<Component>, flag: TooltipFlag) {
+    override fun lore(stack: ItemStack, add: (Component) -> Unit) {
+        super.lore(stack, add)
         val sel = stack.get(ModComponents.SELECTED_CONTROLLER.get())
-        tooltip.add(
+        add(
             if (sel == null) Component.translatable("item.bpm.quantum_linker.unbound")
             else Component.translatable("item.bpm.quantum_linker.bound", sel.pos().toShortString()),
         )
-        if (stack.getOrDefault(ModComponents.CHARGED.get(), false)) tooltip.add(Component.literal("Specials: ${charges(stack)} / $MAX_CHARGES"))
+        if (stack.getOrDefault(ModComponents.CHARGED.get(), false)) add(Component.literal("Specials: ${charges(stack)} / $MAX_CHARGES"))
     }
 
     private fun selected(level: Level, stack: ItemStack): ControllerBlockEntity? {
@@ -259,8 +260,7 @@ class LinkerItem(properties: Properties) : Item(properties), GeoItem {
     }
 
     /** The wand hums in a chamber: the glint follows a component the server keeps in step with where the holder is. */
-    override fun inventoryTick(stack: ItemStack, level: Level, entity: net.minecraft.world.entity.Entity, slot: Int, selected: Boolean) {
-        if (level.isClientSide) return
+    override fun carriedTick(stack: ItemStack, level: net.minecraft.server.level.ServerLevel, entity: net.minecraft.world.entity.Entity, inHand: Boolean) {
         val charged = bpm.chamber.ChamberDimension.isChamber(level)
         if (stack.getOrDefault(ModComponents.CHARGED.get(), false) != charged) {
             stack.set(ModComponents.CHARGED.get(), charged)
