@@ -36,6 +36,7 @@ import bpm.platform.boolOr
 import bpm.platform.compoundOr
 import bpm.platform.listOr
 import bpm.platform.intsOr
+import bpm.platform.compoundAt
 
 /**
  * A controller's saved state and its running program.
@@ -160,7 +161,7 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
         lastError = if (tag.contains("lastError")) tag.stringOr("lastError", "") else null
         breakpoints.clear()
         val bps = tag.listOr("breakpoints")
-        for (i in 0 until bps.size) bps.getCompound(i).let { breakpoints[it.intOr("node", 0)] = it.boolOr("on", false) }
+        for (i in 0 until bps.size) bps.compoundAt(i).let { breakpoints[it.intOr("node", 0)] = it.boolOr("on", false) }
     }
 
     /** Arms, disarms or removes a breakpoint, now and for every later run. */

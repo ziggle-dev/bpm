@@ -7,6 +7,8 @@ import net.minecraft.nbt.Tag
 import bpm.platform.keys
 import bpm.platform.hasString
 import bpm.platform.hasCompound
+import bpm.platform.compoundOr
+import bpm.platform.stringOr
 
 /**
  * A script's files, kept inside its controller's NBT so that they travel with the world save.
@@ -22,12 +24,12 @@ class NbtFileStore(private val root: CompoundTag, private val onChange: () -> Un
     private val files: CompoundTag
         get() {
             if (!root.hasCompound(KEY)) root.put(KEY, CompoundTag())
-            return root.getCompound(KEY)
+            return root.compoundOr(KEY)
         }
 
     override fun read(path: String): String? {
         val key = key(path)
-        return if (files.hasString(key)) files.getString(key) else null
+        return if (files.hasString(key)) files.stringOr(key, "") else null
     }
 
     override fun write(path: String, text: String) {
@@ -37,13 +39,13 @@ class NbtFileStore(private val root: CompoundTag, private val onChange: () -> Un
         val f = files
         val isNew = !f.contains(key)
         if (isNew && f.keys().size >= MAX_FILES) throw VmError("this controller already holds $MAX_FILES files")
-        val total = f.keys().sumOf { k -> if (k == key) 0 else f.getString(k).toByteArray(Charsets.UTF_8).size } + bytes
+        val total = f.keys().sumOf { k -> if (k == key) 0 else f.stringOr(k, "").toByteArray(Charsets.UTF_8).size } + bytes
         if (total > MAX_TOTAL_BYTES) throw VmError("writing '$path' would take this controller's files to $total bytes; the limit is $MAX_TOTAL_BYTES")
         f.putString(key, text)
         onChange()
     }
 
-    override fun exists(path: String): Boolean = files.contains(key(path), Tag.TAG_STRING.toInt())
+    override fun exists(path: String): Boolean = files.hasString(key(path))
 
     override fun delete(path: String): Boolean {
         val key = key(path)

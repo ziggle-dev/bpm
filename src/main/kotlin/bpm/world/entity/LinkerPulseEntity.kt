@@ -100,20 +100,20 @@ class LinkerPulseEntity(type: EntityType<out LinkerPulseEntity>, level: Level) :
             when {
                 w == null -> {}
                 w.disabled -> {
-                    w.pulseHit(CORE_DAMAGE, owner)
+                    w.pulseHit(CORE_DAMAGE, getOwner())
                     tell("the pulse bites the fallen Warden")
                 }
                 tracking -> {
                     w.disable(WARDEN_TICKS)
-                    w.pulseHit(CORE_DAMAGE, owner)
+                    w.pulseHit(CORE_DAMAGE, getOwner())
                     tell("the special seizes the Warden — it falls")
                 }
                 w.exposed -> {
-                    w.pulseHit(CAGE_DAMAGE, owner)
+                    w.pulseHit(CAGE_DAMAGE, getOwner())
                     tell("the pulse stings the open core")
                 }
                 else -> {
-                    w.pulseHit(CAGE_DAMAGE * 0.5f, owner)
+                    w.pulseHit(CAGE_DAMAGE * 0.5f, getOwner())
                     tell("the pulse breaks on the closed cage")
                 }
             }
@@ -147,7 +147,7 @@ class LinkerPulseEntity(type: EntityType<out LinkerPulseEntity>, level: Level) :
         p.hurtMarked = true
         p.currentImpulseImpactPos = result.location
         p.setIgnoreFallDamageFromCurrentImpulse(true)
-        p.fallDistance = 0f
+        p.resetFallDistance()
         l.sendParticles(ParticleTypes.GUST, result.location.x, result.location.y + 0.1, result.location.z, 1, 0.0, 0.0, 0.0, 0.0)
         l.sendParticles(ParticleTypes.CLOUD, result.location.x, result.location.y + 0.2, result.location.z, 16, 0.5, 0.1, 0.5, 0.05)
         l.playSound(null, result.location.x, result.location.y, result.location.z, net.minecraft.sounds.SoundEvents.WIND_CHARGE_BURST.value(), net.minecraft.sounds.SoundSource.PLAYERS, 0.8f, 1.1f)

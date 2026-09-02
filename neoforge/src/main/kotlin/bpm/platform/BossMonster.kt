@@ -31,6 +31,44 @@ abstract class BossMonster(type: EntityType<out Monster>, level: Level) : Monste
     protected abstract fun immuneTo(source: DamageSource): Boolean
 
     /**
+     * Hold the body and head to the entity's own yaw, instead of letting vanilla turn them toward the
+     * movement. False leaves vanilla's turning alone.
+     *
+     * `tickHeadTurn` used to take the body rotation AND an animation step and hand the step back; at
+     * 1.21.9 it takes the rotation and returns nothing. Nothing this mod does with it ever touched the
+     * step -- it was passed straight through -- so the seam is the question rather than the signature.
+     */
+    protected open fun holdHeadToYaw(): Boolean = false
+
+    //? if >=1.21.9 {
+    /*override fun tickHeadTurn(yBodyRot: Float) {
+        if (holdHeadToYaw()) {
+            this.yBodyRot = yRot
+            this.yHeadRot = yRot
+            return
+        }
+        super.tickHeadTurn(yBodyRot)
+    }
+
+    /*
+     * There is no `shouldDespawnInPeaceful` on this band. The question moved to registration:
+     * `EntityType.isAllowedInPeaceful`, which is true unless the builder says `notInPeaceful()`. A boss
+     * registered without that call already survives Peaceful, so the override that used to be needed is
+     * simply absent -- the behaviour is unchanged and it is now decided in the one place it belongs.
+     */
+    *///?} else {
+    override fun tickHeadTurn(yBodyRot: Float, animStep: Float): Float {
+        if (!holdHeadToYaw()) return super.tickHeadTurn(yBodyRot, animStep)
+        this.yBodyRot = yRot
+        this.yHeadRot = yRot
+        return animStep
+    }
+
+    /** A boss, not a spawn: Peaceful must not unmake it the tick it rises. */
+    override fun shouldDespawnInPeaceful(): Boolean = false
+    //?}
+
+    /**
      * Write and read this boss's own fields, as a compound.
      *
      * The same bridge [SavingProjectile] carries, spelled out again because a monster cannot extend a

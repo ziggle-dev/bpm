@@ -64,14 +64,14 @@ abstract class SavingBlockEntity(type: net.minecraft.world.level.block.entity.Bl
     /*override fun applyImplicitComponents(input: net.minecraft.core.component.DataComponentGetter) {
         super.applyImplicitComponents(input)
         readComponents(object : ComponentSource {
-            override fun <T> get(type: net.minecraft.core.component.DataComponentType<T>): T? = input.get(type)
+            override fun <T : Any> get(type: net.minecraft.core.component.DataComponentType<T>): T? = input.get(type)
         })
     }
     *///?} else {
     override fun applyImplicitComponents(input: DataComponentInput) {
         super.applyImplicitComponents(input)
         readComponents(object : ComponentSource {
-            override fun <T> get(type: net.minecraft.core.component.DataComponentType<T>): T? = input.get(type)
+            override fun <T : Any> get(type: net.minecraft.core.component.DataComponentType<T>): T? = input.get(type)
         })
     }
     //?}
@@ -144,5 +144,5 @@ abstract class SavingProjectile(type: EntityType<out Projectile>, level: Level) 
  */
 interface ComponentSource {
     /** The value for [type], or null when the stack carried none. */
-    fun <T> get(type: net.minecraft.core.component.DataComponentType<T>): T?
+    fun <T : Any> get(type: net.minecraft.core.component.DataComponentType<T>): T?
 }

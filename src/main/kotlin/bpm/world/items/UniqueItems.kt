@@ -74,7 +74,7 @@ class PhaseGauntletItem(properties: Properties) : TooltipItem(properties) {
         }
         level.playSound(null, from.x, from.y, from.z, SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.8f, 1.4f)
         player.teleportTo(to.x, to.y, to.z)
-        player.fallDistance = 0f
+        player.resetFallDistance()
         bpm.platform.addCooldown(player, stack, COOLDOWN_TICKS)
         return bpm.platform.Use.consume(stack)
     }

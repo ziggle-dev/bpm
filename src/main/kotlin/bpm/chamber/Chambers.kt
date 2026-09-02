@@ -1,5 +1,6 @@
 package bpm.chamber
 
+import bpm.platform.compoundAt
 import bpm.platform.store.PlayerStore
 import bpm.Bpm
 import bpm.world.ModAttachments
@@ -144,7 +145,7 @@ class ChamberSlot(val owner: UUID, val index: Int) {
  * [ChamberBuilder]; this keeps the bookkeeping: who owns which plot, whether it is built, how the fight in
  * it stands. Saved with the overworld so it exists before the chamber level is ever loaded.
  */
-class Chambers : SavedData() {
+class Chambers : bpm.platform.TagStore() {
     val slots = LinkedHashMap<UUID, ChamberSlot>()
     private var nextIndex = 0
 
@@ -155,10 +156,9 @@ class Chambers : SavedData() {
 
     fun slotAt(pos: BlockPos): ChamberSlot? = slots.values.firstOrNull { it.contains(pos) }
 
-    override fun save(tag: CompoundTag, registries: HolderLookup.Provider): CompoundTag {
+    override fun writeTo(tag: CompoundTag) {
         tag.putInt("next", nextIndex)
         tag.put("slots", ListTag().also { list -> slots.values.forEach { list.add(it.save()) } })
-        return tag
     }
 
     companion object {
@@ -167,14 +167,14 @@ class Chambers : SavedData() {
         const val FLOOR_Y = 64
         const val ARRIVAL_COOLDOWN = 60
 
-        private val FACTORY = Factory(::Chambers, ::load, null)
+        private val TYPE = bpm.platform.StoreType(NAME, ::Chambers, ::load)
 
-        fun get(server: MinecraftServer): Chambers = server.overworld().dataStorage.computeIfAbsent(FACTORY, NAME)
+        fun get(server: MinecraftServer): Chambers = bpm.platform.storeOf(server, TYPE)
 
-        private fun load(tag: CompoundTag, registries: HolderLookup.Provider): Chambers = Chambers().also { c ->
+        private fun load(tag: CompoundTag): Chambers = Chambers().also { c ->
             c.nextIndex = tag.intOr("next", 0)
             val list = tag.listOr("slots")
-            for (i in 0 until list.size) ChamberSlot.load(list.getCompound(i))?.let { c.slots[it.owner] = it }
+            for (i in 0 until list.size) ChamberSlot.load(list.compoundAt(i))?.let { c.slots[it.owner] = it }
         }
 
         private fun say(player: Player, text: String) = player.displayClientMessage(Component.literal("[bpm] $text"), true)
@@ -231,7 +231,7 @@ class Chambers : SavedData() {
             val key = ResourceLocation.tryParse(tag.stringOr("dim", ""))?.let { ResourceKey.create(Registries.DIMENSION, it) }
             val target = key?.let { server.getLevel(it) } ?: server.overworld()
             if (tag.contains("x")) return target to Vec3(tag.doubleOr("x", 0.0), tag.doubleOr("y", 0.0), tag.doubleOr("z", 0.0))
-            val spawn = target.sharedSpawnPos
+            val spawn = bpm.platform.spawnPosOf(target)
             return target to Vec3(spawn.x + 0.5, spawn.y.toDouble(), spawn.z + 0.5)
         }
 

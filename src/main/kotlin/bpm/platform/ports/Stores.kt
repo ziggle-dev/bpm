@@ -1,5 +1,6 @@
 package bpm.platform.ports
 
+import bpm.platform.compoundAt
 import net.minecraft.core.HolderLookup
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.nbt.CompoundTag
@@ -79,7 +80,7 @@ open class SlotStore(private val size: Int, private val onChange: () -> Unit = {
             if (stack.isEmpty) continue
             list.add(CompoundTag().also { t ->
                 t.putInt("slot", i)
-                t.put("item", stack.save(registries))
+                t.put("item", bpm.platform.writeStack(registries, stack))
             })
         }
     }
@@ -87,10 +88,10 @@ open class SlotStore(private val size: Int, private val onChange: () -> Unit = {
     fun load(registries: HolderLookup.Provider, list: ListTag) {
         for (i in stacks.indices) stacks[i] = ItemStack.EMPTY
         for (i in 0 until list.size) {
-            val t = list.getCompound(i)
+            val t = list.compoundAt(i)
             val slot = t.intOr("slot", 0)
             if (slot !in 0 until size) continue
-            stacks[slot] = ItemStack.parse(registries, t.compoundOr("item")).orElse(ItemStack.EMPTY)
+            stacks[slot] = bpm.platform.readStack(registries, t.compoundOr("item"))
         }
     }
 }
@@ -196,7 +197,7 @@ class MultiTank(count: Int, capacity: Long, private val onChange: () -> Unit = {
 
     fun load(l: ListTag) {
         list.forEach { it.set(FluidVolume.EMPTY) }
-        for (i in 0 until minOf(l.size, list.size)) list[i].load(l.getCompound(i))
+        for (i in 0 until minOf(l.size, list.size)) list[i].load(l.compoundAt(i))
     }
 }
 

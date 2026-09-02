@@ -281,3 +281,17 @@ fun serverOf(player: net.minecraft.server.level.ServerPlayer): net.minecraft.ser
 fun levelOf(player: net.minecraft.server.level.ServerPlayer): net.minecraft.server.level.ServerLevel =
     player.serverLevel()
 //?}
+
+/**
+ * Where a level says players appear.
+ *
+ * `Level.getSharedSpawnPos()` is gone at 1.21.9: a level now carries a `RespawnData` record -- position,
+ * yaw and pitch together, and the dimension it belongs to -- and the position is one field of it. This
+ * mod only ever wanted the block, which is the same block on either band.
+ */
+fun spawnPosOf(level: net.minecraft.world.level.Level): net.minecraft.core.BlockPos =
+    //? if >=1.21.9 {
+    /*level.respawnData.pos()
+    *///?} else {
+    level.sharedSpawnPos
+    //?}

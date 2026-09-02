@@ -488,11 +488,7 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
     }
 
     /** The body follows the yaw exactly — vanilla would turn it toward the movement, which is the spin. */
-    override fun tickHeadTurn(yBodyRot: Float, animStep: Float): Float {
-        this.yBodyRot = yRot
-        this.yHeadRot = yRot
-        return animStep
-    }
+    override fun holdHeadToYaw(): Boolean = true
 
     // ---- damage -----------------------------------------------------------------------------------------
 
@@ -546,9 +542,6 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
     override fun isPushable(): Boolean = false
     override fun removeWhenFarAway(distance: Double): Boolean = false
     override fun canBeLeashed(): Boolean = false
-
-    /** A boss, not a spawn: Peaceful must not unmake it the tick it rises. */
-    public override fun shouldDespawnInPeaceful(): Boolean = false
 
     // ---- death: the core goes home -------------------------------------------------------------------------
 

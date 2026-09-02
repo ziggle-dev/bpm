@@ -89,7 +89,7 @@ class WardenBoltEntity(type: EntityType<out WardenBoltEntity>, level: Level) : b
 
     override fun onHitEntity(result: EntityHitResult) {
         super.onHitEntity(result)
-        if (!level().isClientSide) result.entity.hurt(BpmDamage.source(level(), BpmDamage.WARDEN_BEAM, owner), damage)
+        if (!level().isClientSide) result.entity.hurt(BpmDamage.source(level(), BpmDamage.WARDEN_BEAM, getOwner()), damage)
         discard()
     }
 

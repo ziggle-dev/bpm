@@ -1,5 +1,7 @@
 package bpm.library
 
+import bpm.platform.bytesOr
+import bpm.platform.compoundAt
 import bpm.Bpm
 import com.google.gson.JsonParser
 import dev.ziggle.vscript.model.Graph
@@ -61,7 +63,7 @@ class DocumentRecord(
                 name = t.stringOr("name", ""),
                 version = t.intOr("version", 0),
                 format = t.intOr("format", 0),
-                gz = t.getByteArray("gz"),
+                gz = t.bytesOr("gz"),
                 sha256 = t.stringOr("sha256", ""),
                 rawSize = t.intOr("rawSize", 0),
                 owner = bpm.platform.uuidOrNull(t, "owner"),
@@ -86,7 +88,7 @@ class DocumentRecord(
  * an older `GraphDoc` format is re-encoded the first time it is read ([graph]), bumping its version like any
  * other edit; a document from a *newer* format is left alone and reported unreadable.
  */
-class BpmLibrary : SavedData(), bpm.library.DocumentStore {
+class BpmLibrary : bpm.platform.TagStore(), bpm.library.DocumentStore {
     private val docs = LinkedHashMap<UUID, DocumentRecord>()
     private val graphs = HashMap<UUID, Pair<Int, Graph>>()
 
@@ -201,26 +203,25 @@ class BpmLibrary : SavedData(), bpm.library.DocumentStore {
         setDirty()
     }
 
-    override fun save(tag: CompoundTag, registries: HolderLookup.Provider): CompoundTag {
+    override fun writeTo(tag: CompoundTag) {
         tag.putInt("libraryVersion", libraryVersion)
         tag.put("docs", ListTag().also { list -> docs.values.forEach { list.add(it.save()) } })
-        return tag
     }
 
     companion object {
         const val NAME = "bpm_library"
 
-        fun load(tag: CompoundTag, @Suppress("UNUSED_PARAMETER") registries: HolderLookup.Provider): BpmLibrary {
+        fun load(tag: CompoundTag): BpmLibrary {
             val lib = BpmLibrary()
             lib.libraryVersion = tag.intOr("libraryVersion", 0)
             val list = tag.listOr("docs")
-            for (i in 0 until list.size) DocumentRecord.load(list.getCompound(i))?.let { lib.docs[it.id] = it }
+            for (i in 0 until list.size) DocumentRecord.load(list.compoundAt(i))?.let { lib.docs[it.id] = it }
             return lib
         }
 
-        private val FACTORY = Factory(::BpmLibrary, ::load, null)
+        private val TYPE = bpm.platform.StoreType(NAME, ::BpmLibrary, ::load)
 
         /** The library of the server's world, created on first use. Server thread only. */
-        fun get(server: MinecraftServer): BpmLibrary = server.overworld().dataStorage.computeIfAbsent(FACTORY, NAME)
+        fun get(server: MinecraftServer): BpmLibrary = bpm.platform.storeOf(server, TYPE)
     }
 }

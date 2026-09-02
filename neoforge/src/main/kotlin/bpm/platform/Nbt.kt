@@ -38,6 +38,10 @@ fun CompoundTag.listOr(key: String): ListTag = getListOrEmpty(key)
 
 fun CompoundTag.intsOr(key: String): IntArray = getIntArray(key).orElse(IntArray(0))
 
+fun ListTag.compoundAt(index: Int): CompoundTag = getCompoundOrEmpty(index)
+
+fun CompoundTag.bytesOr(key: String): ByteArray = getByteArray(key).orElse(ByteArray(0))
+
 fun uuidOrNull(tag: CompoundTag, key: String): UUID? =
     tag.getIntArray(key).filter { it.size == 4 }.map { net.minecraft.core.UUIDUtil.uuidFromIntArray(it) }.orElse(null)
 *///?} else {
@@ -61,6 +65,10 @@ fun CompoundTag.compoundOr(key: String): CompoundTag = getCompound(key)
 fun CompoundTag.listOr(key: String): ListTag = getList(key, net.minecraft.nbt.Tag.TAG_COMPOUND.toInt())
 
 fun CompoundTag.intsOr(key: String): IntArray = getIntArray(key)
+
+fun ListTag.compoundAt(index: Int): CompoundTag = getCompound(index)
+
+fun CompoundTag.bytesOr(key: String): ByteArray = getByteArray(key)
 
 fun uuidOrNull(tag: CompoundTag, key: String): UUID? = if (tag.hasUUID(key)) tag.getUUID(key) else null
 //?}

@@ -1,5 +1,6 @@
 package bpm.platform.store
 
+import bpm.platform.compoundAt
 import com.mojang.serialization.Codec
 import net.minecraft.core.HolderLookup
 import net.minecraft.nbt.CompoundTag
@@ -30,7 +31,7 @@ import bpm.platform.listOr
  */
 class PlayerKey<T>(val id: String, val codec: Codec<T>, val default: () -> T)
 
-class PlayerStoreData : SavedData() {
+class PlayerStoreData : bpm.platform.TagStore() {
 
     private val byPlayer = HashMap<UUID, CompoundTag>()
 
@@ -47,33 +48,32 @@ class PlayerStoreData : SavedData() {
         setDirty()
     }
 
-    override fun save(tag: CompoundTag, registries: HolderLookup.Provider): CompoundTag {
+    override fun writeTo(tag: CompoundTag) {
         val list = net.minecraft.nbt.ListTag()
         for ((id, data) in byPlayer) {
             if (data.isEmpty) continue
             list.add(CompoundTag().also { bpm.platform.putUuid(it, "player", id); it.put("data", data) })
         }
         tag.put("players", list)
-        return tag
     }
 
     companion object {
         private const val NAME = "bpm_players"
 
-        fun load(tag: CompoundTag, @Suppress("UNUSED_PARAMETER") registries: HolderLookup.Provider): PlayerStoreData {
+        fun load(tag: CompoundTag): PlayerStoreData {
             val store = PlayerStoreData()
             val list = tag.listOr("players")
             for (i in 0 until list.size) {
-                val entry = list.getCompound(i)
+                val entry = list.compoundAt(i)
                 val who = bpm.platform.uuidOrNull(entry, "player") ?: continue
                 store.byPlayer[who] = entry.compoundOr("data")
             }
             return store
         }
 
-        private val FACTORY = Factory(::PlayerStoreData, ::load, null)
+        private val TYPE = bpm.platform.StoreType(NAME, ::PlayerStoreData, ::load)
 
-        fun get(server: MinecraftServer): PlayerStoreData = server.overworld().dataStorage.computeIfAbsent(FACTORY, NAME)
+        fun get(server: MinecraftServer): PlayerStoreData = bpm.platform.storeOf(server, TYPE)
     }
 }
 
