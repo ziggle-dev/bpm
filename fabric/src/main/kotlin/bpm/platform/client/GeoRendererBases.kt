@@ -98,6 +98,15 @@ interface WorldDraw {
         packedLight: Int,
         packedOverlay: Int,
     )
+
+    /**
+     * Everything drawn so far reaches the screen.
+     *
+     * Only the band that draws IMMEDIATELY has anything to do here -- it is where a buffer source's batch
+     * gets ended. A band that submits has already handed its work over, and one that opens a pass per
+     * draw has already finished it. Callers say it regardless, so the caller reads the same everywhere.
+     */
+    fun flush()
 }
 
 //? if >=1.21.9 {
@@ -189,6 +198,8 @@ private class PassBones<R : bpm.platform.GeoRenderState>(
 
 /** [WorldDraw] over a submit collector: everything is deferred, against the pose captured now. */
 internal class CollectorDraw(private val collector: net.minecraft.client.renderer.SubmitNodeCollector) : WorldDraw {
+
+    override fun flush() = Unit
 
     override fun into(
         poseStack: com.mojang.blaze3d.vertex.PoseStack,
@@ -451,6 +462,11 @@ private class RecursionBones : BoneAccess {
 }
 
 internal class BufferedDraw(private val bufferSource: net.minecraft.client.renderer.MultiBufferSource) : WorldDraw {
+
+    /** Ends the batch, but only if this really is a buffer SOURCE and not a bare consumer of one. */
+    override fun flush() {
+        (bufferSource as? net.minecraft.client.renderer.MultiBufferSource.BufferSource)?.endBatch()
+    }
 
     override fun into(
         poseStack: com.mojang.blaze3d.vertex.PoseStack,
@@ -753,6 +769,11 @@ private class RecursionBones : BoneAccess {
 
 /** [WorldDraw] over a buffer source: everything happens now, which is what this band's draw call means. */
 internal class BufferedDraw(private val bufferSource: net.minecraft.client.renderer.MultiBufferSource) : WorldDraw {
+
+    /** Ends the batch, but only if this really is a buffer SOURCE and not a bare consumer of one. */
+    override fun flush() {
+        (bufferSource as? net.minecraft.client.renderer.MultiBufferSource.BufferSource)?.endBatch()
+    }
 
     override fun into(
         poseStack: com.mojang.blaze3d.vertex.PoseStack,
