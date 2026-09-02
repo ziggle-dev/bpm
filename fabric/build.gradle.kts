@@ -229,6 +229,70 @@ kotlin.sourceSets.named("core") {
 sourceSets.named("core") {
     resources.srcDir(rootProject.file("src/core/resources"))
 }
+
+/*
+ * The shared unit suite, which this branch has never run.
+ *
+ * All 123 tests live in `<root>/src/test/kotlin` and the NeoForge branch has always compiled them. This
+ * branch never wired the source set at all, so every Fabric node reported `test NO-SOURCE` and the
+ * loader's own seams had no coverage whatsoever.
+ *
+ * THREE things are needed, and only the first is obvious:
+ *
+ *  - the sources, below;
+ *  - the OUTPUT of `main` and `core` on the test classpath. ModDevGradle does this implicitly through
+ *    `unitTest { testedMod = ... }`; Loom has no equivalent, so without it the tests cannot see the mod's
+ *    own classes and fail on `ChunkAssembler`, `DocumentCodec` and the like rather than on anything
+ *    loader-shaped;
+ *  - the same DEPENDENCIES `main` compiles against, which is what the two `extendsFrom` lines buy.
+ *
+ * What is still missing is a bootstrapped Minecraft: MDG stands the game up before the suite runs and
+ * Loom does not, so a test that reaches for a registry has nothing to reach. Those are excluded by name
+ * rather than left red, on the principle that a suite which fails by default gets ignored.
+ */
+kotlin.sourceSets.named("test") {
+    kotlin.srcDir(rootProject.file("src/test/kotlin"))
+    /*
+     * NeoForge's transfer API, constructed directly.
+     *
+     * What these check IS the adapter from a real `ItemStackHandler`/`FluidTank` to this mod's ports, so
+     * there is nothing loader-neutral to run here -- the Fabric equivalents are exercised through
+     * FabricPorts instead. Excluded rather than faked, for the same reason the NeoForge branch excludes
+     * them on 1.21.11 when that API changed underneath them.
+     */
+    kotlin.exclude(
+        "bpm/platform/PortsTest.kt",
+        "bpm/catalog/FilterValueTest.kt",
+        "bpm/catalog/FindSlotTest.kt",
+        "bpm/world/TetherTest.kt",
+    )
+    /*
+     * This one needs the MOD loaded, not merely the game bootstrapped.
+     *
+     * It fails with "lateinit property backend has not been initialized" -- CoreDrops reaches a platform
+     * seam whose backend is installed during mod initialisation. ModDevGradle loads the mod for its test
+     * run (`unitTest { testedMod = ... }`); Loom has no notion of doing so, and GameBootstrap deliberately
+     * stops at the game: standing the whole mod up inside a unit suite is a different and much larger
+     * thing than filling the registries.
+     */
+    kotlin.exclude("bpm/world/CoreDropsTest.kt")
+    /*
+     * From 26.1 an item's DEFAULT COMPONENTS are data bound after a registry load, so constructing a
+     * stack outside a loaded game gives one without them. The NeoForge branch excludes this same test on
+     * the same band for the same reason -- see `stacksNeedLoadedComponents` there.
+     */
+    if (stonecutter.eval(minecraftVersion, ">=26.1")) {
+        kotlin.exclude("bpm/catalog/FilterConstructTest.kt")
+    }
+}
+
+sourceSets.named("test") {
+    compileClasspath += sourceSets["main"].output + sourceSets["core"].output
+    runtimeClasspath += sourceSets["main"].output + sourceSets["core"].output
+}
+
+configurations["testImplementation"].extendsFrom(configurations["implementation"])
+configurations["testRuntimeOnly"].extendsFrom(configurations["runtimeOnly"])
 kotlin.sourceSets.named("main") {
     // The Java directory is listed among the KOTLIN dirs too, not just under `java` below: Kotlin reads
     // .java sources for resolution but only from its own source set, and without it the Kotlin code
@@ -337,6 +401,13 @@ dependencies {
         add("mappings", loomExtension.officialMojangMappings())
     }
     add(deobf, "net.fabricmc:fabric-loader:$fabricLoaderVersion")
+
+    // The same three the NeoForge branch uses, so one suite runs the same way on both loaders.
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
+    // Not runtimeOnly on this branch: GameBootstrap implements LauncherSessionListener, so the launcher
+    // API has to be on the COMPILE classpath too. The NeoForge branch needs no such listener.
+    testImplementation("org.junit.platform:junit-platform-launcher")
     add(deobf, "net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
     // Fabric Language Kotlin is this loader's KotlinForForge: it supplies the stdlib in a player's game.
     add(deobf, "net.fabricmc:fabric-language-kotlin:$flkVersion")
@@ -409,4 +480,8 @@ dependencies {
     add("include", "io.github.spair:imgui-java-lwjgl3:$imguiVersion") { exclude(group = "org.lwjgl") }
     "coreImplementation"("io.github.spair:imgui-java-binding:$imguiVersion")
     "coreCompileOnly"("com.google.code.gson:gson:2.10.1")
+}
+
+tasks.named<Test>("test") {
+    useJUnitPlatform()
 }
