@@ -111,7 +111,16 @@ private abstract class SpecFluid(protected val ctx: SpecContext) : FlowingFluid(
     override fun getFlowing(): Fluid = ctx.flowing
     override fun getSource(): Fluid = ctx.source
     override fun getBucket(): Item = ctx.bucketItem
+    /*
+     * The level this is asked about became a `ServerLevel` at 1.21.2 -- a parameter TYPE change, so the
+     * older spelling stops overriding anything rather than failing loudly at the call. Neither body
+     * looks at it: whether this fluid makes new sources is a property of the spec it was declared from.
+     */
+    //? if >=1.21.2 {
+    /*override fun canConvertToSource(level: net.minecraft.server.level.ServerLevel): Boolean = ctx.spec.canConvertToSource
+    *///?} else {
     override fun canConvertToSource(level: Level): Boolean = ctx.spec.canConvertToSource
+    //?}
     override fun getSlopeFindDistance(level: LevelReader): Int = ctx.spec.slopeFindDistance
     override fun getDropOff(level: LevelReader): Int = ctx.spec.levelDecreasePerBlock
     override fun getTickDelay(level: LevelReader): Int = ctx.spec.tickRate

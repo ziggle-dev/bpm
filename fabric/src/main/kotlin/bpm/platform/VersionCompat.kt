@@ -79,13 +79,6 @@ fun <T : Any> valueOf(registry: net.minecraft.core.Registry<T>, id: net.minecraf
 fun blockLookup(): net.minecraft.core.HolderGetter<net.minecraft.world.level.block.Block> =
     net.minecraft.core.registries.BuiltInRegistries.BLOCK
 
-/** `BlockEntityType.Builder` was deleted; the constructor it hid is public. */
-fun <T : net.minecraft.world.level.block.entity.BlockEntity> blockEntityType(
-    factory: (net.minecraft.core.BlockPos, net.minecraft.world.level.block.state.BlockState) -> T,
-    block: net.minecraft.world.level.block.Block,
-): net.minecraft.world.level.block.entity.BlockEntityType<T> =
-    net.minecraft.world.level.block.entity.BlockEntityType({ pos, state -> factory(pos, state) }, block)
-
 /** `EntityType.Builder.build` takes the registry key rather than a bare name. */
 fun <T : net.minecraft.world.entity.Entity> entityType(
     builder: net.minecraft.world.entity.EntityType.Builder<T>,
@@ -195,13 +188,6 @@ fun <T : Any> valueOf(registry: net.minecraft.core.Registry<T>, id: net.minecraf
 fun blockLookup(): net.minecraft.core.HolderGetter<net.minecraft.world.level.block.Block> =
     net.minecraft.core.registries.BuiltInRegistries.BLOCK.asLookup()
 
-@Suppress("DataFlowIssue")
-fun <T : net.minecraft.world.level.block.entity.BlockEntity> blockEntityType(
-    factory: (net.minecraft.core.BlockPos, net.minecraft.world.level.block.state.BlockState) -> T,
-    block: net.minecraft.world.level.block.Block,
-): net.minecraft.world.level.block.entity.BlockEntityType<T> =
-    net.minecraft.world.level.block.entity.BlockEntityType.Builder.of({ pos, state -> factory(pos, state) }, block).build(null)
-
 fun <T : net.minecraft.world.entity.Entity> entityType(
     builder: net.minecraft.world.entity.EntityType.Builder<T>,
     id: net.minecraft.resources.ResourceLocation,
@@ -257,3 +243,23 @@ val INGREDIENT_CODEC: com.mojang.serialization.Codec<net.minecraft.world.item.cr
     net.minecraft.world.item.crafting.Ingredient.CODEC_NONEMPTY
 
 //?}
+
+/**
+ * A block-entity type, built the way this loader has always built one.
+ *
+ * NOT version-switched, unlike its NeoForge counterpart, and the reason is worth recording. Vanilla
+ * deleted `BlockEntityType.Builder` at 1.21.4 and left the constructor it hid PRIVATE; NeoForge widens
+ * it, so that branch simply calls it. Fabric does not widen it -- it ships a builder of its own instead,
+ * and that builder has the same shape on both versions.
+ *
+ * So what is a version difference on one loader is a plain loader difference on the other, answered
+ * once. That is the two axes doing their job: a thing only becomes version-shaped where the version
+ * actually changed it.
+ */
+fun <T : net.minecraft.world.level.block.entity.BlockEntity> blockEntityType(
+    factory: (net.minecraft.core.BlockPos, net.minecraft.world.level.block.state.BlockState) -> T,
+    block: net.minecraft.world.level.block.Block,
+): net.minecraft.world.level.block.entity.BlockEntityType<T> =
+    net.fabricmc.fabric.api.`object`.builder.v1.block.entity.FabricBlockEntityTypeBuilder
+        .create({ pos, state -> factory(pos, state) }, block)
+        .build()

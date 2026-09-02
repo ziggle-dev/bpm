@@ -194,7 +194,25 @@ for (name in listOf("main", "test", "core", "dev")) {
     kotlin.sourceSets.named(name) {
         kotlin.srcDir(rootProject.file("src/$name/kotlin"))
     }
+/*
+     * **A resource whose SCHEMA changed lives in a per-version tree, shared by both loaders.**
+     *
+     * Almost every one of the 386 resource files is version-neutral and lives in `src/<set>/resources`. A
+     * handful are not, because the file FORMAT changed rather than its content: 1.21.4's client-item files,
+     * its recipes in the new string-ingredient form, the base models that lost `builtin/entity`, the rift
+     * shader configs whose `vertex` field became a real resource location. A JSON cannot carry a `//? if`
+     * directive, so those cannot be expressed in the shared tree.
+     *
+     * They are version-shaped, NOT loader-shaped -- a 1.21.4 recipe is the same file on either loader -- so
+     * they belong in one place that both branches read, which is what this is. The genuinely loader-specific
+     * exceptions (NeoForge composites its bucket from a fluid container; Fabric uses a plain model) stay in
+     * their own node's `src/main/resources`, which is searched first.
+     *
+     * Added BEFORE the shared tree so that, with `processResources` set to EXCLUDE duplicates, the
+     * version's answer wins over the version-neutral one it is replacing.
+     */
     sourceSets.named(name) {
+        resources.srcDir(rootProject.file("src/$name/resources-$minecraftVersion"))
         resources.srcDir(rootProject.file("src/$name/resources"))
     }
 }

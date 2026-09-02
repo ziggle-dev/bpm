@@ -22,10 +22,17 @@ val minecraftVersion: String = stonecutter.current.version
 val vscriptVersion = property("vscript_version") as String
 val imguiVersion = property("imgui_version") as String
 val fabricLoaderVersion = property("fabric_loader_version") as String
-val fabricApiVersion = property("fabric_api_version") as String
+val fabricApiVersion = property("fabric_api_version_" + minecraftVersion.replace('.', '_')) as String
 val flkVersion = property("flk_version") as String
 val geckolibVersion = property("geckolib_version_" + minecraftVersion.replace('.', '_')) as String
 val energyApiVersion = property("energy_api_version_" + minecraftVersion.replace('.', '_')) as String
+/*
+ * The optional integrations -- JEI's API and Ponder -- publish for some Minecraft versions and not
+ * others, exactly as on NeoForge. Neither ships and neither is worth blocking a node on, so they are
+ * added only where they resolve and their source is excluded where they are not. A node without them
+ * builds, runs and passes its game tests; it is simply a plainer dev world.
+ */
+val hasDevMods = minecraftVersion == "1.21.1"
 val jeiVersion = property("jei_version") as String
 val ponderVersion = property("ponder_version") as String
 
@@ -122,6 +129,11 @@ kotlin.sourceSets.named("main") {
     // .java sources for resolution but only from its own source set, and without it the Kotlin code
     // cannot see the accessor mixin it calls.
     kotlin.srcDir(rootProject.file("src/main/kotlin"))
+
+    // See `hasDevMods`: where the integration's API is absent, its source is not compiled either.
+    if (!hasDevMods) {
+        kotlin.exclude("bpm/compat/jei/**", "bpm/client/ponder/**")
+    }
 }
 /*
  * **The mixins are Java, and they have to be.**
@@ -133,8 +145,31 @@ kotlin.sourceSets.named("main") {
  */
 sourceSets.named("main") {
 }
+/*
+ * **A resource whose SCHEMA changed lives in a per-version tree, shared by both loaders.**
+ *
+ * Almost every one of the 386 resource files is version-neutral and lives in `src/<set>/resources`. A
+ * handful are not, because the file FORMAT changed rather than its content: 1.21.4's client-item files,
+ * its recipes in the new string-ingredient form, the base models that lost `builtin/entity`, the rift
+ * shader configs whose `vertex` field became a real resource location. A JSON cannot carry a `//? if`
+ * directive, so those cannot be expressed in the shared tree.
+ *
+ * They are version-shaped, NOT loader-shaped -- a 1.21.4 recipe is the same file on either loader -- so
+ * they belong in one place that both branches read, which is what this is. The genuinely loader-specific
+ * exceptions (NeoForge composites its bucket from a fluid container; Fabric uses a plain model) stay in
+ * their own node's `src/main/resources`, which is searched first.
+ *
+ * Added BEFORE the shared tree so that, with `processResources` set to EXCLUDE duplicates, the
+ * version's answer wins over the version-neutral one it is replacing.
+ */
 sourceSets.named("main") {
+    resources.srcDir(rootProject.file("src/main/resources-$minecraftVersion"))
     resources.srcDir(rootProject.file("src/main/resources"))
+}
+
+/** A node's own resources, then the version's, then the shared tree: the most specific copy wins. */
+tasks.named<ProcessResources>("processResources") {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 /*
@@ -183,13 +218,13 @@ dependencies {
     include("teamreborn:energy:$energyApiVersion")
     // JEI's API on the compile path only, exactly as on NeoForge: a pack without JEI never loads the
     // plugin class, because @JeiPlugin is read by JEI itself.
-    modCompileOnly("mezz.jei:jei-$minecraftVersion-fabric-api:$jeiVersion")
+    if (hasDevMods) modCompileOnly("mezz.jei:jei-$minecraftVersion-fabric-api:$jeiVersion")
     // Ponder, for the in-game scene tutorials. Compile path only, as on NeoForge.
     //
     // NOT Ponder-Common as well: that jar carries a second copy of catnip's PlatformHelper interface,
     // and having both on a runtime classpath is what made the NeoForge client hang on the loading bar.
     // One jar, the platform one, on both loaders.
-    modCompileOnly("net.createmod.ponder:Ponder-Fabric-$minecraftVersion:$ponderVersion") { isTransitive = false }
+    if (hasDevMods) modCompileOnly("net.createmod.ponder:Ponder-Fabric-$minecraftVersion:$ponderVersion") { isTransitive = false }
 
     for (m in listOf("vscript", "vscript-runtime", "vscript-ui", "vscript-runview", "editor-host", "editor-graph")) {
         implementation("dev.ziggle:$m:$vscriptVersion")

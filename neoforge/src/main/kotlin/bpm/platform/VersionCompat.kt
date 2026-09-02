@@ -84,7 +84,7 @@ fun <T : net.minecraft.world.level.block.entity.BlockEntity> blockEntityType(
     factory: (net.minecraft.core.BlockPos, net.minecraft.world.level.block.state.BlockState) -> T,
     block: net.minecraft.world.level.block.Block,
 ): net.minecraft.world.level.block.entity.BlockEntityType<T> =
-    net.minecraft.world.level.block.entity.BlockEntityType({ pos, state -> factory(pos, state) }, block)
+    net.minecraft.world.level.block.entity.BlockEntityType({ pos, state -> factory(pos, state) }, setOf(block))
 
 /** `EntityType.Builder.build` takes the registry key rather than a bare name. */
 fun <T : net.minecraft.world.entity.Entity> entityType(

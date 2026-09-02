@@ -86,6 +86,18 @@ fun applyModelView() = Unit
 
 /** `RenderTarget.clear` lost its "on macOS" argument. */
 fun clearTarget(target: com.mojang.blaze3d.pipeline.RenderTarget) = target.clear()
+
+/**
+ * An offscreen colour+depth target to draw an item into.
+ *
+ * `TextureTarget`'s fourth argument used to be "are we on macOS" -- a driver workaround -- and is
+ * `useStencil` from 1.21.2. Same arity, different MEANING, which is the one shape of change that
+ * compiles silently and does the wrong thing: on NeoForge, which keeps a four-argument overload, passing
+ * the old value asks for a stencil buffer on exactly the machines the workaround was for. Fabric has
+ * only the three-argument form and refused it, which is how this was caught at all.
+ */
+fun offscreenTarget(width: Int, height: Int): com.mojang.blaze3d.pipeline.TextureTarget =
+    com.mojang.blaze3d.pipeline.TextureTarget(width, height, true)
 *///?} else {
 private val translucentCullCache = HashMap<ResourceLocation, RenderType>()
 
@@ -114,4 +126,7 @@ fun applyModelView() = com.mojang.blaze3d.systems.RenderSystem.applyModelViewMat
 
 fun clearTarget(target: com.mojang.blaze3d.pipeline.RenderTarget) =
     target.clear(net.minecraft.client.Minecraft.ON_OSX)
+
+fun offscreenTarget(width: Int, height: Int): com.mojang.blaze3d.pipeline.TextureTarget =
+    com.mojang.blaze3d.pipeline.TextureTarget(width, height, true, net.minecraft.client.Minecraft.ON_OSX)
 //?}

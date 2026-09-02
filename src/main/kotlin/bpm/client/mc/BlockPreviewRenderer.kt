@@ -116,7 +116,7 @@ object BlockPreviewRenderer : BlockPreviews, ItemIcons, IconSource {
         while (it.hasNext() && budget > 0) {
             val id = it.next()
             it.remove()
-            val slot = slots.getOrPut(id) { Slot(TextureTarget(SIZE, SIZE, true, Minecraft.ON_OSX)) }
+            val slot = slots.getOrPut(id) { Slot(bpm.platform.client.offscreenTarget(SIZE, SIZE)) }
             slot.wantedAt = now
             if (slot.rendered) continue
             val item = ResourceLocation.tryParse(id)?.let { rl -> BuiltInRegistries.ITEM.getOptional(rl).orElse(null) } ?: continue
