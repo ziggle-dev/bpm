@@ -65,27 +65,25 @@ class GateRenderer : DeviceRenderer<GateBlockEntity>("quantum_gate", { be ->
  * a little each frame — the animation's own sweep runs when it is not.
  */
 class TurretRenderer : DeviceRenderer<TurretBlockEntity>("observer_turret", { be -> AABB(be.blockPos).inflate(0.5) }) {
-    override fun getFacing(animatable: TurretBlockEntity): Direction =
-        animatable.blockState.takeIf { it.hasProperty(TurretBlock.FACING) }?.getValue(TurretBlock.FACING) ?: Direction.UP
+    override fun facingOf(blockEntity: TurretBlockEntity): Direction =
+        blockEntity.blockState.takeIf { it.hasProperty(TurretBlock.FACING) }?.getValue(TurretBlock.FACING) ?: Direction.UP
 
-    override fun renderRecursively(
-        poseStack: PoseStack, animatable: TurretBlockEntity, bone: GeoBone, renderType: RenderType,
-        bufferSource: MultiBufferSource, buffer: com.mojang.blaze3d.vertex.VertexConsumer, isReRender: Boolean, partialTick: Float,
-        packedLight: Int, packedOverlay: Int, colour: Int,
-    ) {
-        if (animatable.tracking) {
-            when (bone.name) {
-                "yaw" -> {
-                    animatable.shownYaw += wrap(animatable.targetYaw - animatable.shownYaw) * EASE
-                    bone.setRotY(Math.toRadians(animatable.shownYaw.toDouble()).toFloat())
-                }
-                "pitch" -> {
-                    animatable.shownPitch += (animatable.targetPitch - animatable.shownPitch) * EASE
-                    bone.setRotX(Math.toRadians(animatable.shownPitch.toDouble()).toFloat())
-                }
-            }
-        }
-        super.renderRecursively(poseStack, animatable, bone, renderType, bufferSource, buffer, isReRender, partialTick, packedLight, packedOverlay, colour)
+    /**
+     * While it tracks, the eye's two bones are pointed at the aim the server sent, eased a little each
+     * frame; when it does not, the animation's own sweep runs and neither bone is touched.
+     *
+     * The eased angles live on the block entity rather than here because one renderer serves every turret
+     * in the world -- the state has to be per block, and the block entity is the only per-block thing in
+     * reach on both bands. The block entity is looked up rather than passed: from 1.21.9 the bone
+     * declarations are made from a render state, which carries the position and not the block.
+     */
+    override fun onBones(bones: bpm.platform.client.BoneAccess, pos: net.minecraft.core.BlockPos, state: net.minecraft.world.level.block.state.BlockState) {
+        val be = net.minecraft.client.Minecraft.getInstance().level?.getBlockEntity(pos) as? TurretBlockEntity ?: return
+        if (!be.tracking) return
+        be.shownYaw += wrap(be.targetYaw - be.shownYaw) * EASE
+        be.shownPitch += (be.targetPitch - be.shownPitch) * EASE
+        bones.turn("yaw", rotY = Math.toRadians(be.shownYaw.toDouble()).toFloat())
+        bones.turn("pitch", rotX = Math.toRadians(be.shownPitch.toDouble()).toFloat())
     }
 
     private fun wrap(deg: Float): Float {
@@ -96,23 +94,22 @@ class TurretRenderer : DeviceRenderer<TurretBlockEntity>("observer_turret", { be
     }
 
     /** After the model: the seconds it has left dark, as a sign facing the camera above the eye. */
-    override fun render(animatable: TurretBlockEntity, partialTick: Float, poseStack: PoseStack, bufferSource: MultiBufferSource, packedLight: Int, packedOverlay: Int) {
-        super.render(animatable, partialTick, poseStack, bufferSource, packedLight, packedOverlay)
-        if (!animatable.off) return
-        val seconds = animatable.secondsDark()
+    override fun afterModel(blockEntity: TurretBlockEntity, poseStack: PoseStack, draw: bpm.platform.client.WorldDraw, partialTick: Float, packedLight: Int) {
+        if (!blockEntity.off) return
+        val seconds = blockEntity.secondsDark()
         if (seconds <= 0) return
         val mc = net.minecraft.client.Minecraft.getInstance()
         val font = mc.font
         val text = "$seconds s"
+        val chars = net.minecraft.util.FormattedCharSequence.forward(text, net.minecraft.network.chat.Style.EMPTY)
         poseStack.pushPose()
         poseStack.translate(0.5, 1.75, 0.5)
-        poseStack.mulPose(mc.entityRenderDispatcher.cameraOrientation())
+        poseStack.mulPose(mc.gameRenderer.mainCamera.rotation())
         poseStack.scale(-0.03f, -0.03f, 0.03f)
-        val m = poseStack.last().pose()
         val x = -font.width(text) / 2f
         val bg = (mc.options.getBackgroundOpacity(0.25f) * 255).toInt() shl 24
-        font.drawInBatch(text, x, 0f, 0x20FFFFFF, false, m, bufferSource, net.minecraft.client.gui.Font.DisplayMode.SEE_THROUGH, bg, packedLight)
-        font.drawInBatch(text, x, 0f, 0xFFF26D6D.toInt(), false, m, bufferSource, net.minecraft.client.gui.Font.DisplayMode.NORMAL, 0, packedLight)
+        draw.text(poseStack, chars, x, 0f, 0x20FFFFFF, false, net.minecraft.client.gui.Font.DisplayMode.SEE_THROUGH, bg, packedLight)
+        draw.text(poseStack, chars, x, 0f, 0xFFF26D6D.toInt(), false, net.minecraft.client.gui.Font.DisplayMode.NORMAL, 0, packedLight)
         poseStack.popPose()
     }
 
@@ -141,8 +138,9 @@ class MonitorModel : PathGeoModel<bpm.world.devices.MonitorBlockEntity>(
     rl("animations/block/quantum_monitor.animation.json"),
     rl("textures/block/quantum_monitor.png"),
 ) {
-    override fun texturePath(animatable: bpm.world.devices.MonitorBlockEntity): ResourceLocation =
-        if (animatable.on) ON else super.texturePath(animatable)
+    override fun altTexture(): ResourceLocation = ON
+
+    override fun altApplies(animatable: bpm.world.devices.MonitorBlockEntity): Boolean = animatable.on
 
     companion object {
         private val ON = rl("textures/block/quantum_monitor_on.png")
@@ -170,9 +168,8 @@ class MonitorRenderer : bpm.platform.client.GeoBlockRendererBase<bpm.world.devic
     override fun facingOf(blockEntity: bpm.world.devices.MonitorBlockEntity): Direction = blockEntity.facing
 
     /** After the panel: the screen's content, for the wall's origin tile. */
-    override fun render(animatable: bpm.world.devices.MonitorBlockEntity, partialTick: Float, poseStack: PoseStack, bufferSource: MultiBufferSource, packedLight: Int, packedOverlay: Int) {
-        super.render(animatable, partialTick, poseStack, bufferSource, packedLight, packedOverlay)
-        MonitorScreenRenderer.draw(animatable, poseStack, bufferSource)
+    override fun afterModel(blockEntity: bpm.world.devices.MonitorBlockEntity, poseStack: PoseStack, draw: bpm.platform.client.WorldDraw, partialTick: Float, packedLight: Int) {
+        MonitorScreenRenderer.draw(blockEntity, poseStack, draw)
     }
 
     /**

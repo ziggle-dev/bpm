@@ -243,7 +243,7 @@ object GeoRenderers {
         // …and the tether: 1 while the stack being drawn is bound to a controller, which speeds its ring up
         // and swells the gem, exactly as a bound linker spins faster.
         MolangQueries.setActorVariable<Any>("variable.linked") { actor ->
-            val stack = actor.animationState().getData(DataTickets.ITEMSTACK)
+            val stack = bpm.platform.client.actorStack(actor)
             val bound = stack != null &&
                 (stack.has(ModComponents.SELECTED_CONTROLLER.get()) || stack.has(ModComponents.TETHER_CONTROLLER.get()))
             if (bound) 1.0 else 0.0
