@@ -1,5 +1,7 @@
 package bpm.client.render
 
+import bpm.platform.idOf
+
 import bpm.Bpm
 import bpm.world.DeviceBlockEntities
 import bpm.world.DeviceBlockItem
@@ -20,7 +22,7 @@ import net.minecraft.world.phys.AABB
 import bpm.platform.GeoAnimatable
 import bpm.platform.GeoBone
 
-private fun rl(path: String) = ResourceLocation.fromNamespaceAndPath(Bpm.ID, path)
+private fun rl(path: String) = idOf(Bpm.ID, path)
 
 /** A device's model, animation set and texture by name under `geo/block`, `animations/block`, `textures/block`. */
 class DeviceModel<T : GeoAnimatable>(name: String) : PathGeoModel<T>(

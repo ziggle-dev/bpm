@@ -1,5 +1,7 @@
 package bpm.world
 
+import bpm.platform.idOf
+
 import bpm.Bpm
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
@@ -18,7 +20,7 @@ object BpmDamage {
     val LINKER_PULSE: ResourceKey<DamageType> = key("linker_pulse")
     val DECOHERENCE: ResourceKey<DamageType> = key("decoherence")
 
-    private fun key(name: String) = ResourceKey.create(Registries.DAMAGE_TYPE, ResourceLocation.fromNamespaceAndPath(Bpm.ID, name))
+    private fun key(name: String) = ResourceKey.create(Registries.DAMAGE_TYPE, idOf(Bpm.ID, name))
 
     fun source(level: Level, type: ResourceKey<DamageType>, attacker: Entity? = null): DamageSource {
         val holder = bpm.platform.holderOrThrow(level.registryAccess(), Registries.DAMAGE_TYPE, type)

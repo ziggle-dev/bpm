@@ -1,5 +1,7 @@
 package bpm.net
 
+import bpm.platform.idOf
+
 import net.minecraft.core.BlockPos
 import net.minecraft.network.FriendlyByteBuf
 import bpm.platform.net.BpmPayload
@@ -15,7 +17,7 @@ import bpm.platform.ResourceLocation
  * debugger goes the other way as a `RunControlPayload` action.
  */
 
-private fun rid(name: String): ResourceLocation = ResourceLocation.fromNamespaceAndPath(bpm.Bpm.ID, name)
+private fun rid(name: String): ResourceLocation = idOf(bpm.Bpm.ID, name)
 
 private fun <T : BpmPayload> rcodec(
     write: (FriendlyByteBuf, T) -> Unit,

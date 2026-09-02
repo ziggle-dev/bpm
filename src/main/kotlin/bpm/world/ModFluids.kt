@@ -1,5 +1,7 @@
 package bpm.world
 
+import bpm.platform.vanillaId
+
 import bpm.platform.registry.FluidPair
 import bpm.platform.registry.FluidSpec
 import bpm.platform.registry.FluidRegistry
@@ -20,9 +22,9 @@ object ModFluids {
     val SPEC = FluidSpec(
         name = "experience",
         descriptionId = "fluid.bpm.experience",
-        stillTexture = ResourceLocation.withDefaultNamespace("block/water_still"),
-        flowingTexture = ResourceLocation.withDefaultNamespace("block/water_flow"),
-        overlayTexture = ResourceLocation.withDefaultNamespace("block/water_overlay"),
+        stillTexture = vanillaId("block/water_still"),
+        flowingTexture = vanillaId("block/water_flow"),
+        overlayTexture = vanillaId("block/water_overlay"),
         tint = 0xFFA8F04A.toInt(),
         lightLevel = 10,
         density = 1600,

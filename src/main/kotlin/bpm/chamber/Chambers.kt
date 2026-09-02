@@ -1,5 +1,7 @@
 package bpm.chamber
 
+import bpm.platform.idOf
+
 import bpm.platform.compoundAt
 import bpm.platform.store.PlayerStore
 import bpm.Bpm
@@ -44,7 +46,7 @@ import bpm.platform.showMessage
 
 /** The Decoherence Chamber's dimension — `bpm:decoherence`, a void with one room per player stamped into it. */
 object ChamberDimension {
-    val KEY: ResourceKey<Level> = ResourceKey.create(Registries.DIMENSION, ResourceLocation.fromNamespaceAndPath(Bpm.ID, "decoherence"))
+    val KEY: ResourceKey<Level> = ResourceKey.create(Registries.DIMENSION, idOf(Bpm.ID, "decoherence"))
 
     fun level(server: MinecraftServer): ServerLevel? = server.getLevel(KEY)
     fun isChamber(level: Level): Boolean = level.dimension() == KEY

@@ -164,7 +164,7 @@ fun bpmKeyMapping(name: String, key: Int): net.minecraft.client.KeyMapping =
         name,
         com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM,
         key,
-        net.minecraft.client.KeyMapping.Category.register(bpm.platform.ResourceLocation.fromNamespaceAndPath(bpm.Bpm.ID, "main")),
+        net.minecraft.client.KeyMapping.Category.register(bpm.platform.idOf(bpm.Bpm.ID, "main")),
     )
     *///?} else {
     net.minecraft.client.KeyMapping(name, com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM, key, "key.categories.bpm")

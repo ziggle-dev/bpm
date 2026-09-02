@@ -1,5 +1,7 @@
 package bpm.net
 
+import bpm.platform.idOf
+
 import net.minecraft.nbt.ListTag
 import bpm.Bpm
 import bpm.net.chunk.Chunk
@@ -26,7 +28,7 @@ import bpm.platform.listOr
  * [ChunkPayload] pieces of a [BigMessages] message, never as a payload of its own.
  */
 
-private fun id(name: String): ResourceLocation = ResourceLocation.fromNamespaceAndPath(Bpm.ID, name)
+private fun id(name: String): ResourceLocation = idOf(Bpm.ID, name)
 
 /** "No document" on the wire. */
 val NIL_UUID: UUID = UUID(0, 0)

@@ -1,5 +1,7 @@
 package bpm.compat.jei
 
+import bpm.platform.idOf
+
 import bpm.Bpm
 import bpm.world.DeviceBlocks
 import bpm.world.assembly.AssemblyRecipe
@@ -166,7 +168,7 @@ class AssemblyCategory(gui: IGuiHelper) : IRecipeCategory<RecipeHolder<AssemblyR
 @JeiPlugin
 class BpmJeiPlugin : IModPlugin {
 
-    override fun getPluginUid(): ResourceLocation = ResourceLocation.fromNamespaceAndPath(Bpm.ID, "jei")
+    override fun getPluginUid(): ResourceLocation = idOf(Bpm.ID, "jei")
 
     override fun registerCategories(registration: IRecipeCategoryRegistration) {
         registration.addRecipeCategories(

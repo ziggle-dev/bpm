@@ -1,5 +1,7 @@
 package bpm.platform.registry
 
+import bpm.platform.idOf
+
 import net.fabricmc.fabric.api.`object`.builder.v1.entity.FabricDefaultAttributeRegistry
 import net.minecraft.core.Holder
 import net.minecraft.core.Registry
@@ -108,7 +110,7 @@ private open class FabricRegistrar<T : Any>(
 
     @Suppress("UNCHECKED_CAST")
     protected fun <V : Any, R : V> registerInto(into: Registry<V>, name: String, factory: () -> R): RegistryRef<R> {
-        val id = ResourceLocation.fromNamespaceAndPath(namespace, name)
+        val id = idOf(namespace, name)
         val ref = FabricRef<R>(id)
         defer { ref.reference = Registry.registerForHolder(into, id, factory()) as Holder.Reference<R> }
         return ref
@@ -123,12 +125,12 @@ private class FabricBlockRegistrar(namespace: String, defer: (() -> Unit) -> Uni
         factory: (BlockBehaviour.Properties) -> B,
         props: BlockBehaviour.Properties,
     ): RegistryRef<B> = registerInto(BuiltInRegistries.BLOCK, name) {
-        factory(blockProps(props, ResourceLocation.fromNamespaceAndPath(namespace, name)))
+        factory(blockProps(props, idOf(namespace, name)))
     }
 
     override fun registerSimpleBlock(name: String, props: BlockBehaviour.Properties): RegistryRef<Block> =
         registerInto(BuiltInRegistries.BLOCK, name) {
-            Block(blockProps(props, ResourceLocation.fromNamespaceAndPath(namespace, name)))
+            Block(blockProps(props, idOf(namespace, name)))
         }
 }
 
@@ -140,7 +142,7 @@ private class FabricItemRegistrar(namespace: String, defer: (() -> Unit) -> Unit
         factory: (Item.Properties) -> I,
         props: Item.Properties,
     ): RegistryRef<I> = registerInto(BuiltInRegistries.ITEM, name) {
-        factory(itemProps(props, ResourceLocation.fromNamespaceAndPath(namespace, name)))
+        factory(itemProps(props, idOf(namespace, name)))
     }
 
     /**
@@ -150,7 +152,7 @@ private class FabricItemRegistrar(namespace: String, defer: (() -> Unit) -> Unit
      */
     override fun registerSimpleBlockItem(block: RegistryRef<out Block>): RegistryRef<BlockItem> =
         registerInto(BuiltInRegistries.ITEM, block.id.path) {
-            BlockItem(block.get(), itemProps(Item.Properties(), ResourceLocation.fromNamespaceAndPath(namespace, block.id.path)))
+            BlockItem(block.get(), itemProps(Item.Properties(), idOf(namespace, block.id.path)))
         }
 }
 
@@ -162,7 +164,7 @@ private class FabricComponentRegistrar(private val namespace: String, private va
         name: String,
         configure: (DataComponentType.Builder<T>) -> DataComponentType.Builder<T>,
     ): RegistryRef<DataComponentType<T>> {
-        val id = ResourceLocation.fromNamespaceAndPath(namespace, name)
+        val id = idOf(namespace, name)
         val ref = FabricRef<DataComponentType<T>>(id)
         defer {
             val type = configure(DataComponentType.builder()).build()

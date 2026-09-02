@@ -1,5 +1,7 @@
 package bpm.chamber
 
+import bpm.platform.idOf
+
 import bpm.platform.store.PlayerStore
 import bpm.platform.events.BpmEvents
 import bpm.Bpm
@@ -46,9 +48,9 @@ import bpm.platform.showMessage
  * and the slot's timers: a fight nobody is in goes dormant again, a claimed room resets.
  */
 object ChamberFight {
-    private val CORE_QUALITY: ResourceKey<LootTable> = ResourceKey.create(Registries.LOOT_TABLE, ResourceLocation.fromNamespaceAndPath(Bpm.ID, "gameplay/core_quality"))
-    private val CORE_QUALITY_FAST: ResourceKey<LootTable> = ResourceKey.create(Registries.LOOT_TABLE, ResourceLocation.fromNamespaceAndPath(Bpm.ID, "gameplay/core_quality_fast"))
-    private val PITY: ResourceKey<LootTable> = ResourceKey.create(Registries.LOOT_TABLE, ResourceLocation.fromNamespaceAndPath(Bpm.ID, "gameplay/warden_pity"))
+    private val CORE_QUALITY: ResourceKey<LootTable> = ResourceKey.create(Registries.LOOT_TABLE, idOf(Bpm.ID, "gameplay/core_quality"))
+    private val CORE_QUALITY_FAST: ResourceKey<LootTable> = ResourceKey.create(Registries.LOOT_TABLE, idOf(Bpm.ID, "gameplay/core_quality_fast"))
+    private val PITY: ResourceKey<LootTable> = ResourceKey.create(Registries.LOOT_TABLE, idOf(Bpm.ID, "gameplay/warden_pity"))
 
     private class PendingSpawn(val level: ServerLevel, val pedestal: BlockPos, val owner: UUID, var at: Long)
 

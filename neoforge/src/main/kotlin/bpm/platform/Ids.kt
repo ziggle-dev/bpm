@@ -51,3 +51,26 @@ fun net.minecraft.resources.ResourceKey<*>.keyId(): ResourceLocation = location(
 //?}
 
 fun net.minecraft.tags.TagKey<*>.keyId(): ResourceLocation = location()
+
+/**
+ * Build a namespaced id.
+ *
+ * 1.21 replaced `ResourceLocation`'s public constructors with static factories -- `fromNamespaceAndPath`
+ * and `withDefaultNamespace` -- and made the constructors non-public. On 1.20.1 the factories do not
+ * exist and the constructors do, so the seam is a pair of functions rather than an alias: a typealias
+ * renames a type, and this is a difference in how one is BUILT.
+ *
+ * `tryParse` needs no seam; it is a static on both.
+ */
+//? if >=1.21 {
+fun idOf(namespace: String, path: String): ResourceLocation =
+    ResourceLocation.fromNamespaceAndPath(namespace, path)
+
+/** An id in the `minecraft` namespace. */
+fun vanillaId(path: String): ResourceLocation = ResourceLocation.withDefaultNamespace(path)
+//?} else {
+/*fun idOf(namespace: String, path: String): ResourceLocation = ResourceLocation(namespace, path)
+
+/** An id in the `minecraft` namespace. The one-argument constructor defaults it. */
+fun vanillaId(path: String): ResourceLocation = ResourceLocation(path)
+*///?}

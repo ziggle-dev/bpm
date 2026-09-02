@@ -1,5 +1,7 @@
 package bpm.compat.jei
 
+import bpm.platform.idOf
+
 import bpm.Bpm
 import bpm.world.CoreDrops
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder
@@ -139,6 +141,6 @@ class WardenLootCategory(gui: IGuiHelper) : IRecipeCategory<CoreDrops.Table> {
         private const val BODY = 0xFF404040.toInt()
         private const val DIM = 0xFF6A6A6A.toInt()
 
-        fun typeOf(): ResourceLocation = ResourceLocation.fromNamespaceAndPath(Bpm.ID, "warden_loot")
+        fun typeOf(): ResourceLocation = idOf(Bpm.ID, "warden_loot")
     }
 }

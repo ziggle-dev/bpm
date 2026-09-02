@@ -1,5 +1,7 @@
 package bpm.client.render
 
+import bpm.platform.idOf
+
 import bpm.Bpm
 import bpm.chamber.ChamberDimension
 import bpm.client.mc.LinkRenameScreen
@@ -37,7 +39,7 @@ import bpm.platform.client.drawText
  * show through walls.
  */
 object LinkerHud {
-    private val LAYER = ResourceLocation.fromNamespaceAndPath(Bpm.ID, "linker")
+    private val LAYER = idOf(Bpm.ID, "linker")
     private val TEAL = floatArrayOf(0.30f, 1.00f, 0.85f)
     private val GREEN = floatArrayOf(0.35f, 0.95f, 0.45f)
     private val RED = floatArrayOf(0.95f, 0.35f, 0.35f)

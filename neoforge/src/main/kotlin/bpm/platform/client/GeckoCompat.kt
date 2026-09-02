@@ -1,5 +1,7 @@
 package bpm.platform.client
 
+import bpm.platform.idOf
+
 import bpm.platform.ResourceLocation
 import bpm.platform.GeoAnimatable
 import bpm.platform.GeoModel
@@ -139,7 +141,7 @@ fun geckoAsset(path: ResourceLocation): ResourceLocation {
     /*var p = path.path
     for (prefix in listOf("geo/", "animations/")) if (p.startsWith(prefix)) p = p.removePrefix(prefix)
     for (suffix in listOf(".geo.json", ".animation.json", ".json")) if (p.endsWith(suffix)) { p = p.removeSuffix(suffix); break }
-    return ResourceLocation.fromNamespaceAndPath(path.namespace, p)
+    return idOf(path.namespace, p)
     *///?} else {
     return path
     //?}

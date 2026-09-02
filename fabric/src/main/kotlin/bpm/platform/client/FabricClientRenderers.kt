@@ -1,5 +1,7 @@
 package bpm.platform.client
 
+import bpm.platform.vanillaId
+
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
 import net.fabricmc.fabric.api.client.rendering.v1.BlockEntityRendererRegistry
@@ -169,5 +171,5 @@ object FabricFluidAppearance : FluidAppearance {
         return FluidLook(still, flowing, FluidVariantRendering.getColor(variant) or (0xFF shl 24))
     }
 
-    private val WATER_STILL = ResourceLocation.withDefaultNamespace("block/water_still")
+    private val WATER_STILL = vanillaId("block/water_still")
 }

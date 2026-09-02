@@ -1,5 +1,7 @@
 package bpm.client.render
 
+import bpm.platform.idOf
+
 import bpm.Bpm
 import bpm.world.entity.QuantumWardenEntity
 import com.mojang.blaze3d.vertex.PoseStack
@@ -13,7 +15,7 @@ import net.minecraft.world.phys.Vec3
 import org.joml.Vector3f
 import bpm.platform.GeoBone
 
-private fun rl(path: String) = ResourceLocation.fromNamespaceAndPath(Bpm.ID, path)
+private fun rl(path: String) = idOf(Bpm.ID, path)
 
 class WardenModel : PathGeoModel<QuantumWardenEntity>(
     rl("geo/entity/quantum_warden.geo.json"),

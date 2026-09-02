@@ -1,5 +1,7 @@
 package bpm.client.render
 
+import bpm.platform.idOf
+
 //? if >=1.21.5 {
 /*import bpm.platform.client.withQuads
 import bpm.platform.client.withBlending
@@ -217,5 +219,5 @@ object RiftShader : bpm.platform.client.RiftLook {
     private val TEAR: RenderType = type("bpm_rift_tear", net.minecraft.client.renderer.RenderStateShard.ShaderStateShard { tear })
     //?}
 
-    private fun rl(path: String) = ResourceLocation.fromNamespaceAndPath(Bpm.ID, path)
+    private fun rl(path: String) = idOf(Bpm.ID, path)
 }

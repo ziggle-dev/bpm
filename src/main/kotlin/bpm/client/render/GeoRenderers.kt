@@ -1,5 +1,7 @@
 package bpm.client.render
 
+import bpm.platform.idOf
+
 import bpm.Bpm
 import bpm.world.ControllerBlock
 import bpm.world.ControllerBlockEntity
@@ -35,7 +37,7 @@ open class PathGeoModel<T : GeoAnimatable>(geo: ResourceLocation, private val an
     override fun getAnimationResource(animatable: T): ResourceLocation = bpm.platform.client.geckoAsset(anim)
 }
 
-private fun rl(path: String) = ResourceLocation.fromNamespaceAndPath(Bpm.ID, path)
+private fun rl(path: String) = idOf(Bpm.ID, path)
 
 class ControllerModel<T : GeoAnimatable> : PathGeoModel<T>(
     rl("geo/block/quantum_controller.geo.json"),

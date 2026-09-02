@@ -1,5 +1,7 @@
 package bpm.client.ponder
 
+import bpm.platform.idOf
+
 import bpm.Bpm
 import net.createmod.ponder.api.registration.PonderPlugin
 import net.createmod.ponder.api.registration.PonderSceneRegistrationHelper
@@ -132,7 +134,7 @@ class BpmPonder : PonderPlugin {
         scene.markAsFinished()
     }
 
-    private fun id(path: String): ResourceLocation = ResourceLocation.fromNamespaceAndPath(Bpm.ID, path)
+    private fun id(path: String): ResourceLocation = idOf(Bpm.ID, path)
 
     companion object {
         /**

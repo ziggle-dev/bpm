@@ -1,5 +1,7 @@
 package bpm.client.render
 
+import bpm.platform.idOf
+
 //? if >=1.21.5 {
 /*import bpm.platform.client.withQuads
 import bpm.platform.client.withBlending
@@ -43,7 +45,7 @@ object FabricRiftShader : bpm.platform.client.RiftLook {
     /** Declared first: the shader handles below are built from it as the object initialises. */
     val FORMAT: VertexFormat = DefaultVertexFormat.POSITION_TEX_COLOR_NORMAL
 
-    private fun rl(path: String) = ResourceLocation.fromNamespaceAndPath(Bpm.ID, path)
+    private fun rl(path: String) = idOf(Bpm.ID, path)
 
     //? if >=1.21.9 {
     /*// The GLSL is a translation, not a redesign: the same maths against std140 uniform blocks instead

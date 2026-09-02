@@ -25,7 +25,7 @@ import java.util.function.Consumer
  */
 object BpmClient {
     /** The panel readout, drawn last so it sits over everything else on the HUD. */
-    private val HUD_PANELS = bpm.platform.ResourceLocation.fromNamespaceAndPath(bpm.Bpm.ID, "panels")
+    private val HUD_PANELS = bpm.platform.idOf(bpm.Bpm.ID, "panels")
 
     fun init(modBus: IEventBus) {
         bpm.platform.events.NeoClientEventBridge.install(modBus, NeoForge.EVENT_BUS)
@@ -70,7 +70,7 @@ object BpmClient {
         //? if >=1.21.2 {
         /*modBus.addListener(net.neoforged.neoforge.client.event.AddClientReloadListenersEvent::class.java, Consumer { e ->
             e.addListener(
-                bpm.platform.ResourceLocation.fromNamespaceAndPath(Bpm.ID, "glowmasks"),
+                bpm.platform.idOf(Bpm.ID, "glowmasks"),
                 net.minecraft.server.packs.resources.ResourceManagerReloadListener { bpm.client.render.Glowmasks.invalidate() },
             )
         })

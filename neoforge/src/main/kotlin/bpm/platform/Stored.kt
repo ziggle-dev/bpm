@@ -63,7 +63,7 @@ fun <T : TagStore> storeOf(server: MinecraftServer, type: StoreType<T>): T {
         net.minecraft.world.level.saveddata.SavedDataType(
             // An `Identifier` from 26.1, where it was a bare string before.
             //? if >=26.1 {
-            /*bpm.platform.ResourceLocation.fromNamespaceAndPath(bpm.Bpm.ID, type.name),
+            /*bpm.platform.idOf(bpm.Bpm.ID, type.name),
             *///?} else {
             type.name,
             //?}
