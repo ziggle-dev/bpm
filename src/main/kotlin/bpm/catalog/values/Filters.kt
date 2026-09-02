@@ -7,7 +7,6 @@ import dev.ziggle.vscript.vm.StructValue
 import bpm.platform.ItemPredicate
 import net.minecraft.core.Holder
 import net.minecraft.core.RegistryAccess
-import net.minecraft.core.component.DataComponentType
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.RegistryOps
@@ -85,11 +84,11 @@ object FilterValue {
         text(filter, "enchant")?.let { id ->
             val holder = enchantment(id, registries) ?: return NONE
             val min = BlockPosValue.int(filter.get("level")).coerceAtLeast(1)
-            checks += { s -> s.enchantments.getLevel(holder) >= min }
+            checks += { s -> bpm.platform.enchantmentLevel(s, holder) >= min }
         }
         text(filter, "component")?.let { id ->
             val type = componentType(id) ?: return NONE
-            checks += { s -> s.has(type) }
+            checks += { s -> bpm.platform.hasVanillaComponent(s, type) }
         }
         text(filter, "name")?.let { needle ->
             val n = needle.lowercase()
@@ -110,7 +109,7 @@ object FilterValue {
         }
         text(filter, "predicate")?.let { json ->
             val p = predicate(json, registries) ?: return NONE
-            checks += { s -> p.test(s) }
+            checks += { s -> bpm.platform.testItemPredicate(p, s) }
         }
         if (checks.isEmpty()) return ANY
         return Matcher { s -> !s.isEmpty && checks.all { it(s) } }
@@ -177,15 +176,12 @@ object FilterValue {
         return bpm.platform.holderOrNull(access, Registries.ENCHANTMENT, ResourceKey.create(Registries.ENCHANTMENT, rl))
     }
 
-    fun componentType(id: String): DataComponentType<*>? =
-        ResourceLocation.tryParse(id.trim())?.let { bpm.platform.valueOf(BuiltInRegistries.DATA_COMPONENT_TYPE, it) }
+    fun componentType(id: String): Any? = bpm.platform.vanillaComponentType(id)
 
     /** A parsed vanilla item predicate, cached by its text. Null when the JSON is not one. */
     fun predicate(json: String, registries: RegistryAccess?): ItemPredicate? {
         predicates[json]?.let { return it }
-        val element: JsonElement = runCatching { JsonParser.parseString(json) }.getOrNull() ?: return null
-        val ops = if (registries != null) RegistryOps.create(JsonOps.INSTANCE, registries) else JsonOps.INSTANCE
-        val parsed = runCatching { ItemPredicate.CODEC.parse(ops, element).result().orElse(null) }.getOrNull() ?: return null
+        val parsed = bpm.platform.parseItemPredicate(json, registries) ?: return null
         if (predicates.size > 256) predicates.clear()
         predicates[json] = parsed
         return parsed

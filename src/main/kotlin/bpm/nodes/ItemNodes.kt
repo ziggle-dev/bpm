@@ -425,7 +425,7 @@ object ItemNodes {
             val stack = param("Stack", McVs.itemStack, "the stack")
             val id = param("Component", McVs.string, "such as `minecraft:custom_data`")
             result("Has", McVs.bool)
-            query { FilterValue.componentType(id())?.let { ItemStackValue.stack(stack()).has(it) } ?: false }
+            query { bpm.platform.hasVanillaComponent(ItemStackValue.stack(stack()), FilterValue.componentType(id())) }
         }
         func("component") {
             title("Component")
