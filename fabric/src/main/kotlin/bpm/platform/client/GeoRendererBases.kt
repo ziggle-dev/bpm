@@ -234,7 +234,7 @@ internal class CollectorDraw(private val collector: net.minecraft.client.rendere
 }
 
 abstract class GeoBlockRendererBase<T>(model: GeoModel<T>) :
-    software.bernie.geckolib.renderer.GeoBlockRenderer<T, BpmBlockRenderState>(model)
+    bpm.platform.GeoBlockRendererOf<T, BpmBlockRenderState>(model)
     where T : net.minecraft.world.level.block.entity.BlockEntity, T : GeoAnimatable {
 
     override fun createRenderState(): BpmBlockRenderState = BpmBlockRenderState()
@@ -325,7 +325,7 @@ abstract class GeoBlockRendererBase<T>(model: GeoModel<T>) :
 abstract class GeoEntityRendererBase<T>(
     context: net.minecraft.client.renderer.entity.EntityRendererProvider.Context,
     model: GeoModel<T>,
-) : software.bernie.geckolib.renderer.GeoEntityRenderer<T, BpmEntityRenderState>(context, model)
+) : bpm.platform.GeoEntityRendererOf<T, BpmEntityRenderState>(context, model)
     where T : net.minecraft.world.entity.Entity, T : GeoAnimatable {
 
     /**
@@ -363,7 +363,7 @@ abstract class GeoEntityRendererBase<T>(
 }
 
 abstract class GeoItemRendererBase<T>(model: GeoModel<T>) :
-    software.bernie.geckolib.renderer.GeoItemRenderer<T>(model)
+    bpm.platform.GeoItemRendererOf<T>(model)
     where T : net.minecraft.world.item.Item, T : GeoAnimatable {
 
     protected open fun onBones(bones: BoneAccess) {}
@@ -395,7 +395,7 @@ abstract class GeoItemRendererBase<T>(model: GeoModel<T>) :
      */
     override fun captureDefaultRenderState(
         animatable: T,
-        renderData: software.bernie.geckolib.renderer.GeoItemRenderer.RenderData,
+        renderData: bpm.platform.GeoItemRenderData,
         state: bpm.platform.GeoRenderState,
         partialTick: Float,
     ) {

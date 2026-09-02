@@ -16,8 +16,8 @@ package bpm.platform.client
  */
 //? if >=1.21.9 {
 /*class BpmGlowLayer<T : bpm.platform.GeoAnimatable, O : Any, R : bpm.platform.GeoRenderState>(
-    renderer: software.bernie.geckolib.renderer.base.GeoRenderer<T, O, R>,
-) : software.bernie.geckolib.renderer.layer.builtin.AutoGlowingGeoLayer<T, O, R>(renderer) {
+    renderer: bpm.platform.GeoRendererOf<T, O, R>,
+) : bpm.platform.AutoGlowingGeoLayerOf<T, O, R>(renderer) {
 
     override fun submitRenderTask(
         pass: bpm.platform.RenderPassInfo<R>,

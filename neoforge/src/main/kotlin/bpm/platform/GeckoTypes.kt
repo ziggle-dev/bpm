@@ -183,6 +183,8 @@ typealias GeoBlockRendererOf<T, R> = com.geckolib.renderer.GeoBlockRenderer<T, R
 typealias GeoEntityRendererOf<T, R> = com.geckolib.renderer.GeoEntityRenderer<T, R>
 // The item renderer fixes its render state, so it takes one parameter where the others take two.
 typealias GeoItemRendererOf<T> = com.geckolib.renderer.GeoItemRenderer<T>
+// Nested, so it needs its own name -- a typealias does not carry nested classifiers.
+typealias GeoItemRenderData = com.geckolib.renderer.GeoItemRenderer.RenderData
 typealias AutoGlowingGeoLayerOf<T, O, R> = com.geckolib.renderer.layer.builtin.AutoGlowingGeoLayer<T, O, R>
 *///?} elif >=1.21.9 {
 /*typealias RenderPassInfo<R> = software.bernie.geckolib.renderer.base.RenderPassInfo<R>
@@ -190,5 +192,6 @@ typealias GeoRendererOf<T, O, R> = software.bernie.geckolib.renderer.base.GeoRen
 typealias GeoBlockRendererOf<T, R> = software.bernie.geckolib.renderer.GeoBlockRenderer<T, R>
 typealias GeoEntityRendererOf<T, R> = software.bernie.geckolib.renderer.GeoEntityRenderer<T, R>
 typealias GeoItemRendererOf<T> = software.bernie.geckolib.renderer.GeoItemRenderer<T>
+typealias GeoItemRenderData = software.bernie.geckolib.renderer.GeoItemRenderer.RenderData
 typealias AutoGlowingGeoLayerOf<T, O, R> = software.bernie.geckolib.renderer.layer.builtin.AutoGlowingGeoLayer<T, O, R>
 *///?}
