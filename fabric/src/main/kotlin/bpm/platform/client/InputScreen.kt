@@ -248,3 +248,36 @@ val screenRendersOwnBackground: Boolean
     *///?} else {
     get() = true
     //?}
+
+/**
+ * Draw now, or at the very end of the frame.
+ *
+ * From 1.21.9 a `Screen` does not draw: it EXTRACTS. `Screen.render` records commands into a
+ * `GuiRenderState` which is rendered afterwards, so a raw OpenGL draw made from inside `render` -- which
+ * is what an ImGui backend does -- happens BEFORE the GUI is painted and is covered by it. The editor
+ * was drawing every frame and being painted over every frame.
+ *
+ * So on that band the frame is stashed and run from `RenderFrameEvent.Post`, after everything else. That
+ * is the same move the plan calls for -- "move the ImGui frame out of Screen#render to the end of
+ * Minecraft's frame" -- and NeoForge offers the moment as an event, so it costs no mixin.
+ *
+ * One closure at a time, deliberately: a screen renders once a frame, and a stale one left over from a
+ * frame that did not run is a stale one to draw.
+ */
+private var pendingFrame: (() -> Unit)? = null
+
+fun deferGuiDraw(draw: () -> Unit) {
+    //? if >=1.21.9 {
+    /*pendingFrame = draw
+    *///?} else {
+    draw()
+    //?}
+}
+
+
+/** Draw whatever the last screen frame stashed, if anything. Called at the end of the frame. */
+fun drawDeferredGui() {
+    val frame = pendingFrame ?: return
+    pendingFrame = null
+    frame()
+}

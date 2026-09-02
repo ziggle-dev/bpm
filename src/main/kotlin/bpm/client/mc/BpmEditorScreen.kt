@@ -58,12 +58,15 @@ open class BpmEditorScreen(
         bpm.platform.client.flushGui(graphics)
         val w = minecraft!!.window
         val fbScale = w.width.toFloat() / w.screenWidth.toFloat()
-        BpmImGui.frame(
-            w.screenWidth.toFloat(), w.screenHeight.toFloat(), fbScale,
-            pump = { io -> input.syncModifiers(io, bpm.platform.client.windowHandle()) },
-            bareRoot = !dimsWorld,
-            body = body,
-        )
+        // Immediately, or at the end of the frame where the GUI is painted after this method returns.
+        bpm.platform.client.deferGuiDraw {
+            BpmImGui.frame(
+                w.screenWidth.toFloat(), w.screenHeight.toFloat(), fbScale,
+                pump = { io -> input.syncModifiers(io, bpm.platform.client.windowHandle()) },
+                bareRoot = !dimsWorld,
+                body = body,
+            )
+        }
         frames++
         onFrame(frames)
     }

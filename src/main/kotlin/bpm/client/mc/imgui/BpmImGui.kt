@@ -6,7 +6,6 @@ import imgui.ImGui
 import imgui.ImGuiIO
 import imgui.flag.ImGuiConfigFlags
 import imgui.flag.ImGuiWindowFlags
-import imgui.gl3.ImGuiImplGl3
 import imgui.internal.ImGuiContext
 import dev.ziggle.imgui.FontLoader
 import dev.ziggle.imgui.FontSet
@@ -17,8 +16,6 @@ import dev.ziggle.vscript.editor.host.EditorHost
 import dev.ziggle.vscript.runtime.EditorDoc
 import dev.ziggle.vscript.runtime.EditorLog
 import org.apache.logging.log4j.Level
-import org.lwjgl.opengl.GL
-import org.lwjgl.opengl.GLCapabilities
 
 /**
  * The one Dear ImGui context this client has, drawn inside Minecraft's own GL context and frame.
@@ -37,12 +34,11 @@ import org.lwjgl.opengl.GLCapabilities
  *    about — the immediate-mode VAO `BufferUploader` remembers, and the model-view uniforms — are reset here.
  */
 object BpmImGui {
+
     private const val ROOT_FLAGS = ImGuiWindowFlags.NoTitleBar or ImGuiWindowFlags.NoResize or
         ImGuiWindowFlags.NoMove or ImGuiWindowFlags.NoCollapse or ImGuiWindowFlags.NoBringToFrontOnFocus
 
     private var ctx: ImGuiContext? = null
-    private var gl: ImGuiImplGl3? = null
-    private var caps: GLCapabilities? = null
     private var lastNanos = System.nanoTime()
 
     /** The fonts the atlas holds; bound around every body so the widget kit's globals point at them. */
@@ -52,7 +48,7 @@ object BpmImGui {
     /** What was typed since the editor last asked — installed as `EditorHost.typed`. */
     val typed = ScreenTypedText()
 
-    val ready: Boolean get() = ctx != null && gl != null
+    val ready: Boolean get() = ctx != null
 
     /**
      * Make the context and the backend if they do not exist, and remake the backend if the GL context has
@@ -84,12 +80,6 @@ object BpmImGui {
             }
             ctx = made
         }
-        val now = runCatching { GL.getCapabilities() }.getOrNull()
-        if (gl == null || (now != null && now !== caps)) {
-            // The old backend's GL objects went with the old context; nothing to free, only to forget.
-            gl = ImGuiImplGl3().also { it.init("#version 150") }
-            caps = now
-        }
         return true
     }
 
@@ -101,7 +91,8 @@ object BpmImGui {
      */
     fun frame(logicalW: Float, logicalH: Float, fbScale: Float, pump: (ImGuiIO) -> Unit, bareRoot: Boolean = false, body: () -> Unit) {
         if (!ensure()) return
-        val backend = gl ?: return
+        // Raw OpenGL, or a Blaze3D pass -- see [bpm.platform.client.ImGuiBackend].
+        val backend = bpm.platform.client.imguiBackend()
         val io = ImGui.getIO()
         io.setDisplaySize(logicalW, logicalH)
         io.setDisplayFramebufferScale(fbScale, fbScale)
@@ -124,9 +115,7 @@ object BpmImGui {
             ImGui.end()
         } finally {
             ImGui.render()
-            backend.renderDrawData(ImGui.getDrawData())
-            bpm.platform.client.resetVertexBuffers()
-            bpm.platform.client.applyModelView()
+            backend.render(ImGui.getDrawData())
         }
     }
 

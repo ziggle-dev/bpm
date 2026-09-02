@@ -200,7 +200,16 @@ private fun linesType(throughWalls: Boolean): RenderType = lineTypeCache.getOrPu
         if (throughWalls) "bpm_lines_through_walls" else "bpm_lines",
         net.minecraft.client.renderer.rendertype.RenderSetup.builder(pipeline)
             .setLayeringTransform(net.minecraft.client.renderer.rendertype.LayeringTransform.VIEW_OFFSET_Z_LAYERING)
-            .setOutputTarget(net.minecraft.client.renderer.rendertype.OutputTarget.ITEM_ENTITY_TARGET)
+            /*
+             * The MAIN target, not the item-entity one.
+             *
+             * Vanilla's own `lines` type draws into `ITEM_ENTITY_TARGET`, and so did this until the linker
+             * outlines stopped appearing on 1.21.11. That target is composited at a fixed point in the
+             * frame graph, and `RenderLevelStageEvent` -- which is where these are drawn from -- fires
+             * after it. Geometry written there afterwards is simply never picked up. The main target is
+             * still being drawn into at that moment, which is the whole reason the event is useful.
+             */
+            .setOutputTarget(net.minecraft.client.renderer.rendertype.OutputTarget.MAIN_TARGET)
             .createRenderSetup(),
     )
 }

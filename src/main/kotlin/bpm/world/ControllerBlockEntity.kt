@@ -181,7 +181,7 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
         builder.set(ModComponents.CORE_TIER.get(), coreTier.key)
     }
 
-    override fun getUpdateTag(registries: HolderLookup.Provider): CompoundTag = CompoundTag().also { tag ->
+    override fun getUpdateTag(registries: HolderLookup.Provider): CompoundTag = syncTag { tag ->
         tag.putString("coreTier", coreTier.key)
         docId?.let { bpm.platform.putUuid(tag, "doc", it) }
         tag.put("links", links.save())

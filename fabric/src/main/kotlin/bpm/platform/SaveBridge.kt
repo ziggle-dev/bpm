@@ -60,6 +60,27 @@ abstract class SavingBlockEntity(type: net.minecraft.world.level.block.entity.Bl
     /** Take whatever this block entity keeps from the components on the stack it was placed from. */
     protected open fun readComponents(components: ComponentSource) {}
 
+    /**
+     * A tag for the client, in the same shape [loadExtra] will read it back from.
+     *
+     * `getUpdateTag` and `saveAdditional` are two ways of writing the same fields, and vanilla reads BOTH
+     * back through `loadAdditional` -- an update packet is turned into a `ValueInput` and handed to the
+     * same method a save is. So the two writers have to agree about shape, and from 1.21.9 this one nests
+     * the mod's fields under a single key (see the note at the top of this file). A `getUpdateTag` that
+     * writes them flat sends a tag the loader then finds nothing in.
+     *
+     * That is not a hypothetical: it is why a controller arrived on the client with an empty link table
+     * and the linker drew the block it was aimed at but none of its links -- the one piece of the HUD
+     * that needs no synced data was the only piece that worked.
+     */
+    protected fun syncTag(fill: (CompoundTag) -> Unit): CompoundTag {
+        //? if >=1.21.9 {
+        /*return CompoundTag().also { outer -> outer.put(BPM_DATA, CompoundTag().also(fill)) }
+        *///?} else {
+        return CompoundTag().also(fill)
+        //?}
+    }
+
     //? if >=1.21.9 {
     /*override fun applyImplicitComponents(input: net.minecraft.core.component.DataComponentGetter) {
         super.applyImplicitComponents(input)

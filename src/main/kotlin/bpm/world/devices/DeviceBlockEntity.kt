@@ -40,7 +40,7 @@ abstract class DeviceBlockEntity(type: BlockEntityType<*>, pos: BlockPos, state:
 
     override fun loadExtra(tag: CompoundTag, registries: HolderLookup.Provider) = loadSynced(tag, registries)
 
-    override fun getUpdateTag(registries: HolderLookup.Provider): CompoundTag = CompoundTag().also { saveSynced(it, registries) }
+    override fun getUpdateTag(registries: HolderLookup.Provider): CompoundTag = syncTag { saveSynced(it, registries) }
 
     override fun getUpdatePacket(): Packet<ClientGamePacketListener> = ClientboundBlockEntityDataPacket.create(this)
 

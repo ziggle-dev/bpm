@@ -33,6 +33,10 @@ object NeoClientEventBridge {
             e.enqueueWork { BpmEvents.clientSetup.fire(Unit) }
         })
 
+        //? if >=1.21.9 {
+        /*// The end of the frame, after the GUI has been painted -- see bpm.platform.client.deferGuiDraw.
+        gameBus.addListener(net.neoforged.neoforge.client.event.RenderFrameEvent.Post::class.java, Consumer { bpm.platform.client.drawDeferredGui() })
+        *///?}
         gameBus.addListener(ClientTickEvent.Pre::class.java, Consumer { BpmEvents.clientTickStart.fire(Unit) })
         gameBus.addListener(ClientTickEvent.Post::class.java, Consumer { BpmEvents.clientTickEnd.fire(Unit) })
         gameBus.addListener(ClientPlayerNetworkEvent.LoggingOut::class.java, Consumer { BpmEvents.clientDisconnect.fire(Unit) })
