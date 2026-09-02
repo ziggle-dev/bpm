@@ -24,7 +24,7 @@ interface ImGuiBackend {
     fun render(data: ImDrawData)
 }
 
-//? if >=1.21.9 {
+//? if >=1.21.6 {
 /*/**
  * ImGui through Blaze3D.
  *
@@ -67,9 +67,7 @@ private class GpuImGuiBackend : ImGuiBackend {
 
     private val projection = net.minecraft.client.renderer.CachedOrthoProjectionMatrixBuffer("bpm_imgui", -1000f, 1000f, true)
 
-    private var fontTexture: com.mojang.blaze3d.textures.GpuTexture? = null
-    private var fontView: com.mojang.blaze3d.textures.GpuTextureView? = null
-    private var sampler: com.mojang.blaze3d.textures.GpuSampler? = null
+    private var font: ImGuiFont? = null
 
     private var vertexBuffer: com.mojang.blaze3d.buffers.GpuBuffer? = null
     private var indexBuffer: com.mojang.blaze3d.buffers.GpuBuffer? = null
@@ -87,7 +85,7 @@ private class GpuImGuiBackend : ImGuiBackend {
      * reason. See [bpm.platform.client.skinHandle].
      */
     private fun buildFontOnce() {
-        if (fontTexture != null) return
+        if (font != null) return
         val device = com.mojang.blaze3d.systems.RenderSystem.getDevice()
         val atlas = imgui.ImGui.getIO().fonts
         val width = imgui.type.ImInt()
@@ -97,34 +95,15 @@ private class GpuImGuiBackend : ImGuiBackend {
         val h = height.get()
         if (w <= 0 || h <= 0) return
 
-        val texture = device.createTexture(
-            "bpm_imgui_font",
-            com.mojang.blaze3d.textures.GpuTexture.USAGE_TEXTURE_BINDING or com.mojang.blaze3d.textures.GpuTexture.USAGE_COPY_DST,
-            com.mojang.blaze3d.textures.TextureFormat.RGBA8,
-            w, h, 1, 1,
-        )
-        device.createCommandEncoder().writeToTexture(
-            texture, pixels, com.mojang.blaze3d.platform.NativeImage.Format.RGBA, 0, 0, 0, 0, w, h,
-        )
-        fontTexture = texture
-        fontView = device.createTextureView(texture)
-        sampler = device.createSampler(
-            com.mojang.blaze3d.textures.AddressMode.CLAMP_TO_EDGE,
-            com.mojang.blaze3d.textures.AddressMode.CLAMP_TO_EDGE,
-            com.mojang.blaze3d.textures.FilterMode.LINEAR,
-            com.mojang.blaze3d.textures.FilterMode.LINEAR,
-            // Anisotropy, which must be at least 1. A font atlas sampled axis-aligned wants none of it.
-            1,
-            java.util.OptionalDouble.empty(),
-        )
+        // Creating and configuring the atlas differs by band; see ImGuiGpuCompat.
+        font = createImGuiFont(device, w, h, pixels)
         atlas.setTexID(FONT_ID)
     }
 
     override fun render(data: ImDrawData) {
         val lists = data.cmdListsCount
         if (lists == 0) return
-        val view = fontView ?: return
-        val texSampler = sampler ?: return
+        val atlasFont = font ?: return
         val device = com.mojang.blaze3d.systems.RenderSystem.getDevice()
 
         val totalVertices = data.totalVtxCount
@@ -204,12 +183,7 @@ private class GpuImGuiBackend : ImGuiBackend {
             projection.getBuffer(displayWidth, displayHeight),
             com.mojang.blaze3d.ProjectionType.ORTHOGRAPHIC,
         )
-        val transforms = com.mojang.blaze3d.systems.RenderSystem.getDynamicUniforms().writeTransform(
-            org.joml.Matrix4f(),
-            org.joml.Vector4f(1f, 1f, 1f, 1f),
-            org.joml.Vector3f(),
-            org.joml.Matrix4f(),
-        )
+        val transforms = imguiTransforms()
         try {
             device.createCommandEncoder().createRenderPass(
                 { "bpm imgui" },
@@ -221,7 +195,7 @@ private class GpuImGuiBackend : ImGuiBackend {
                 pass.setPipeline(pipeline)
                 pass.setVertexBuffer(0, vbo)
                 pass.setIndexBuffer(ibo, com.mojang.blaze3d.vertex.VertexFormat.IndexType.SHORT)
-                pass.bindTexture("Sampler0", view, texSampler)
+                bindImGuiFont(pass, atlasFont)
 
                 for (list in 0 until lists) {
                     for (command in 0 until data.getCmdListCmdBufferSize(list)) {
@@ -319,7 +293,7 @@ private class Gl3ImGuiBackend : ImGuiBackend {
 
 /** The backend for this band, made once. */
 private val backend: ImGuiBackend by lazy {
-    //? if >=1.21.9 {
+    //? if >=1.21.6 {
     /*GpuImGuiBackend()
     *///?} else {
     Gl3ImGuiBackend()
