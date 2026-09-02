@@ -18,6 +18,15 @@ object BpmFabricClient : ClientModInitializer {
     override fun onInitializeClient() {
         bpm.platform.client.ClientRenderers.install(bpm.platform.client.FabricRendererRegistry)
         bpm.platform.client.FluidVisuals.install(bpm.platform.client.FabricFluidAppearance)
+        // How the experience fluid draws IN THE WORLD, which is a different question from the seam above
+        // -- that one answers what the mod's own screens should paint. NeoForge does this from its client
+        // entry point too; this loader was simply never told, and from 26.1 an untold fluid is drawn with
+        // the missing-texture model.
+        bpm.platform.client.FabricFluidModels.register(
+            bpm.world.ModFluids.SPEC,
+            bpm.world.ModFluids.EXPERIENCE.get(),
+            bpm.world.ModFluids.EXPERIENCE_FLOWING.get(),
+        )
         bpm.platform.client.Hud.install(bpm.platform.client.FabricHudRegistry)
         bpm.platform.client.ClientKeys.install(bpm.platform.client.FabricKeyRegistry)
 
