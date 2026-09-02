@@ -23,6 +23,9 @@ object BpmFabricClient : ClientModInitializer {
 
         bpm.platform.events.FabricClientEventBridge.install()
 
+        // The rift's two core shaders, and the render types that carry them.
+        bpm.client.render.FabricRiftShader.install()
+
         // The client subsystems declare what they want; the four registries above collected it.
         bpm.client.render.GeoRenderers.registerRenderers()
         bpm.client.render.GeoRenderers.installMolang()
