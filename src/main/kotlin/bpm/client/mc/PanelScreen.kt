@@ -18,7 +18,7 @@ import net.minecraft.network.chat.Component
  *
  * The world keeps running behind it: a panel that paused the game would be useless for watching a graph.
  */
-class PanelScreen : Screen(Component.literal("bpm")) {
+class PanelScreen : bpm.platform.client.InputScreen(Component.literal("bpm")) {
 
     /** What the last frame drew under the cursor, so a click knows what it landed on. */
     private var hover: PanelDraw.Hit? = null
@@ -28,7 +28,7 @@ class PanelScreen : Screen(Component.literal("bpm")) {
         hover = PanelDraw.drawAll(g, HudOverlay.all, width, height, mouseX, mouseY)
     }
 
-    override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
+    override fun onMouseDown(mouseX: Double, mouseY: Double, button: Int): Boolean {
         val hit = hover
         if (button == 0 && hit != null && hit.widget.id.isNotEmpty()) {
             when (hit.widget.kind) {

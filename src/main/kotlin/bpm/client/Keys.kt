@@ -40,7 +40,7 @@ object Keys {
     fun register() = bpm.platform.client.ClientKeys.register { add ->
         // No conflict context: Fabric has none, and this binding already refuses to fire while a screen
         // is open (see onKey), which is what IN_GAME was buying.
-        focus = KeyMapping("key.bpm.panel_focus", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_LEFT_ALT, CATEGORY)
+        focus = bpm.platform.client.bpmKeyMapping("key.bpm.panel_focus", GLFW.GLFW_KEY_LEFT_ALT)
         add(focus)
     }
 

@@ -1,5 +1,6 @@
 package bpm.client.mc
 
+import bpm.platform.compoundAt
 import bpm.net.HudInputPayload
 import bpm.net.HudPanelPayload
 import bpm.runtime.HudPanels
@@ -47,7 +48,7 @@ object HudOverlay {
             }
             val registries = mc.level?.registryAccess() ?: return@execute
             val widgets = (0 until p.widgets.size).mapNotNull { i ->
-                runCatching { Widget.load(p.widgets.getCompound(i), registries) }.getOrNull()
+                runCatching { Widget.load(p.widgets.compoundAt(i), registries) }.getOrNull()
             }
             panels[p.controller] = Panel(p.controller, p.anchor, p.offsetX, p.offsetY, p.width, p.scale, widgets)
             // Oldest out when a player is shown more than they can read.

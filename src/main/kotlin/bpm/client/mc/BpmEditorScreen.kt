@@ -25,7 +25,7 @@ open class BpmEditorScreen(
     private val onFrame: (Int) -> Unit = {},
     /** Whether the world behind is dimmed and blurred; a small box hung over a block leaves it as it is. */
     private val dimsWorld: Boolean = true,
-) : Screen(Component.literal("bpm")) {
+) : bpm.platform.client.InputScreen(Component.literal("bpm")) {
 
     private val input = ScreenInput({ v -> (v * pixelsPerGuiUnit()).toFloat() }, BpmImGui.typed)
     private var frames = 0
@@ -60,42 +60,42 @@ open class BpmEditorScreen(
         input.mouseMoved(mouseX, mouseY)
     }
 
-    override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
-        input.mouseMoved(mouseX, mouseY)
+    override fun onMouseDown(x: Double, y: Double, button: Int): Boolean {
+        input.mouseMoved(x, y)
         input.mouseButton(button, true)
         return true
     }
 
-    override fun mouseReleased(mouseX: Double, mouseY: Double, button: Int): Boolean {
+    override fun onMouseUp(x: Double, y: Double, button: Int): Boolean {
         input.mouseButton(button, false)
         return true
     }
 
-    override fun mouseDragged(mouseX: Double, mouseY: Double, button: Int, dragX: Double, dragY: Double): Boolean {
-        input.mouseMoved(mouseX, mouseY)
+    override fun onMouseDrag(x: Double, y: Double, button: Int, dx: Double, dy: Double): Boolean {
+        input.mouseMoved(x, y)
         return true
     }
 
-    override fun mouseScrolled(mouseX: Double, mouseY: Double, scrollX: Double, scrollY: Double): Boolean {
-        input.scroll(scrollX, scrollY)
+    override fun onScroll(x: Double, y: Double, dx: Double, dy: Double): Boolean {
+        input.scroll(dx, dy)
         return true
     }
 
-    override fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
-        if (keyCode == GLFW.GLFW_KEY_ESCAPE && !wantsEscape()) {
+    override fun onKeyDown(key: Int, scan: Int, modifiers: Int): Boolean {
+        if (key == GLFW.GLFW_KEY_ESCAPE && !wantsEscape()) {
             onClose()
             return true
         }
-        input.key(keyCode, true, modifiers)
+        input.key(key, true, modifiers)
         return true
     }
 
-    override fun keyReleased(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
-        input.key(keyCode, false, modifiers)
+    override fun onKeyUp(key: Int, scan: Int, modifiers: Int): Boolean {
+        input.key(key, false, modifiers)
         return true
     }
 
-    override fun charTyped(codePoint: Char, modifiers: Int): Boolean {
+    override fun onCharTyped(codePoint: Char, modifiers: Int): Boolean {
         input.charTyped(codePoint)
         return true
     }

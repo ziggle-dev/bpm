@@ -58,7 +58,7 @@ object MonitorDrag {
  * confirms and sends, Escape leaves the field as it was.
  */
 class FieldScreen private constructor(private val widget: Widget, private val send: (String) -> Unit) :
-    Screen(Component.literal(widget.label.ifEmpty { widget.id })) {
+    bpm.platform.client.InputScreen(Component.literal(widget.label.ifEmpty { widget.id })) {
 
 
     private lateinit var box: EditBox
@@ -78,13 +78,11 @@ class FieldScreen private constructor(private val widget: Widget, private val se
         g.drawCenteredString(font, HINT, width / 2, height / 2 + 16, 0xFF9AA3B5.toInt())
     }
 
-    override fun keyPressed(key: Int, scan: Int, modifiers: Int): Boolean {
-        if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER || key == org.lwjgl.glfw.GLFW.GLFW_KEY_KP_ENTER) {
-            send(box.value)
-            onClose()
-            return true
-        }
-        return super.keyPressed(key, scan, modifiers)
+    override fun onKeyDown(key: Int, scan: Int, modifiers: Int): Boolean {
+        if (key != org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER && key != org.lwjgl.glfw.GLFW.GLFW_KEY_KP_ENTER) return false
+        send(box.value)
+        onClose()
+        return true
     }
 
     /** The world carries on behind it, as it does for the panels. */
