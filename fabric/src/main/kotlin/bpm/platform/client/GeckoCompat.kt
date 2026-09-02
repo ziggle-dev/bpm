@@ -40,7 +40,7 @@ abstract class PathGeoModelBase<T : GeoAnimatable>(
     /*override fun getModelResource(state: software.bernie.geckolib.renderer.base.GeoRenderState): ResourceLocation = geo
 
     override fun getTextureResource(state: software.bernie.geckolib.renderer.base.GeoRenderState): ResourceLocation =
-        if (state.getOrDefaultGeckolibData(ALT_TEXTURE, false)) (altTexture() ?: tex) else tex
+        if (state.getOrDefaultGeckolibData(ALT_TEXTURE, false) == true) (altTexture() ?: tex) else tex
 
     /**
      * Pack the alternate-texture question's answer into the render state.

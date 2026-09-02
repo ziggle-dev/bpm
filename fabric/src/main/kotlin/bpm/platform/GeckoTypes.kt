@@ -21,9 +21,7 @@ package bpm.platform
 typealias ControllerRegistrar = software.bernie.geckolib.animatable.manager.AnimatableManager.ControllerRegistrar
 typealias PlayState = software.bernie.geckolib.animation.`object`.PlayState
 typealias GeoBone = software.bernie.geckolib.cache.model.GeoBone
-typealias GeoRenderer<T> = software.bernie.geckolib.renderer.base.GeoRenderer<T>
 typealias BakedGeoModel = software.bernie.geckolib.cache.model.BakedGeoModel
-typealias AutoGlowingGeoLayer<T> = software.bernie.geckolib.renderer.layer.builtin.AutoGlowingGeoLayer<T>
 *///?} else {
 typealias AnimatableManager<T> = software.bernie.geckolib.animation.AnimatableManager<T>
 typealias ControllerRegistrar = software.bernie.geckolib.animation.AnimatableManager.ControllerRegistrar

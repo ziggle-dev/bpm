@@ -24,26 +24,27 @@ class BoltStyle(
  * Draw a bolt of [style] laid along [motion]. No texture: the lightning render type is plain colour,
  * added onto whatever is behind it, so it glows without a glow mask.
  *
- * A pose, a buffer source and trigonometry -- nothing here knows what a render state is, which is why
+ * A pose, somewhere to draw and trigonometry -- nothing here knows what a render state is, which is why
  * this is the half that stays shared while [bpm.platform.client.BoltRendererBase] carries the half that
  * changed.
  */
-fun drawBolt(pose: PoseStack, buffers: MultiBufferSource, motion: Vec3, style: BoltStyle) {
+fun drawBolt(pose: PoseStack, draw: bpm.platform.client.WorldDraw, motion: Vec3, style: BoltStyle) {
     if (motion.lengthSqr() < 1e-6) return
     pose.pushPose()
     val yawDeg = Math.toDegrees(atan2(motion.x, motion.z)).toFloat()
     val pitchDeg = (-Math.toDegrees(atan2(motion.y, sqrt(motion.x * motion.x + motion.z * motion.z)))).toFloat()
     pose.mulPose(Axis.YP.rotationDegrees(yawDeg))
     pose.mulPose(Axis.XP.rotationDegrees(pitchDeg))
-    val c = buffers.getBuffer(bpm.platform.client.lightning())
-    box(c, pose, style.radius, style.length, style.coreR, style.coreG, style.coreB, 1f)
-    box(c, pose, style.radius * 2.4f, style.length * 1.15f, style.sheathR, style.sheathG, style.sheathB, 0.3f)
+    draw.into(pose, bpm.platform.client.lightning()) { p, c ->
+        box(c, p, style.radius, style.length, style.coreR, style.coreG, style.coreB, 1f)
+        box(c, p, style.radius * 2.4f, style.length * 1.15f, style.sheathR, style.sheathG, style.sheathB, 0.3f)
+    }
     pose.popPose()
 }
 
 /** A box [r] wide either side and [l] long either way along +Z, one flat colour, alpha [a]. */
-private fun box(c: VertexConsumer, pose: PoseStack, r: Float, l: Float, red: Float, green: Float, blue: Float, a: Float) {
-    val m = pose.last().pose()
+private fun box(c: VertexConsumer, pose: PoseStack.Pose, r: Float, l: Float, red: Float, green: Float, blue: Float, a: Float) {
+    val m = pose.pose()
     fun v(x: Float, y: Float, z: Float) { c.addVertex(m, x, y, z).setColor(red, green, blue, a) }
     v(r, -r, -l); v(r, r, -l); v(r, r, l); v(r, -r, l)
     v(-r, -r, l); v(-r, r, l); v(-r, r, -l); v(-r, -r, -l)

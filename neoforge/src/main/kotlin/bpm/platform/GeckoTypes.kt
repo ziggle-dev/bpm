@@ -21,9 +21,7 @@ package bpm.platform
 typealias ControllerRegistrar = software.bernie.geckolib.animatable.manager.AnimatableManager.ControllerRegistrar
 typealias PlayState = software.bernie.geckolib.animation.`object`.PlayState
 typealias GeoBone = software.bernie.geckolib.cache.model.GeoBone
-typealias GeoRenderer<T> = software.bernie.geckolib.renderer.base.GeoRenderer<T>
 typealias BakedGeoModel = software.bernie.geckolib.cache.model.BakedGeoModel
-typealias AutoGlowingGeoLayer<T> = software.bernie.geckolib.renderer.layer.builtin.AutoGlowingGeoLayer<T>
 *///?} else {
 typealias AnimatableManager<T> = software.bernie.geckolib.animation.AnimatableManager<T>
 typealias ControllerRegistrar = software.bernie.geckolib.animation.AnimatableManager.ControllerRegistrar
@@ -33,6 +31,16 @@ typealias GeoRenderer<T> = software.bernie.geckolib.renderer.GeoRenderer<T>
 typealias BakedGeoModel = software.bernie.geckolib.cache.`object`.BakedGeoModel
 typealias AutoGlowingGeoLayer<T> = software.bernie.geckolib.renderer.layer.AutoGlowingGeoLayer<T>
 //?}
+
+/*
+ * `GeoRenderer` and `AutoGlowingGeoLayer` are deliberately NOT aliased on this band.
+ *
+ * Both went from one type parameter to three, and a one-parameter alias cannot stand in for a
+ * three-parameter type without inventing the other two. Nothing here needs them either: the only code
+ * that named them was the glow layer, and [bpm.platform.client.BpmGlowLayer] now writes the full name
+ * on each band because its own shape differs anyway. An alias that would have to lie is worse than no
+ * alias -- see [BakedGeoModel], which moved package but kept its arity and so is still aliased.
+ */
 
 /**
  * A render type, under whichever package this version keeps it in.

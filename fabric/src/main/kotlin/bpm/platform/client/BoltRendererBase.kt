@@ -44,10 +44,41 @@ typealias BlockEntityRendererOf<T> = net.minecraft.client.renderer.blockentity.B
  * The one thing this renderer needs from the entity is its motion, and the split above is exactly about
  * when you are allowed to ask for it. Before 1.21.2 the draw call has the entity in hand; after, the
  * motion has to be copied into a render state during extraction and read back at draw time. Same two
- * facts either way -- a velocity and a style -- so both paths hand them to the same shared drawing code
- * and neither carries any of the geometry.
+ * facts either way -- a velocity and a style -- so every path hands them to the same shared drawing code
+ * and none of them carries any of the geometry. 1.21.9 adds a third: the draw itself is no longer
+ * performed here but described to a collector, which is what [WorldDraw] exists to hide.
  */
-//? if >=1.21.2 {
+//? if >=1.21.9 {
+/*class BoltRenderState : net.minecraft.client.renderer.entity.state.EntityRenderState() {
+    var motion: net.minecraft.world.phys.Vec3 = net.minecraft.world.phys.Vec3.ZERO
+    var style: BoltStyle? = null
+}
+
+open class BoltRendererBase<T : Entity>(
+    context: EntityRendererProvider.Context,
+    private val style: (T) -> BoltStyle,
+) : EntityRenderer<T, BoltRenderState>(context) {
+
+    override fun createRenderState(): BoltRenderState = BoltRenderState()
+
+    override fun extractRenderState(entity: T, state: BoltRenderState, partialTick: Float) {
+        super.extractRenderState(entity, state, partialTick)
+        state.motion = entity.deltaMovement
+        state.style = style(entity)
+    }
+
+    /** `render` became `submit`: the draw is described now and performed later. */
+    override fun submit(
+        state: BoltRenderState,
+        pose: PoseStack,
+        collector: net.minecraft.client.renderer.SubmitNodeCollector,
+        cameraState: net.minecraft.client.renderer.state.CameraRenderState,
+    ) {
+        state.style?.let { drawBolt(pose, CollectorDraw(collector), state.motion, it) }
+        super.submit(state, pose, collector, cameraState)
+    }
+}
+*///?} elif >=1.21.2 {
 /*class BoltRenderState : net.minecraft.client.renderer.entity.state.EntityRenderState() {
     var motion: net.minecraft.world.phys.Vec3 = net.minecraft.world.phys.Vec3.ZERO
     var style: BoltStyle? = null
@@ -67,7 +98,7 @@ open class BoltRendererBase<T : Entity>(
     }
 
     override fun render(state: BoltRenderState, pose: PoseStack, buffers: MultiBufferSource, light: Int) {
-        state.style?.let { drawBolt(pose, buffers, state.motion, it) }
+        state.style?.let { drawBolt(pose, BufferedDraw(buffers), state.motion, it) }
         super.render(state, pose, buffers, light)
     }
 }
@@ -82,7 +113,7 @@ open class BoltRendererBase<T : Entity>(
         net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS
 
     override fun render(entity: T, yaw: Float, partialTick: Float, pose: PoseStack, buffers: MultiBufferSource, light: Int) {
-        drawBolt(pose, buffers, entity.deltaMovement, style(entity))
+        drawBolt(pose, BufferedDraw(buffers), entity.deltaMovement, style(entity))
         super.render(entity, yaw, partialTick, pose, buffers, light)
     }
 }

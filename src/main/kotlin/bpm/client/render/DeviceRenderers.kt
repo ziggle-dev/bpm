@@ -117,8 +117,13 @@ class TurretRenderer : DeviceRenderer<TurretBlockEntity>("observer_turret", { be
         const val EASE = 0.2f
     }
 
-    override fun rotateBlock(facing: Direction, poseStack: PoseStack) {
-        if (facing == Direction.UP) return
+    /**
+     * A floor turret is modelled the right way up already; every other mount tips it about the block's
+     * centre. True in both cases: the UP case is handled by deliberately doing nothing, which is not the
+     * same as letting the stock rotation have it.
+     */
+    override fun rotateFor(facing: Direction, poseStack: PoseStack): Boolean {
+        if (facing == Direction.UP) return true
         poseStack.translate(0.0, 0.5, 0.0)
         when (facing) {
             Direction.DOWN -> poseStack.mulPose(Axis.XP.rotationDegrees(180f))
@@ -129,6 +134,7 @@ class TurretRenderer : DeviceRenderer<TurretBlockEntity>("observer_turret", { be
             else -> {}
         }
         poseStack.translate(0.0, -0.5, 0.0)
+        return true
     }
 }
 

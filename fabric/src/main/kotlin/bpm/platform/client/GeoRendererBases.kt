@@ -133,7 +133,7 @@ private class PassBones<R : software.bernie.geckolib.renderer.base.GeoRenderStat
 }
 
 /** [WorldDraw] over a submit collector: everything is deferred, against the pose captured now. */
-private class CollectorDraw(private val collector: net.minecraft.client.renderer.SubmitNodeCollector) : WorldDraw {
+internal class CollectorDraw(private val collector: net.minecraft.client.renderer.SubmitNodeCollector) : WorldDraw {
 
     override fun into(
         poseStack: com.mojang.blaze3d.vertex.PoseStack,
@@ -222,6 +222,26 @@ abstract class GeoBlockRendererBase<T>(model: GeoModel<T>) :
         net.minecraft.core.Direction.NORTH
 
     override fun getBlockStateDirection(blockEntity: T): net.minecraft.core.Direction = facingOf(blockEntity)
+
+    /**
+     * Turn the model for a block that is not standing the usual way up, and say whether you did.
+     *
+     * False means "not mine", and the stock rotation runs. The method that used to be overridden --
+     * `rotateBlock(Direction, PoseStack)` -- is gone, replaced by one that reads the facing off the
+     * render pass instead of being handed it, so the facing is fetched here and the caller keeps the
+     * question it was actually asking.
+     */
+    protected open fun rotateFor(facing: net.minecraft.core.Direction, poseStack: com.mojang.blaze3d.vertex.PoseStack): Boolean = false
+
+    override fun tryRotateByBlockstate(
+        pass: software.bernie.geckolib.renderer.base.RenderPassInfo<BpmBlockRenderState>,
+        poseStack: com.mojang.blaze3d.vertex.PoseStack,
+    ) {
+        val facing = pass.renderState()
+            .getOrDefaultGeckolibData(software.bernie.geckolib.constant.DataTickets.BLOCK_FACING, net.minecraft.core.Direction.NORTH)
+        if (facing != null && rotateFor(facing, poseStack)) return
+        super.tryRotateByBlockstate(pass, poseStack)
+    }
 
     /**
      * Draw whatever this renderer hangs off the model, once the model itself is submitted.
@@ -376,7 +396,7 @@ private class RecursionBones : BoneAccess {
 }
 
 /** [WorldDraw] over a buffer source: everything happens now, which is what this band's draw call means. */
-private class BufferedDraw(private val bufferSource: net.minecraft.client.renderer.MultiBufferSource) : WorldDraw {
+internal class BufferedDraw(private val bufferSource: net.minecraft.client.renderer.MultiBufferSource) : WorldDraw {
 
     override fun into(
         poseStack: com.mojang.blaze3d.vertex.PoseStack,
@@ -464,6 +484,14 @@ abstract class GeoBlockRendererBase<T>(model: GeoModel<T>) :
         net.minecraft.core.Direction.NORTH
 
     override fun getFacing(animatable: T): net.minecraft.core.Direction = facingOf(animatable)
+
+    /** Turn the model for a block that is not standing the usual way up; false means "not mine". */
+    protected open fun rotateFor(facing: net.minecraft.core.Direction, poseStack: com.mojang.blaze3d.vertex.PoseStack): Boolean = false
+
+    override fun rotateBlock(facing: net.minecraft.core.Direction, poseStack: com.mojang.blaze3d.vertex.PoseStack) {
+        if (rotateFor(facing, poseStack)) return
+        super.rotateBlock(facing, poseStack)
+    }
 
     /** Draw whatever this renderer hangs off the model, once the model itself is drawn. */
     protected open fun afterModel(blockEntity: T, poseStack: com.mojang.blaze3d.vertex.PoseStack, draw: WorldDraw, partialTick: Float, packedLight: Int) {}
