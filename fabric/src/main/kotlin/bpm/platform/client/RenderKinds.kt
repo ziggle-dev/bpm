@@ -117,7 +117,7 @@ object BpmPipelines {
             .withShaderDefine("ALPHA_CUTOUT", 0.1f)
             .withShaderDefine("PER_FACE_LIGHTING")
             .withExtraSampler("Sampler1")
-            .withBlend(com.mojang.blaze3d.pipeline.BlendFunction.TRANSLUCENT)
+            .withBlending(com.mojang.blaze3d.pipeline.BlendFunction.TRANSLUCENT)
             .build()
 
     /** Flat colour added onto what is behind it, writing no depth: the energy arc. */
@@ -147,12 +147,12 @@ private fun colourQuadPipeline(name: String, additive: Boolean, depthWrite: Bool
         .withVertexShader("core/position_color")
         .withFragmentShader("core/position_color")
         .withQuads(com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_COLOR)
-        .withBlend(
+        .withBlending(
             if (additive) com.mojang.blaze3d.pipeline.BlendFunction.LIGHTNING
             else com.mojang.blaze3d.pipeline.BlendFunction.TRANSLUCENT,
         )
         .withCull(false)
-        .withDepthWrite(depthWrite)
+        .withDepthWriting(depthWrite)
         .build()
 
 private val translucentCullCache = HashMap<ResourceLocation, RenderType>()
@@ -308,7 +308,7 @@ object BpmPipelines {
             .withLocation("pipeline/bpm_entity_translucent_cull")
             .withShaderDefine("ALPHA_CUTOUT", 0.1f)
             .withSampler("Sampler1")
-            .withBlend(com.mojang.blaze3d.pipeline.BlendFunction.TRANSLUCENT)
+            .withBlending(com.mojang.blaze3d.pipeline.BlendFunction.TRANSLUCENT)
             .build()
 
     // Flat colour added onto what is behind it, writing no depth: the energy arc.
@@ -340,12 +340,12 @@ private fun colourQuadPipeline(name: String, additive: Boolean, depthWrite: Bool
         .withVertexShader("core/position_color")
         .withFragmentShader("core/position_color")
         .withQuads(com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_COLOR)
-        .withBlend(
+        .withBlending(
             if (additive) com.mojang.blaze3d.pipeline.BlendFunction.LIGHTNING
             else com.mojang.blaze3d.pipeline.BlendFunction.TRANSLUCENT,
         )
         .withCull(false)
-        .withDepthWrite(depthWrite)
+        .withDepthWriting(depthWrite)
         .build()
 
 private val translucentCullCache = HashMap<ResourceLocation, RenderType>()

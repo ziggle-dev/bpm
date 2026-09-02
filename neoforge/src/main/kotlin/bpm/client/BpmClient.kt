@@ -88,12 +88,23 @@ object BpmClient {
         GeoRenderers.registerRenderers()
         bpm.platform.client.ClientKeys.install(bpm.platform.client.NeoKeyRegistry)
         Keys.register()
+        //? if >=26.1 {
+        /*modBus.addListener(net.neoforged.neoforge.client.event.RegisterFluidModelsEvent::class.java, Consumer { event ->
+            bpm.platform.registry.NeoFluidRegistrar.models(
+                event,
+                bpm.world.ModFluids.SPEC,
+                bpm.world.ModFluids.EXPERIENCE.get(),
+                bpm.world.ModFluids.EXPERIENCE_FLOWING.get(),
+            )
+        })
+        *///?} else {
         modBus.addListener(net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent::class.java, Consumer { event ->
             event.registerFluidType(
                 bpm.platform.registry.NeoFluidRegistrar.looks(bpm.world.ModFluids.SPEC),
                 bpm.platform.registry.NeoFluidRegistrar.type(bpm.world.ModFluids.SPEC.name).get(),
             )
         })
+        //?}
         bpm.client.ClientBehaviour.install()
     }
 }

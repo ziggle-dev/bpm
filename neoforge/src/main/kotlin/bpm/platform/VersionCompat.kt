@@ -410,10 +410,37 @@ fun fullPermissionSource(
     //?}
 
 /**
+ * A boss bar for one boss.
+ *
+ * 26.1 gave `ServerBossEvent` an explicit id where it used to make its own. Derived from the boss's own
+ * uuid rather than randomised, so the bar keeps its identity if the fight is rebuilt -- a random one
+ * would show a client a second, empty bar beside the first.
+ */
+fun bossBar(
+    id: java.util.UUID,
+    // Nullable because vanilla's own parameter is, and this only forwards: an entity's display name is a
+    // platform type, and tightening it here would be this seam inventing a constraint the game does not have.
+    name: net.minecraft.network.chat.Component?,
+    colour: net.minecraft.world.BossEvent.BossBarColor,
+    overlay: net.minecraft.world.BossEvent.BossBarOverlay,
+): net.minecraft.server.level.ServerBossEvent =
+    // A nameless bar rather than a crash: the name comes in as a platform type on one band and a
+    // non-null one on the next, and a boss with no display name should still get a bar.
+    net.minecraft.network.chat.Component.empty().let { blank ->
+        //? if >=26.1 {
+        /*net.minecraft.server.level.ServerBossEvent(id, name ?: blank, colour, overlay)
+        *///?} else {
+        net.minecraft.server.level.ServerBossEvent(name ?: blank, colour, overlay)
+        //?}
+    }
+
+/**
  * A message to one player -- across the middle of the screen above the hotbar, or in chat.
  *
- * `displayClientMessage(component, actionBar)` became `sendSystemMessage(component, actionBar)` at 26.1 --
- * the same two arguments meaning the same two things, under the name the server side always used.
+ * 26.1 SPLIT `displayClientMessage(component, actionBar)` rather than renaming it. The boolean became the
+ * choice of method: `sendOverlayMessage` is the action bar, `sendSystemMessage` is chat. An earlier note
+ * here claimed it was a two-argument `sendSystemMessage`, which does not exist -- so the branch below is
+ * on the argument, not on the name.
  *
  * This is an EXTENSION rather than a function taking the player, and that is deliberate: it makes every
  * call site a one-token rename off the vanilla method instead of a rewrite that moves the receiver into
@@ -425,7 +452,7 @@ fun net.minecraft.world.entity.player.Player.showMessage(
     actionBar: Boolean = true,
 ) {
     //? if >=26.1 {
-    /*sendSystemMessage(message, actionBar)
+    /*if (actionBar) sendOverlayMessage(message) else sendSystemMessage(message)
     *///?} else {
     displayClientMessage(message, actionBar)
     //?}

@@ -23,8 +23,7 @@ class PanelScreen : bpm.platform.client.InputScreen(Component.literal("bpm")) {
     /** What the last frame drew under the cursor, so a click knows what it landed on. */
     private var hover: PanelDraw.Hit? = null
 
-    override fun render(g: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
-        super.render(g, mouseX, mouseY, partialTick)
+    override fun onDraw(g: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
         hover = PanelDraw.drawAll(g, HudOverlay.all, width, height, mouseX, mouseY)
     }
 
@@ -68,7 +67,7 @@ class PanelScreen : bpm.platform.client.InputScreen(Component.literal("bpm")) {
     }
 
     /** The world is what the player is watching; dimming it would defeat the point. */
-    override fun renderBackground(g: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) = Unit
+    override fun onBackground(g: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) = Unit
 
     override fun isPauseScreen(): Boolean = false
 

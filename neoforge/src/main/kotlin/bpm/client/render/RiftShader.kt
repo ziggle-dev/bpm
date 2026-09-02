@@ -2,6 +2,7 @@ package bpm.client.render
 
 //? if >=1.21.5 {
 /*import bpm.platform.client.withQuads
+import bpm.platform.client.withBlending
 *///?}
 
 import bpm.Bpm
@@ -54,17 +55,6 @@ object RiftShader : bpm.platform.client.RiftLook {
      * `shaders/core/`, so 1.21.4 wants `bpm:core/rift_cube` where 1.21.1 wants `bpm:rift_cube`. No single
      * spelling works on both -- hence the pair of JSONs under this node's own resources.
      */
-    //? if >=1.21.6 {
-    /*private fun matricesSnippet(): com.mojang.blaze3d.pipeline.RenderPipeline.Snippet =
-        net.minecraft.client.renderer.RenderPipelines.MATRICES_PROJECTION_SNIPPET
-    *///?} elif >=1.21.5 {
-    /*// 1.21.5 still passes matrices as loose uniforms; see the note in RenderKinds. The rift's GLSL is
-    // split at the same version for the same reason -- the shared `assets/bpm/shaders/core` sources are
-    // the loose-uniform form and serve every band up to and including this one.
-    private fun matricesSnippet(): com.mojang.blaze3d.pipeline.RenderPipeline.Snippet =
-        net.minecraft.client.renderer.RenderPipelines.MATRICES_SNIPPET
-    *///?}
-
     //? if >=1.21.9 {
     /*/**
      * On this band a core shader is not registered at all: a RENDER PIPELINE is, and it names the two
@@ -83,7 +73,7 @@ object RiftShader : bpm.platform.client.RiftLook {
             .withVertexShader(rl(shader))
             .withFragmentShader(rl(shader))
             .withQuads(FORMAT)
-            .withBlend(com.mojang.blaze3d.pipeline.BlendFunction.LIGHTNING)
+            .withBlending(com.mojang.blaze3d.pipeline.BlendFunction.LIGHTNING)
             .withCull(false)
             .withDepthWrite(true)
             .build()
@@ -113,7 +103,7 @@ object RiftShader : bpm.platform.client.RiftLook {
             .withVertexShader(rl(shader))
             .withFragmentShader(rl(shader))
             .withQuads(FORMAT)
-            .withBlend(com.mojang.blaze3d.pipeline.BlendFunction.LIGHTNING)
+            .withBlending(com.mojang.blaze3d.pipeline.BlendFunction.LIGHTNING)
             .withCull(false)
             .withDepthWrite(true)
             .build()

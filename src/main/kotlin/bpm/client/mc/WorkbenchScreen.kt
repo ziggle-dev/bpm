@@ -18,10 +18,10 @@ class WorkbenchScreen(private val pos: BlockPos?) : BpmEditorScreen(
         WorkbenchSession.workbench.onScreenOpened()
     }
 
-    override fun render(graphics: net.minecraft.client.gui.GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+    override fun onDraw(graphics: bpm.platform.client.GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
         // Block pictures the panels asked for last frame, drawn into their textures before ImGui draws this one.
         BlockPreviewRenderer.renderPending()
-        super.render(graphics, mouseX, mouseY, partialTick)
+        super.onDraw(graphics, mouseX, mouseY, partialTick)
     }
 
     override fun removed() {

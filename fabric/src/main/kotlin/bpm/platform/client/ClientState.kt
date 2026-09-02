@@ -62,3 +62,18 @@ fun openScreen(screen: net.minecraft.client.gui.screens.Screen) {
     net.minecraft.client.Minecraft.getInstance().setScreen(screen)
     //?}
 }
+
+/**
+ * Whether the player has hidden the HUD (F1).
+ *
+ * `Options.hideGui` moved onto the HUD itself at 26.1, which owns the question -- and behind a private
+ * field with a public `isHidden()` beside it, the same shape as the camera and the screen above.
+ */
+fun hudHidden(): Boolean {
+    val mc = net.minecraft.client.Minecraft.getInstance()
+    //? if >=26.1 {
+    /*return mc.gui.hud.isHidden()
+    *///?} else {
+    return mc.options.hideGui
+    //?}
+}

@@ -47,6 +47,25 @@ internal fun com.mojang.blaze3d.pipeline.RenderPipeline.Builder.withQuads(
 internal fun com.mojang.blaze3d.pipeline.RenderPipeline.Builder.withoutDepth(): com.mojang.blaze3d.pipeline.RenderPipeline.Builder =
     withDepthStencilState(java.util.Optional.empty<com.mojang.blaze3d.pipeline.DepthStencilState>())
 
+/** Blending is one field of the colour target's state now, rather than a builder call of its own. */
+internal fun com.mojang.blaze3d.pipeline.RenderPipeline.Builder.withBlending(
+    blend: com.mojang.blaze3d.pipeline.BlendFunction,
+): com.mojang.blaze3d.pipeline.RenderPipeline.Builder =
+    withColorTargetState(com.mojang.blaze3d.pipeline.ColorTargetState(blend))
+
+/**
+ * Depth writing, which is the other half of the same state record.
+ *
+ * `withDepthWrite` is gone with `withBlend`. The compare op is vanilla's own default -- what
+ * `DepthStencilState.DEFAULT` uses -- so only the write flag is actually being chosen here.
+ */
+internal fun com.mojang.blaze3d.pipeline.RenderPipeline.Builder.withDepthWriting(
+    write: Boolean,
+): com.mojang.blaze3d.pipeline.RenderPipeline.Builder =
+    withDepthStencilState(
+        com.mojang.blaze3d.pipeline.DepthStencilState(com.mojang.blaze3d.platform.CompareOp.LESS_THAN_OR_EQUAL, write)
+    )
+
 internal fun quadRenderSetup(
     pipeline: com.mojang.blaze3d.pipeline.RenderPipeline,
 ): net.minecraft.client.renderer.rendertype.RenderSetup =
@@ -69,6 +88,14 @@ internal fun com.mojang.blaze3d.pipeline.RenderPipeline.Builder.withQuads(
 ): com.mojang.blaze3d.pipeline.RenderPipeline.Builder =
     withVertexFormat(format, com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS)
 
+internal fun com.mojang.blaze3d.pipeline.RenderPipeline.Builder.withBlending(
+    blend: com.mojang.blaze3d.pipeline.BlendFunction,
+): com.mojang.blaze3d.pipeline.RenderPipeline.Builder = withBlend(blend)
+
+internal fun com.mojang.blaze3d.pipeline.RenderPipeline.Builder.withDepthWriting(
+    write: Boolean,
+): com.mojang.blaze3d.pipeline.RenderPipeline.Builder = withDepthWrite(write)
+
 internal fun com.mojang.blaze3d.pipeline.RenderPipeline.Builder.withoutDepth(): com.mojang.blaze3d.pipeline.RenderPipeline.Builder =
     withDepthTestFunction(com.mojang.blaze3d.platform.DepthTestFunction.NO_DEPTH_TEST).withDepthWrite(false)
 
@@ -88,6 +115,14 @@ internal fun com.mojang.blaze3d.pipeline.RenderPipeline.Builder.withQuads(
 ): com.mojang.blaze3d.pipeline.RenderPipeline.Builder =
     withVertexFormat(format, com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS)
 
+internal fun com.mojang.blaze3d.pipeline.RenderPipeline.Builder.withBlending(
+    blend: com.mojang.blaze3d.pipeline.BlendFunction,
+): com.mojang.blaze3d.pipeline.RenderPipeline.Builder = withBlend(blend)
+
+internal fun com.mojang.blaze3d.pipeline.RenderPipeline.Builder.withDepthWriting(
+    write: Boolean,
+): com.mojang.blaze3d.pipeline.RenderPipeline.Builder = withDepthWrite(write)
+
 internal fun offscreenColourTarget(width: Int, height: Int): com.mojang.blaze3d.pipeline.TextureTarget =
     com.mojang.blaze3d.pipeline.TextureTarget(null, width, height, true)
 *///?} elif >=1.21.5 {
@@ -98,6 +133,14 @@ internal fun com.mojang.blaze3d.pipeline.RenderPipeline.Builder.withQuads(
     format: com.mojang.blaze3d.vertex.VertexFormat,
 ): com.mojang.blaze3d.pipeline.RenderPipeline.Builder =
     withVertexFormat(format, com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS)
+
+internal fun com.mojang.blaze3d.pipeline.RenderPipeline.Builder.withBlending(
+    blend: com.mojang.blaze3d.pipeline.BlendFunction,
+): com.mojang.blaze3d.pipeline.RenderPipeline.Builder = withBlend(blend)
+
+internal fun com.mojang.blaze3d.pipeline.RenderPipeline.Builder.withDepthWriting(
+    write: Boolean,
+): com.mojang.blaze3d.pipeline.RenderPipeline.Builder = withDepthWrite(write)
 
 internal fun offscreenColourTarget(width: Int, height: Int): com.mojang.blaze3d.pipeline.TextureTarget =
     com.mojang.blaze3d.pipeline.TextureTarget(null, width, height, true)

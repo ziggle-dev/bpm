@@ -5,7 +5,9 @@ import net.minecraft.core.registries.Registries
 import net.minecraft.world.item.Item
 import net.minecraft.world.level.block.LiquidBlock
 import net.minecraft.world.level.material.Fluid
+//? if <26.1 {
 import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions
+//?}
 import net.neoforged.neoforge.common.SoundActions
 import net.neoforged.neoforge.fluids.BaseFlowingFluid
 import net.neoforged.neoforge.fluids.FluidType
@@ -71,6 +73,34 @@ object NeoFluidRegistrar : FluidRegistrar {
     /** The fluid type for a declared spec, which only the client extensions registration needs. */
     fun type(name: String): RegistryRef<FluidType> = declared.getValue(name)
 
+    /*
+     * How a fluid looks stopped being something a fluid is ASKED and became something it HAS.
+     *
+     * Until 26.1 NeoForge put the four facts on client extensions of the fluid type, and vanilla asked
+     * for them while drawing. At 26.1 they became a baked `FluidModel` held in the model manager, so they
+     * are registered once during model loading and read back from there. The same four facts either way,
+     * which is why [FluidSpec] carries data rather than either loader's object.
+     *
+     * The chunk layer is NOT among them any more, and does not need to be: `FluidModel.Unbaked.bake`
+     * derives it from the sprites' own transparency. That is why `drawFluidTranslucent` has no 26.1 arm
+     * -- the experience fluid's texture has alpha, so it lands in the translucent layer by itself.
+     */
+    //? if >=26.1 {
+    /*/** Register the spec's model. Called from the client entry point on `RegisterFluidModelsEvent`. */
+    fun models(event: net.neoforged.neoforge.client.event.RegisterFluidModelsEvent, spec: FluidSpec, still: Fluid, flowing: Fluid) {
+        val overlay = spec.overlayTexture ?: spec.stillTexture
+        event.register(
+            net.minecraft.client.renderer.block.FluidModel.Unbaked(
+                net.minecraft.client.resources.model.sprite.Material(spec.stillTexture),
+                net.minecraft.client.resources.model.sprite.Material(spec.flowingTexture),
+                net.minecraft.client.resources.model.sprite.Material(overlay),
+                net.minecraft.client.color.block.BlockTintSource { spec.tint },
+            ),
+            still,
+            flowing,
+        )
+    }
+    *///?} else {
     /**
      * NeoForge asks a fluid how it looks through client extensions on its type. Everything answered here
      * comes off the spec, so the same four facts serve Fabric's render handler unchanged.
@@ -81,4 +111,5 @@ object NeoFluidRegistrar : FluidRegistrar {
         override fun getFlowingTexture() = spec.flowingTexture
         override fun getOverlayTexture() = spec.overlayTexture
     }
+    //?}
 }

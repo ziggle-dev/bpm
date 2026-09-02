@@ -73,8 +73,7 @@ class FieldScreen private constructor(private val widget: Widget, private val se
         setInitialFocus(box)
     }
 
-    override fun render(g: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
-        super.render(g, mouseX, mouseY, partialTick)
+    override fun onDraw(g: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
         g.drawCenteredText(font, title, width / 2, height / 2 - 26, 0xFFB8FFF0.toInt())
         g.drawCenteredText(font, HINT, width / 2, height / 2 + 16, 0xFF9AA3B5.toInt())
     }

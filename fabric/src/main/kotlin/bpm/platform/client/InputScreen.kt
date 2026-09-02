@@ -18,6 +18,21 @@ import net.minecraft.network.chat.Component
  * `mouseScrolled` is here for symmetry only -- its signature has not changed since 1.21.2 and it is not
  * switched.
  */
+/*
+ * The modifiers on a character event, which 26.1 stopped carrying -- and the honest shape, since a typed
+ * CHARACTER has already had its modifiers applied to produce it. Nothing here reads them; ImGui takes
+ * them from the key event, which still has them.
+ *
+ * Top level and bounded at 1.21.9, not nested inside the class arm below: a directive inside a commented
+ * arm ends that arm early at its first close-comment, which is a syntax error twenty lines away from the
+ * cause.
+ */
+//? if >=26.1 {
+/*private fun charEventModifiers(event: net.minecraft.client.input.CharacterEvent): Int = 0
+*///?} elif >=1.21.9 {
+/*private fun charEventModifiers(event: net.minecraft.client.input.CharacterEvent): Int = event.modifiers()
+*///?}
+
 abstract class InputScreen(title: Component) : Screen(title) {
 
     /** A mouse button went down at [x], [y]. */
@@ -61,7 +76,10 @@ abstract class InputScreen(title: Component) : Screen(title) {
         onKeyUp(event.key(), event.scancode(), event.modifiers()) || super.keyReleased(event)
 
     override fun charTyped(event: net.minecraft.client.input.CharacterEvent): Boolean =
-        onCharTyped(event.codepoint().toChar(), event.modifiers()) || super.charTyped(event)
+        // 26.1 dropped the modifiers from a character event, keeping only the codepoint -- which is the
+        // honest shape: a typed CHARACTER has already had the modifiers applied to produce it. Nothing
+        // here reads them; ImGui wants them from the key event, which still carries them.
+        onCharTyped(event.codepoint().toChar(), charEventModifiers(event)) || super.charTyped(event)
     *///?} else {
     override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean =
         onMouseDown(mouseX, mouseY, button) || super.mouseClicked(mouseX, mouseY, button)
@@ -80,6 +98,56 @@ abstract class InputScreen(title: Component) : Screen(title) {
 
     override fun charTyped(codePoint: Char, modifiers: Int): Boolean =
         onCharTyped(codePoint, modifiers) || super.charTyped(codePoint, modifiers)
+    //?}
+
+    // ---- drawing ---------------------------------------------------------------------------------------
+    /*
+     * The same trick as the input overrides above, for the same reason.
+     *
+     * 26.1 renamed what a screen does when it draws: `render` became `extractRenderState` and
+     * `renderBackground` became `extractBackground`, taking a `GuiGraphicsExtractor`. The name change is
+     * honest -- since 1.21.6 a screen has described draws rather than performed them, and 26.1 finished
+     * the thought -- but a shared subclass cannot declare two override names, so the band-correct one is
+     * declared HERE and dispatched to a pair of hooks whose names never change.
+     *
+     * `GuiGraphics` below is this package's alias, which is `GuiGraphicsExtractor` from 26.1.
+     */
+
+    /** Draw the screen. Call [drawDefaultBackground] first if you want vanilla's dim behind it. */
+    protected open fun onDraw(g: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) = Unit
+
+    /** Draw what sits behind the screen. Overriding this and not calling super leaves the world as it is. */
+    protected open fun onBackground(g: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+        drawDefaultBackground(g, mouseX, mouseY, partialTick)
+    }
+
+    /** Vanilla's own background -- the blur and the dim -- under whichever name this band gives it. */
+    protected fun drawDefaultBackground(g: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+        //? if >=26.1 {
+        /*super.extractBackground(g, mouseX, mouseY, partialTick)
+        *///?} else {
+        super.renderBackground(g, mouseX, mouseY, partialTick)
+        //?}
+    }
+
+    //? if >=26.1 {
+    /*override fun extractRenderState(g: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+        super.extractRenderState(g, mouseX, mouseY, partialTick)
+        onDraw(g, mouseX, mouseY, partialTick)
+    }
+
+    override fun extractBackground(g: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+        onBackground(g, mouseX, mouseY, partialTick)
+    }
+    *///?} else {
+    override fun render(g: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+        super.render(g, mouseX, mouseY, partialTick)
+        onDraw(g, mouseX, mouseY, partialTick)
+    }
+
+    override fun renderBackground(g: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+        onBackground(g, mouseX, mouseY, partialTick)
+    }
     //?}
 }
 
@@ -133,7 +201,7 @@ fun ctrlHeld(): Boolean =
  * still a PoseStack), which is why the seam is this instead: the only two things the panel ever does to
  * that stack, named as one operation. Twenty lines against a type the caller then never mentions.
  */
-inline fun guiScaled(g: net.minecraft.client.gui.GuiGraphics, x: Float, y: Float, scale: Float, body: () -> Unit) {
+inline fun guiScaled(g: GuiGraphics, x: Float, y: Float, scale: Float, body: () -> Unit) {
     val pose = g.pose()
     //? if >=1.21.6 {
     /*pose.pushMatrix()
@@ -172,7 +240,7 @@ fun windowHandle(): Long {
  * EXTRACT phase that records draws into a `GuiRenderState` and renders them later, so there is no batch
  * in flight to flush at the moment a screen draws. Correct on that band is to do nothing.
  */
-fun flushGui(g: net.minecraft.client.gui.GuiGraphics) {
+fun flushGui(g: GuiGraphics) {
     // From 1.21.9 there is nothing in flight to flush, so this is deliberately empty there.
     //? if <1.21.5 {
     g.flush()

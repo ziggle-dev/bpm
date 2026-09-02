@@ -8,6 +8,8 @@ import net.minecraft.client.Minecraft
 import bpm.platform.client.GuiGraphics
 import net.minecraft.core.BlockPos
 import bpm.platform.client.drawText
+import bpm.platform.client.drawItem
+import bpm.platform.client.drawItemDecorations
 
 /**
  * How a panel is drawn: the game's own font and item renderer, on the monitor's dark scanline glass.
@@ -170,10 +172,10 @@ object PanelDraw {
                 frame(g, x, y, x + ICON, y + ICON, ScreenColours.FRAME)
                 if (!w.item.isEmpty) {
                     // The game's own item renderer, in GUI space — no off-screen copy, so it is never stale.
-                    g.renderItem(w.item, x, y)
+                    g.drawItem(w.item, x, y)
                     val count = if (w.value > 0) w.value else w.item.count.toDouble()
                     val label = if (count == 1.0) "" else MonitorFormat.short(count)
-                    g.renderItemDecorations(font, w.item, x, y, label)
+                    g.drawItemDecorations(font, w.item, x, y, label)
                 }
                 val label = w.label.ifEmpty { if (w.item.isEmpty) "—" else w.item.hoverName.string }
                 g.drawText(font, clip(font, label, width - ICON - 3), x + ICON + 3, y + (ICON - LINE) / 2, ScreenColours.MINT, false)

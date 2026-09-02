@@ -103,7 +103,7 @@ class TurretRenderer : DeviceRenderer<TurretBlockEntity>("observer_turret", { be
         val chars = net.minecraft.util.FormattedCharSequence.forward(text, net.minecraft.network.chat.Style.EMPTY)
         poseStack.pushPose()
         poseStack.translate(0.5, 1.75, 0.5)
-        poseStack.mulPose(mc.gameRenderer.mainCamera.rotation())
+        poseStack.mulPose(bpm.platform.client.cameraRotation())
         poseStack.scale(-0.03f, -0.03f, 0.03f)
         val x = -font.width(text) / 2f
         val bg = (mc.options.getBackgroundOpacity(0.25f) * 255).toInt() shl 24

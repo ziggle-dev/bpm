@@ -224,7 +224,7 @@ object LinkerHud {
     private fun drawHud(g: GuiGraphics, delta: DeltaTracker) {
         val mc = Minecraft.getInstance()
         val player = mc.player ?: return
-        if (mc.options.hideGui) return
+        if (bpm.platform.client.hudHidden()) return
         val stack = linkerIn(player) ?: return
         val font = mc.font
         // Bottom-left, clear of the crosshair and the hotbar: two short lines.

@@ -49,6 +49,15 @@ fun GuiGraphics.drawCenteredText(font: net.minecraft.client.gui.Font, s: net.min
 
 fun GuiGraphics.drawCenteredText(font: net.minecraft.client.gui.Font, s: net.minecraft.util.FormattedCharSequence, x: Int, y: Int, colour: Int) =
     centeredText(font, s, x, y, colour)
+
+/** `renderItem`/`renderItemDecorations` lost their `render` prefix; the arguments are unchanged. */
+fun GuiGraphics.drawItem(stack: net.minecraft.world.item.ItemStack, x: Int, y: Int) = item(stack, x, y)
+
+fun GuiGraphics.drawItemDecorations(font: net.minecraft.client.gui.Font, stack: net.minecraft.world.item.ItemStack, x: Int, y: Int) =
+    itemDecorations(font, stack, x, y)
+
+fun GuiGraphics.drawItemDecorations(font: net.minecraft.client.gui.Font, stack: net.minecraft.world.item.ItemStack, x: Int, y: Int, text: String) =
+    itemDecorations(font, stack, x, y, text)
 *///?} else {
 typealias GuiGraphics = net.minecraft.client.gui.GuiGraphics
 
@@ -74,4 +83,12 @@ fun GuiGraphics.drawCenteredText(font: net.minecraft.client.gui.Font, s: net.min
 
 fun GuiGraphics.drawCenteredText(font: net.minecraft.client.gui.Font, s: net.minecraft.util.FormattedCharSequence, x: Int, y: Int, colour: Int) =
     drawCenteredString(font, s, x, y, colour)
+
+fun GuiGraphics.drawItem(stack: net.minecraft.world.item.ItemStack, x: Int, y: Int) = renderItem(stack, x, y)
+
+fun GuiGraphics.drawItemDecorations(font: net.minecraft.client.gui.Font, stack: net.minecraft.world.item.ItemStack, x: Int, y: Int) =
+    renderItemDecorations(font, stack, x, y)
+
+fun GuiGraphics.drawItemDecorations(font: net.minecraft.client.gui.Font, stack: net.minecraft.world.item.ItemStack, x: Int, y: Int, text: String) =
+    renderItemDecorations(font, stack, x, y, text)
 //?}

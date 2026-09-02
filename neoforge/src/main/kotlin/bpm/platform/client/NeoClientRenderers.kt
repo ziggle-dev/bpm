@@ -6,13 +6,31 @@ package bpm.platform.client
  * on 1.21.4 there is no `getCustomRenderer` to bridge to. See `bpm.platform.client.ClientRenderers`.
  */
 
-/** NeoForge keeps a fluid's appearance on its client fluid-type extensions. */
+/*
+ * Reading a fluid's appearance back, which has to work for ANY fluid -- a tank panel shows whatever the
+ * tank holds, not only this mod's own.
+ *
+ * Until 26.1 that is the client fluid-type extension. From 26.1 it is the baked model in the model
+ * manager, which is where every fluid's sprites and tint now live, this mod's included. The sprite knows
+ * its own texture name, which is what the callers want: they look it up in the block atlas, and one of
+ * them opens the PNG.
+ */
 object NeoFluidAppearance : FluidAppearance {
+    //? if >=26.1 {
+    /*override fun of(fluid: net.minecraft.world.level.material.Fluid): FluidLook {
+        val state = fluid.defaultFluidState()
+        val model = net.minecraft.client.Minecraft.getInstance().modelManager.getFluidStateModelSet().get(state)
+        val still = model.stillMaterial().sprite().contents().name()
+        val flowing = model.flowingMaterial().sprite().contents().name()
+        return FluidLook(still, flowing, model.tintSource().color(state.createLegacyBlock()))
+    }
+    *///?} else {
     override fun of(fluid: net.minecraft.world.level.material.Fluid): FluidLook {
         val ext = net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions.of(fluid)
         val still = ext.stillTexture
         return FluidLook(still, ext.flowingTexture ?: still, ext.tintColor)
     }
+    //?}
 }
 
 /** NeoForge declares renderers during `EntityRenderersEvent.RegisterRenderers`. */

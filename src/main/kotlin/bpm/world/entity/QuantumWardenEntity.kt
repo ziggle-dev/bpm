@@ -57,7 +57,8 @@ import bpm.platform.boolOr
  */
 class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Level) : bpm.platform.BossMonster(type, level), GeoEntity {
     private val animCache: AnimatableInstanceCache = GeckoLibUtil.createInstanceCache(this)
-    private val bossEvent = ServerBossEvent(displayName, BossEvent.BossBarColor.BLUE, BossEvent.BossBarOverlay.NOTCHED_6)
+    private val bossEvent =
+        bpm.platform.bossBar(uuid, displayName, BossEvent.BossBarColor.BLUE, BossEvent.BossBarOverlay.NOTCHED_6)
 
     /** The pedestal it rose from — the centre of its arena and where the core returns. */
     var home: BlockPos? = null
@@ -699,7 +700,7 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
  * vanilla's flying control does and what made it spin. Flying: full 3-D steering; grounded: horizontal only,
  * gravity keeps it on the floor.
  */
-class WardenMoveControl(private val warden: QuantumWardenEntity) : MoveControl(warden) {
+class WardenMoveControl(private val warden: QuantumWardenEntity) : bpm.platform.MoveControlBase<QuantumWardenEntity>(warden) {
     override fun tick() {
         val v = warden.deltaMovement
         if (operation != Operation.MOVE_TO) {
