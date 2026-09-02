@@ -49,7 +49,7 @@ typealias GeoBone = software.bernie.geckolib.cache.`object`.GeoBone
 typealias BakedGeoModel = software.bernie.geckolib.cache.`object`.BakedGeoModel
 typealias AnimationController<T> = software.bernie.geckolib.animatable.processing.AnimationController<T>
 typealias AnimationStateHandler<T> = software.bernie.geckolib.animatable.processing.AnimationController.AnimationStateHandler<T>
-*///?} else {
+*///?} elif >=1.21 {
 typealias AnimatableManager<T> = software.bernie.geckolib.animation.AnimatableManager<T>
 typealias ControllerRegistrar = software.bernie.geckolib.animation.AnimatableManager.ControllerRegistrar
 typealias PlayState = software.bernie.geckolib.animation.PlayState
@@ -59,7 +59,20 @@ typealias BakedGeoModel = software.bernie.geckolib.cache.`object`.BakedGeoModel
 typealias AutoGlowingGeoLayer<T> = software.bernie.geckolib.renderer.layer.AutoGlowingGeoLayer<T>
 typealias AnimationController<T> = software.bernie.geckolib.animation.AnimationController<T>
 typealias AnimationStateHandler<T> = software.bernie.geckolib.animation.AnimationController.AnimationStateHandler<T>
-//?}
+//?} else {
+/*// GeckoLib 4.8, which is where the 1.20.1 line stops. The animation half still lives under `core`
+// here -- `core.animation` and `core.object` -- and moved up a level for the 1.21 releases. The cache
+// and renderer halves did not move, which is why only five of these nine differ from the arm above.
+typealias AnimatableManager<T> = software.bernie.geckolib.core.animation.AnimatableManager<T>
+typealias ControllerRegistrar = software.bernie.geckolib.core.animation.AnimatableManager.ControllerRegistrar
+typealias PlayState = software.bernie.geckolib.core.`object`.PlayState
+typealias GeoBone = software.bernie.geckolib.cache.`object`.GeoBone
+typealias GeoRenderer<T> = software.bernie.geckolib.renderer.GeoRenderer<T>
+typealias BakedGeoModel = software.bernie.geckolib.cache.`object`.BakedGeoModel
+typealias AutoGlowingGeoLayer<T> = software.bernie.geckolib.renderer.layer.AutoGlowingGeoLayer<T>
+typealias AnimationController<T> = software.bernie.geckolib.core.animation.AnimationController<T>
+typealias AnimationStateHandler<T> = software.bernie.geckolib.core.animation.AnimationController.AnimationStateHandler<T>
+*///?}
 
 /*
  * `GeoRenderer` and `AutoGlowingGeoLayer` are deliberately NOT aliased on this band.
