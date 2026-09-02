@@ -196,14 +196,12 @@ fun resetVertexBuffers() {
 /**
  * Draw an item model in the world, into a buffer source.
  *
- * Returns false on a band where it cannot be done. From 1.21.9 an item is drawn by resolving it to an
- * `ItemStackRenderState` and SUBMITTING that to a collector, and a caller holding only a
- * `MultiBufferSource` -- which is what the level-render event still hands out -- has no collector to
- * submit to. There is no immediate path, so the honest answer is "not here".
+ * From 1.21.9 an item is drawn by resolving it to an `ItemStackRenderState` and SUBMITTING that to a
+ * collector, and the level-render event this is called from is handed a `MultiBufferSource` and no
+ * collector. The way through is [ImmediateCollector]: rather than find a collector, be one, and draw
+ * what it is handed.
  *
- * The one caller is the mote of an item flying into a rift, and [bpm.client.fx.EffectManager] already
- * documents the stance this follows: the effect is decoration for a transfer that has already happened,
- * and is never worth more than it costs. The fluid drip and the rift itself are unaffected.
+ * Returns whether it drew, which is true on every band this mod builds for.
  */
 fun drawWorldItem(
     pose: com.mojang.blaze3d.vertex.PoseStack,
@@ -215,7 +213,11 @@ fun drawWorldItem(
     seed: Int,
 ): Boolean {
     //? if >=1.21.9 {
-    /*return false
+    /*val mc = net.minecraft.client.Minecraft.getInstance()
+    val state = net.minecraft.client.renderer.item.ItemStackRenderState()
+    mc.itemModelResolver.updateForTopItem(state, stack, context, level as? net.minecraft.client.multiplayer.ClientLevel, null, seed)
+    state.submit(pose, ImmediateCollector(buffers), light, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, 0)
+    return true
     *///?} else {
     net.minecraft.client.Minecraft.getInstance().itemRenderer.renderStatic(
         stack,

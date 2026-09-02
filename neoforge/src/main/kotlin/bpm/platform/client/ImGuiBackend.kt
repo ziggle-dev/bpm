@@ -182,12 +182,26 @@ private class GpuImGuiBackend : ImGuiBackend {
         val target = minecraft.mainRenderTarget
         // Null until the target has buffers; nothing to draw into before then.
         val colour = target.colorTextureView ?: return
-        val guiWidth = window.guiScaledWidth.toFloat()
-        val guiHeight = window.guiScaledHeight.toFloat()
+
+        /*
+         * The projection comes from ImGui's OWN display size, not from the window.
+         *
+         * ImGui is told to lay out in window coordinates, and the editor has been designed against those
+         * since it was written. Building the projection from `guiScaledWidth` instead -- which is the
+         * window divided by the player's GUI scale, so perhaps a third of it -- projects coordinates that
+         * run to 1920 through a space 640 wide: the editor comes out several times too large and anchored
+         * to the top-left corner, which is exactly what it did.
+         *
+         * Taking both the projection and the scissor conversion from the draw data means they cannot
+         * disagree with each other or with what ImGui was told, whatever the window is doing.
+         */
+        val displayWidth = data.displaySizeX
+        val displayHeight = data.displaySizeY
+        if (displayWidth <= 0f || displayHeight <= 0f) return
 
         com.mojang.blaze3d.systems.RenderSystem.backupProjectionMatrix()
         com.mojang.blaze3d.systems.RenderSystem.setProjectionMatrix(
-            projection.getBuffer(guiWidth, guiHeight),
+            projection.getBuffer(displayWidth, displayHeight),
             com.mojang.blaze3d.ProjectionType.ORTHOGRAPHIC,
         )
         val transforms = com.mojang.blaze3d.systems.RenderSystem.getDynamicUniforms().writeTransform(
@@ -215,7 +229,7 @@ private class GpuImGuiBackend : ImGuiBackend {
                         if (elements == 0) continue
                         val clip = data.getCmdListCmdBufferClipRect(list, command)
                         if (clip.z <= clip.x || clip.w <= clip.y) continue
-                        scissor(pass, window, clip.x, clip.y, clip.z, clip.w)
+                        scissor(pass, data, window.height, clip.x, clip.y, clip.z, clip.w)
                         pass.drawIndexed(
                             baseVertexOf[list] + data.getCmdListCmdBufferVtxOffset(list, command),
                             baseIndexOf[list] + data.getCmdListCmdBufferIdxOffset(list, command),
@@ -232,25 +246,30 @@ private class GpuImGuiBackend : ImGuiBackend {
     }
 
     /**
-     * A clip rectangle in GUI units, as a scissor box in framebuffer pixels measured from the bottom.
+     * A clip rectangle in ImGui's coordinates, as a scissor box in framebuffer pixels from the bottom.
      *
-     * The same conversion `GuiRenderer.enableScissor` does. Getting the Y flip wrong here does not fail
-     * loudly -- it clips the wrong half of the screen -- which is why it is written out rather than
-     * folded into the call.
+     * The scale is the draw data's own framebuffer scale rather than the GUI scale, for the reason given
+     * above: these rectangles are in the same space as the vertices, and the projection was built from
+     * that space too. The Y flip is the one thing here that fails quietly rather than loudly -- it clips
+     * the wrong band of the screen instead of throwing -- so it is spelled out.
      */
     private fun scissor(
         pass: com.mojang.blaze3d.systems.RenderPass,
-        window: com.mojang.blaze3d.platform.Window,
+        data: ImDrawData,
+        framebufferHeight: Int,
         left: Float,
         top: Float,
         right: Float,
         bottom: Float,
     ) {
-        val scale = window.guiScale
-        val x = (left * scale).toInt()
-        val y = (window.height - bottom * scale).toInt()
-        val width = ((right - left) * scale).toInt()
-        val height = ((bottom - top) * scale).toInt()
+        val originX = data.displayPosX
+        val originY = data.displayPosY
+        val scaleX = data.framebufferScaleX.takeIf { it > 0f } ?: 1f
+        val scaleY = data.framebufferScaleY.takeIf { it > 0f } ?: 1f
+        val x = ((left - originX) * scaleX).toInt()
+        val y = (framebufferHeight - (bottom - originY) * scaleY).toInt()
+        val width = ((right - left) * scaleX).toInt()
+        val height = ((bottom - top) * scaleY).toInt()
         pass.enableScissor(x, y, maxOf(0, width), maxOf(0, height))
     }
 
