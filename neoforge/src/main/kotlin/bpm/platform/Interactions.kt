@@ -42,8 +42,20 @@ object BlockUse {
     val CONSUME: BlockUseResult = InteractionResult.CONSUME
     val FAIL: BlockUseResult = InteractionResult.FAIL
 
-    /** "Not mine — let the block have it." The name it had before the three types merged. */
-    val PASS_TO_BLOCK: BlockUseResult = InteractionResult.PASS
+    /**
+     * "Not mine — let the block have it."
+     *
+     * `TRY_WITH_EMPTY_HAND`, emphatically NOT `PASS`, and the difference is the whole behaviour. When the
+     * three result types merged at 1.21.2 the fall-through got its own value: both game modes gate it on
+     * `interactionresult instanceof InteractionResult.TryEmptyHandInteraction` before they will call
+     * `useWithoutItem`. `PASS` means "nothing happened" and stops there.
+     *
+     * Mapping this to `PASS` compiles, type-checks and silently severs every block whose `useItemOn`
+     * declines in favour of its own empty-hand handler — which is how the chamber pedestal stopped
+     * responding to a click at all. Vanilla's own `CakeBlock` returns `TRY_WITH_EMPTY_HAND` exactly where
+     * it returned `PASS_TO_DEFAULT_BLOCK_INTERACTION` before.
+     */
+    val PASS_TO_BLOCK: BlockUseResult = InteractionResult.TRY_WITH_EMPTY_HAND
 
     fun sidedSuccess(isClientSide: Boolean): BlockUseResult = InteractionResult.SUCCESS
 }

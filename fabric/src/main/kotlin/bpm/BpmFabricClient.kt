@@ -35,6 +35,11 @@ object BpmFabricClient : ClientModInitializer {
         bpm.platform.client.FabricKeyRegistry.register()
         bpm.platform.client.FabricHudRegistry.register()
 
+        // What the client DOES, shared with the other loader. Without this the Fabric client drew no
+        // transfer effects, never pumped the network queue and never advanced the effect manager --
+        // silently, because a hook with no listeners is not an error.
+        bpm.client.ClientBehaviour.install()
+
         bpm.platform.events.BpmEvents.clientSetup.fire(Unit)
     }
 

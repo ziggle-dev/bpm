@@ -131,6 +131,44 @@ class ChamberGameTests {
      * server bakes its world from the flat preset against an empty stem registry, so `bpm:decoherence` (a data
      * pack dimension) only exists in real worlds. The builder is the same code either way.
      */
+
+    /**
+     * A block that declines an item must still get its own empty-hand turn.
+     *
+     * This is the regression test for the single wrongest line of the 1.21.4 port. When 1.21.2 merged
+     * `ItemInteractionResult` into `InteractionResult`, the fall-through -- "not mine, let the block have
+     * it" -- got its own value, `TRY_WITH_EMPTY_HAND`, and both game modes gate on
+     * `instanceof TryEmptyHandInteraction` before they will call `useWithoutItem`. The port mapped it to
+     * `PASS`, which type-checks perfectly and means "nothing happened".
+     *
+     * The effect was that every block declining in favour of its own handler went silently dead while
+     * holding anything: the chamber pedestal ignored clicks and the gate would not open. It compiled, it
+     * launched, and it passed all 59 game tests, because nothing exercised the dispatch.
+     *
+     * A full pedestal is the cheapest thing that does. `useItemOn` declines (it is already holding
+     * something), so the item only comes back if the fall-through actually happened -- and
+     * `GameTestHelper.useBlock` reproduces the real dispatch, `instanceof` check included.
+     */
+    @GameTest(template = "empty7", timeoutTicks = 60)
+    fun aFullPedestalHandsItsItemBackToAFullHand(helper: GameTestHelper) {
+        val at = BlockPos(3, 1, 3)
+        helper.setBlock(at, DeviceBlocks.CORE_PEDESTAL.get())
+        val be = helper.getBlockEntity(at) as bpm.world.devices.PedestalBlockEntity
+        be.put(ItemStack(Items.DIAMOND, 1))
+
+        // Something in hand, so the interaction goes through `useItemOn` rather than straight past it.
+        val player = helper.makeMockPlayer(net.minecraft.world.level.GameType.SURVIVAL)
+        player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, ItemStack(Items.STONE, 1))
+        helper.useBlock(at, player)
+
+        helper.assertTrue(be.held.isEmpty, "the pedestal kept its diamond: useItemOn declined and nothing picked it up")
+        helper.assertTrue(
+            player.inventory.countItem(Items.DIAMOND) == 1,
+            "the diamond never reached the player, so useWithoutItem never ran",
+        )
+        helper.succeed()
+    }
+
     @GameTest(template = "empty7", timeoutTicks = 100)
     fun chamberRoomIsStampedFromItsLayout(helper: GameTestHelper) {
         val chamber = helper.level.server.getLevel(ChamberDimension.KEY) ?: helper.level

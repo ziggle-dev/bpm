@@ -63,8 +63,17 @@ class FabricRegistries : PlatformRegistries {
 
     private companion object {
         @Suppress("UNCHECKED_CAST")
+        /*
+         * Through `valueOf`, not `REGISTRY.get(...)`, and the difference is not cosmetic.
+         *
+         * `Registry.get(ResourceLocation)` returned the value until 1.21.2 and returns an
+         * `Optional<Holder.Reference<T>>` after it. Written as `get(...) as? Registry<T>` that is a legal
+         * cast of an Optional to a Registry, which is to say ALWAYS NULL -- it compiles on both versions
+         * and silently fails on one. This looked like a missing registry ("no registry minecraft:fluid")
+         * and was a missing unwrap; the safe cast is what hid it.
+         */
         fun <T> registryFor(key: ResourceKey<Registry<T>>): Registry<T> =
-            BuiltInRegistries.REGISTRY.get(key.location()) as? Registry<T>
+            bpm.platform.valueOf(BuiltInRegistries.REGISTRY, key.location()) as? Registry<T>
                 ?: error("no registry ${key.location()} — a loader-specific registry cannot be asked for here")
     }
 }
@@ -112,10 +121,14 @@ private class FabricBlockRegistrar(namespace: String, defer: (() -> Unit) -> Uni
         name: String,
         factory: (BlockBehaviour.Properties) -> B,
         props: BlockBehaviour.Properties,
-    ): RegistryRef<B> = registerInto(BuiltInRegistries.BLOCK, name) { factory(props) }
+    ): RegistryRef<B> = registerInto(BuiltInRegistries.BLOCK, name) {
+        factory(blockProps(props, ResourceLocation.fromNamespaceAndPath(namespace, name)))
+    }
 
     override fun registerSimpleBlock(name: String, props: BlockBehaviour.Properties): RegistryRef<Block> =
-        registerInto(BuiltInRegistries.BLOCK, name) { Block(props) }
+        registerInto(BuiltInRegistries.BLOCK, name) {
+            Block(blockProps(props, ResourceLocation.fromNamespaceAndPath(namespace, name)))
+        }
 }
 
 private class FabricItemRegistrar(namespace: String, defer: (() -> Unit) -> Unit) :
@@ -125,7 +138,9 @@ private class FabricItemRegistrar(namespace: String, defer: (() -> Unit) -> Unit
         name: String,
         factory: (Item.Properties) -> I,
         props: Item.Properties,
-    ): RegistryRef<I> = registerInto(BuiltInRegistries.ITEM, name) { factory(props) }
+    ): RegistryRef<I> = registerInto(BuiltInRegistries.ITEM, name) {
+        factory(itemProps(props, ResourceLocation.fromNamespaceAndPath(namespace, name)))
+    }
 
     /**
      * The block item takes the block's own path, which is what makes `bpm:controller` the item id for
@@ -133,7 +148,9 @@ private class FabricItemRegistrar(namespace: String, defer: (() -> Unit) -> Unit
      * can answer, and this closure only runs during installAll, after it has been.
      */
     override fun registerSimpleBlockItem(block: RegistryRef<out Block>): RegistryRef<BlockItem> =
-        registerInto(BuiltInRegistries.ITEM, block.id.path) { BlockItem(block.get(), Item.Properties()) }
+        registerInto(BuiltInRegistries.ITEM, block.id.path) {
+            BlockItem(block.get(), itemProps(Item.Properties(), ResourceLocation.fromNamespaceAndPath(namespace, block.id.path)))
+        }
 }
 
 private class FabricComponentRegistrar(private val namespace: String, private val defer: (() -> Unit) -> Unit) :

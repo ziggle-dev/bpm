@@ -496,7 +496,7 @@ object WorldNodes {
             val count = param("Count", McVs.int, "", default = 8L)
             val spread = param("Spread", McVs.float, "how far they scatter", default = 0.5)
             command {
-                val type = ResourceLocation.tryParse(id().trim())?.let { BuiltInRegistries.PARTICLE_TYPE.get(it) } as? SimpleParticleType
+                val type = ResourceLocation.tryParse(id().trim())?.let { bpm.platform.valueOf(BuiltInRegistries.PARTICLE_TYPE, it) } as? SimpleParticleType
                     ?: return@command null
                 val at = BlockPosValue.toBlockPos(pos())?.let { Vec3.atCenterOf(it) } ?: Vec3.atCenterOf(host.pos).add(0.0, 1.0, 0.0)
                 val s = spread()
