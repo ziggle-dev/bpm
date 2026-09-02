@@ -37,7 +37,7 @@ import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.Vec3
 import bpm.platform.AnimatableManager
-import software.bernie.geckolib.animation.AnimationController
+import bpm.platform.AnimationController
 import bpm.platform.PlayState
 import software.bernie.geckolib.animation.RawAnimation
 import java.util.UUID

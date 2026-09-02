@@ -41,7 +41,7 @@ import net.minecraft.world.phys.shapes.Shapes
 import net.minecraft.world.phys.shapes.VoxelShape
 import org.joml.Vector3f
 import bpm.platform.AnimatableManager
-import software.bernie.geckolib.animation.AnimationController
+import bpm.platform.AnimationController
 import software.bernie.geckolib.animation.RawAnimation
 import java.util.UUID
 import kotlin.math.atan2

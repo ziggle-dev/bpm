@@ -36,7 +36,7 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.block.state.properties.BooleanProperty
 import net.minecraft.world.phys.BlockHitResult
 import bpm.platform.AnimatableManager
-import software.bernie.geckolib.animation.AnimationController
+import bpm.platform.AnimationController
 import software.bernie.geckolib.animation.RawAnimation
 import bpm.platform.intOr
 import bpm.platform.floatOr

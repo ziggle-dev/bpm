@@ -36,7 +36,7 @@ import net.minecraft.world.level.material.MapColor
 import software.bernie.geckolib.animatable.GeoItem
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
 import bpm.platform.AnimatableManager
-import software.bernie.geckolib.animation.AnimationController
+import bpm.platform.AnimationController
 import software.bernie.geckolib.animation.RawAnimation
 import software.bernie.geckolib.util.GeckoLibUtil
 import java.util.function.Consumer

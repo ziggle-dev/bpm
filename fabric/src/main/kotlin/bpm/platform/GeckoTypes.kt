@@ -1,7 +1,14 @@
 package bpm.platform
 
 /**
- * The GeckoLib types whose PACKAGE moved at 5.x, and the one that was renamed.
+ * The GeckoLib types whose PACKAGE moved, across the THREE layouts this ladder spans.
+ *
+ * Not two. 4.x is one shape; 5.4 (1.21.11) is another; and 5.1-5.2 (1.21.5 and 1.21.8) is a THIRD that
+ * is not a waypoint between them -- it moved `AnimationController` out to `animatable.processing`, where
+ * 5.4 moved it back to `animation`, while leaving `PlayState`, `GeoBone` and `BakedGeoModel` exactly
+ * where 4.x had them. So a condition keyed on the Minecraft version has to name 1.21.5 and 1.21.9
+ * separately, and neither arm is a superset of the other. 5.1.0 and 5.2.2 ARE identical to each other,
+ * which is why one arm covers both bands.
  *
  * GeckoLib 5 reorganised its packages without changing what most of these types do: an
  * `AnimatableManager` is still an animatable manager, a `GeoBone` still a bone. Six of them moved and
@@ -22,6 +29,16 @@ typealias ControllerRegistrar = software.bernie.geckolib.animatable.manager.Anim
 typealias PlayState = software.bernie.geckolib.animation.`object`.PlayState
 typealias GeoBone = software.bernie.geckolib.cache.model.GeoBone
 typealias BakedGeoModel = software.bernie.geckolib.cache.model.BakedGeoModel
+typealias AnimationController<T> = software.bernie.geckolib.animation.AnimationController<T>
+typealias AnimationStateHandler<T> = software.bernie.geckolib.animation.AnimationController.AnimationStateHandler<T>
+*///?} elif >=1.21.5 {
+/*typealias AnimatableManager<T> = software.bernie.geckolib.animatable.manager.AnimatableManager<T>
+typealias ControllerRegistrar = software.bernie.geckolib.animatable.manager.AnimatableManager.ControllerRegistrar
+typealias PlayState = software.bernie.geckolib.animation.PlayState
+typealias GeoBone = software.bernie.geckolib.cache.`object`.GeoBone
+typealias BakedGeoModel = software.bernie.geckolib.cache.`object`.BakedGeoModel
+typealias AnimationController<T> = software.bernie.geckolib.animatable.processing.AnimationController<T>
+typealias AnimationStateHandler<T> = software.bernie.geckolib.animatable.processing.AnimationController.AnimationStateHandler<T>
 *///?} else {
 typealias AnimatableManager<T> = software.bernie.geckolib.animation.AnimatableManager<T>
 typealias ControllerRegistrar = software.bernie.geckolib.animation.AnimatableManager.ControllerRegistrar
@@ -30,6 +47,8 @@ typealias GeoBone = software.bernie.geckolib.cache.`object`.GeoBone
 typealias GeoRenderer<T> = software.bernie.geckolib.renderer.GeoRenderer<T>
 typealias BakedGeoModel = software.bernie.geckolib.cache.`object`.BakedGeoModel
 typealias AutoGlowingGeoLayer<T> = software.bernie.geckolib.renderer.layer.AutoGlowingGeoLayer<T>
+typealias AnimationController<T> = software.bernie.geckolib.animation.AnimationController<T>
+typealias AnimationStateHandler<T> = software.bernie.geckolib.animation.AnimationController.AnimationStateHandler<T>
 //?}
 
 /**
@@ -60,10 +79,10 @@ fun <T : software.bernie.geckolib.animatable.GeoAnimatable> animController(
     animatable: T,
     name: String,
     transitionTicks: Int,
-    handler: software.bernie.geckolib.animation.AnimationController.AnimationStateHandler<T>,
-): software.bernie.geckolib.animation.AnimationController<T> =
-    //? if >=1.21.9 {
-    /*software.bernie.geckolib.animation.AnimationController(name, transitionTicks, handler)
+    handler: AnimationStateHandler<T>,
+): AnimationController<T> =
+    //? if >=1.21.5 {
+    /*AnimationController(name, transitionTicks, handler)
     *///?} else {
-    software.bernie.geckolib.animation.AnimationController(animatable, name, transitionTicks, handler)
+    AnimationController(animatable, name, transitionTicks, handler)
     //?}

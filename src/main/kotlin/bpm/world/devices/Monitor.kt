@@ -27,7 +27,7 @@ import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.shapes.CollisionContext
 import net.minecraft.world.phys.shapes.VoxelShape
 import bpm.platform.AnimatableManager
-import software.bernie.geckolib.animation.AnimationController
+import bpm.platform.AnimationController
 import software.bernie.geckolib.animation.RawAnimation
 
 /**
