@@ -29,6 +29,16 @@ fun VertexConsumer.setColor(red: Int, green: Int, blue: Int, alpha: Int): Vertex
 
 fun VertexConsumer.setColor(argb: Int): VertexConsumer = this.setColor(argb)
 
+fun VertexConsumer.addVertex(
+    pose: com.mojang.blaze3d.vertex.PoseStack.Pose,
+    x: Float,
+    y: Float,
+    z: Float,
+): VertexConsumer = this.addVertex(pose, x, y, z)
+
+fun VertexConsumer.setColor(red: Float, green: Float, blue: Float, alpha: Float): VertexConsumer =
+    this.setColor(red, green, blue, alpha)
+
 fun VertexConsumer.setUv(u: Float, v: Float): VertexConsumer = this.setUv(u, v)
 
 fun VertexConsumer.setUv2(u: Int, v: Int): VertexConsumer = this.setUv2(u, v)
@@ -57,6 +67,17 @@ fun VertexConsumer.setColor(red: Int, green: Int, blue: Int, alpha: Int): Vertex
 
 /** ARGB in one int, which is how the mod's own colours travel. */
 fun VertexConsumer.setColor(argb: Int): VertexConsumer = color(argb)
+
+/** The pose overload takes the Matrix4f inside the pose here, as setNormal takes its Matrix3f. */
+fun VertexConsumer.addVertex(
+    pose: com.mojang.blaze3d.vertex.PoseStack.Pose,
+    x: Float,
+    y: Float,
+    z: Float,
+): VertexConsumer = vertex(pose.pose(), x, y, z)
+
+fun VertexConsumer.setColor(red: Float, green: Float, blue: Float, alpha: Float): VertexConsumer =
+    color(red, green, blue, alpha)
 
 fun VertexConsumer.setUv(u: Float, v: Float): VertexConsumer = uv(u, v)
 
