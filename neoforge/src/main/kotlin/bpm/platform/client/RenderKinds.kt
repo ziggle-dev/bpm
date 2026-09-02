@@ -412,9 +412,9 @@ private fun linesType(throughWalls: Boolean, width: Float): RenderType = lineTyp
             .setLayeringState(net.minecraft.client.renderer.RenderStateShard.VIEW_OFFSET_Z_LAYERING)
             // The ITEM-ENTITY target, as on the band below, not the main one the 1.21.9 arm names.
             // Drawing into it stopped working at 1.21.11, where the frame graph composites that target
-            // before RenderLevelStageEvent fires; that is a 1.21.9 change, and this band still behaves
-            // the way 1.21.4 does. Worth re-checking in game on 1.21.8 -- if the linker outlines are
-            // missing there, this line is why, and MAIN_TARGET is the fix.
+            // before RenderLevelStageEvent fires. That really is a 1.21.9 change: VERIFIED in game on
+            // 1.21.8, where the linker's lines and the transfer motes both draw correctly through this
+            // target. Do not "fix" this to MAIN_TARGET without a symptom to go with it.
             .setOutputState(net.minecraft.client.renderer.RenderStateShard.ITEM_ENTITY_TARGET)
             .createCompositeState(false),
     )
