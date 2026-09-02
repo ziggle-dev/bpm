@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "The composited bucket, identical to the 1.21.11 node's and for the same reason.",
+    "`neoforge:fluid_container` is no longer a MODEL LOADER -- NeoForge 26.2 registers only",
+    "`neoforge:conditional`, `neoforge:empty`, `neoforge:obj` and `neoforge:composite` as those -- but it",
+    "is still an ITEM MODEL of that name, registered by ClientNeoForgeMod, which is what this asks for.",
+    "Without this file the shared `models/item` copy is reached, it names the dead loader, and the client",
+    "logs 'Unknown loader: neoforge:fluid_container' and draws nothing for the item."
+  ],
+  "model": {
+    "type": "neoforge:fluid_container",
+    "textures": {
+      "base": "minecraft:item/bucket",
+      "fluid": "neoforge:item/mask/bucket_fluid"
+    },
+    "fluid": "bpm:experience"
+  }
+}

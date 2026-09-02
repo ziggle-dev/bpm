@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "A plain empty bucket, and the only reason it exists is to stop the shared copy being reached.",
+    "That copy asks for `\"loader\": \"neoforge:fluid_container\"`, which is not a model loader on this band",
+    "-- the composited bucket is requested as an ITEM MODEL by the file in assets/bpm/items instead.",
+    "This is reached only if that one is missing, in which case an empty bucket reads as 'something is",
+    "wrong with this item' rather than as a different fluid."
+  ],
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "minecraft:item/bucket"
+  }
+}
