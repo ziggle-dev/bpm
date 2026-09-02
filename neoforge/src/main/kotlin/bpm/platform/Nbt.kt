@@ -127,3 +127,21 @@ fun readStack(registries: net.minecraft.core.HolderLookup.Provider, tag: net.min
 fun writeStack(registries: net.minecraft.core.HolderLookup.Provider, stack: net.minecraft.world.item.ItemStack): net.minecraft.nbt.Tag =
     stack.saveOptional(registries)
 //?}
+
+/**
+ * A block position in a compound, by codec rather than by `NbtUtils`.
+ *
+ * `NbtUtils.writeBlockPos`/`readBlockPos` are gone at 1.21.9, and `BlockPos.CODEC` -- which exists on
+ * every band and produces the same three-int array those two did -- says the identical thing without a
+ * seam. Written here beside [putUuid] because that is where this mod keeps "a value in a tag".
+ */
+fun putBlockPos(tag: net.minecraft.nbt.CompoundTag, key: String, pos: net.minecraft.core.BlockPos) {
+    net.minecraft.core.BlockPos.CODEC.encodeStart(net.minecraft.nbt.NbtOps.INSTANCE, pos)
+        .result().ifPresent { tag.put(key, it) }
+}
+
+/** The position under [key], or null when there is none or it will not parse. */
+fun blockPosOrNull(tag: net.minecraft.nbt.CompoundTag, key: String): net.minecraft.core.BlockPos? {
+    val value = tag.get(key) ?: return null
+    return net.minecraft.core.BlockPos.CODEC.parse(net.minecraft.nbt.NbtOps.INSTANCE, value).result().orElse(null)
+}

@@ -592,9 +592,8 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
 
     // ---- save ---------------------------------------------------------------------------------------------
 
-    override fun addAdditionalSaveData(tag: CompoundTag) {
-        super.addAdditionalSaveData(tag)
-        home?.let { tag.put("home", NbtUtils.writeBlockPos(it)) }
+    override fun saveExtra(tag: CompoundTag) {
+        home?.let { bpm.platform.putBlockPos(tag, "home", it) }
         slotOwner?.let { bpm.platform.putUuid(tag, "slotOwner", it) }
         tag.putInt("stage", stage)
         tag.putBoolean("shield", shielded)
@@ -603,9 +602,8 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
         tag.putInt("spawnTicks", spawnTicks)
     }
 
-    override fun readAdditionalSaveData(tag: CompoundTag) {
-        super.readAdditionalSaveData(tag)
-        home = NbtUtils.readBlockPos(tag, "home").orElse(null)
+    override fun loadExtra(tag: CompoundTag) {
+        home = bpm.platform.blockPosOrNull(tag, "home")
         slotOwner = bpm.platform.uuidOrNull(tag, "slotOwner")
         entityData.set(STAGE, tag.intOr("stage", 0).coerceIn(1, 3))
         entityData.set(SHIELD, tag.boolOr("shield", false))

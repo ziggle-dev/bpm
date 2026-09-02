@@ -50,7 +50,7 @@ import bpm.platform.intsOr
  * the client never needs entity data for the model or the light.
  */
 class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
-    BlockEntity(ModBlockEntities.CONTROLLER.get(), pos, state), GeoBlockEntity, bpm.session.Deployable {
+    bpm.platform.SavingBlockEntity(ModBlockEntities.CONTROLLER.get(), pos, state), GeoBlockEntity, bpm.session.Deployable {
 
     var docId: UUID? = null
         private set
@@ -126,8 +126,7 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
 
     // ---- nbt --------------------------------------------------------------------------------------------
 
-    override fun saveAdditional(tag: CompoundTag, registries: HolderLookup.Provider) {
-        super.saveAdditional(tag, registries)
+    override fun saveExtra(tag: CompoundTag, registries: HolderLookup.Provider) {
         docId?.let { bpm.platform.putUuid(tag, "doc", it) }
         tag.putInt("docVersion", docVersion)
         tag.putInt("runningVersion", runningVersion)
@@ -144,8 +143,7 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
         tag.put("breakpoints", net.minecraft.nbt.ListTag().also { list -> breakpoints.forEach { (id, on) -> list.add(CompoundTag().also { it.putInt("node", id); it.putBoolean("on", on) }) } })
     }
 
-    override fun loadAdditional(tag: CompoundTag, registries: HolderLookup.Provider) {
-        super.loadAdditional(tag, registries)
+    override fun loadExtra(tag: CompoundTag, registries: HolderLookup.Provider) {
         docId = bpm.platform.uuidOrNull(tag, "doc")
         docVersion = tag.intOr("docVersion", 0)
         runningVersion = tag.intOr("runningVersion", 0)
@@ -173,9 +171,8 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
     }
 
     /** What the client needs: the link table (wand HUD, editor) and the binding. */
-    override fun applyImplicitComponents(input: DataComponentInput) {
-        super.applyImplicitComponents(input)
-        coreTier = CoreTier.byKey(input.get(ModComponents.CORE_TIER.get()))
+    override fun readComponents(components: bpm.platform.ComponentSource) {
+        coreTier = CoreTier.byKey(components.get(ModComponents.CORE_TIER.get()))
     }
 
     override fun collectImplicitComponents(builder: net.minecraft.core.component.DataComponentMap.Builder) {

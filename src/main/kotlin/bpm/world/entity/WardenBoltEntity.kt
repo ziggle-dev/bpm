@@ -24,7 +24,7 @@ import bpm.platform.floatOr
  * volley, orchid and slower for the *seeker* the open cage fires, which bends toward its target a little
  * every tick and can be outrun or ducked behind cover. Breaks on whatever it meets first.
  */
-class WardenBoltEntity(type: EntityType<out WardenBoltEntity>, level: Level) : Projectile(type, level) {
+class WardenBoltEntity(type: EntityType<out WardenBoltEntity>, level: Level) : bpm.platform.SavingProjectile(type, level) {
     var damage: Float = 6f
     var speed: Double = SPEED
     var life: Int = LIFE
@@ -98,13 +98,11 @@ class WardenBoltEntity(type: EntityType<out WardenBoltEntity>, level: Level) : P
         discard()
     }
 
-    override fun readAdditionalSaveData(tag: CompoundTag) {
-        super.readAdditionalSaveData(tag)
+    override fun loadExtra(tag: CompoundTag, registries: net.minecraft.core.HolderLookup.Provider) {
         damage = tag.floatOr("damage", 0f)
     }
 
-    override fun addAdditionalSaveData(tag: CompoundTag) {
-        super.addAdditionalSaveData(tag)
+    override fun saveExtra(tag: CompoundTag, registries: net.minecraft.core.HolderLookup.Provider) {
         tag.putFloat("damage", damage)
     }
 

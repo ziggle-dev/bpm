@@ -30,6 +30,41 @@ abstract class BossMonster(type: EntityType<out Monster>, level: Level) : Monste
     /** Damage kinds this boss ignores outright, over and above whatever vanilla already refuses. */
     protected abstract fun immuneTo(source: DamageSource): Boolean
 
+    /**
+     * Write and read this boss's own fields, as a compound.
+     *
+     * The same bridge [SavingProjectile] carries, spelled out again because a monster cannot extend a
+     * projectile. See [bpm.platform.SavingBlockEntity] for why the mod keeps CompoundTag as its own
+     * vocabulary rather than following vanilla's writer into the shared tree.
+     */
+    protected open fun saveExtra(tag: net.minecraft.nbt.CompoundTag) {}
+
+    protected open fun loadExtra(tag: net.minecraft.nbt.CompoundTag) {}
+
+    //? if >=1.21.9 {
+    /*override fun addAdditionalSaveData(output: net.minecraft.world.level.storage.ValueOutput) {
+        super.addAdditionalSaveData(output)
+        val tag = net.minecraft.nbt.CompoundTag()
+        saveExtra(tag)
+        pushTag(output, tag)
+    }
+
+    override fun readAdditionalSaveData(input: net.minecraft.world.level.storage.ValueInput) {
+        super.readAdditionalSaveData(input)
+        loadExtra(pullTag(input))
+    }
+    *///?} else {
+    override fun addAdditionalSaveData(tag: net.minecraft.nbt.CompoundTag) {
+        super.addAdditionalSaveData(tag)
+        saveExtra(tag)
+    }
+
+    override fun readAdditionalSaveData(tag: net.minecraft.nbt.CompoundTag) {
+        super.readAdditionalSaveData(tag)
+        loadExtra(tag)
+    }
+    //?}
+
     //? if >=1.21.2 {
     /*override fun customServerAiStep(level: ServerLevel) = fightTick(level)
 
