@@ -230,3 +230,21 @@ fun drawWorldItem(
     return true
     //?}
 }
+
+/**
+ * Whether a screen still has to draw its own background.
+ *
+ * Until 1.21.9 `Screen.render` was called with nothing behind it and a screen that wanted the world
+ * dimmed called `renderBackground` itself. From 1.21.9 the caller does it first --
+ * `renderWithTooltipAndSubtitles` calls `renderBackground`, then `render` -- and the blur behind it may
+ * only be requested ONCE a frame: a second call is an IllegalStateException, not a second blur.
+ *
+ * So the question is no longer "do I want a background" but "has one already happened". A screen that
+ * does NOT want one overrides `renderBackground` to do nothing, which works on every band.
+ */
+val screenRendersOwnBackground: Boolean
+    //? if >=1.21.9 {
+    /*get() = false
+    *///?} else {
+    get() = true
+    //?}

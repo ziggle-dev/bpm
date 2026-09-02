@@ -40,8 +40,20 @@ open class BpmEditorScreen(
         BpmImGui.resetClock()
     }
 
+    /**
+     * A box hung over a block leaves the world as it is.
+     *
+     * Overridden rather than simply not called, because from 1.21.9 the background is drawn by the
+     * caller before `render` ever runs -- refusing it is the only way to not have one.
+     */
+    override fun renderBackground(graphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+        if (!dimsWorld) return
+        super.renderBackground(graphics, mouseX, mouseY, partialTick)
+    }
+
     override fun render(graphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
-        if (dimsWorld) renderBackground(graphics, mouseX, mouseY, partialTick)
+        // Only where the caller has not already done it -- see [bpm.platform.client.screenRendersOwnBackground].
+        if (dimsWorld && bpm.platform.client.screenRendersOwnBackground) renderBackground(graphics, mouseX, mouseY, partialTick)
         // Minecraft batches its GUI draws; flush them before raw GL draws over the top.
         bpm.platform.client.flushGui(graphics)
         val w = minecraft!!.window
