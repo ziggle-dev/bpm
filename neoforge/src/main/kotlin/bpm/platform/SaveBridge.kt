@@ -31,7 +31,7 @@ import net.minecraft.world.level.block.state.BlockState
  */
 private const val BPM_DATA = "bpm"
 
-//? if >=1.21.9 {
+//? if >=1.21.6 {
 /*/** Hand a whole compound to vanilla's writer, under one key. Empty compounds are not written. */
 internal fun pushTag(output: net.minecraft.world.level.storage.ValueOutput, tag: CompoundTag) {
     if (!tag.isEmpty) output.store(BPM_DATA, CompoundTag.CODEC, tag)
@@ -74,14 +74,14 @@ abstract class SavingBlockEntity(type: net.minecraft.world.level.block.entity.Bl
      * that needs no synced data was the only piece that worked.
      */
     protected fun syncTag(fill: (CompoundTag) -> Unit): CompoundTag {
-        //? if >=1.21.9 {
+        //? if >=1.21.6 {
         /*return CompoundTag().also { outer -> outer.put(BPM_DATA, CompoundTag().also(fill)) }
         *///?} else {
         return CompoundTag().also(fill)
         //?}
     }
 
-    //? if >=1.21.9 {
+    //? if >=1.21.5 {
     /*override fun applyImplicitComponents(input: net.minecraft.core.component.DataComponentGetter) {
         super.applyImplicitComponents(input)
         readComponents(object : ComponentSource {
@@ -97,7 +97,7 @@ abstract class SavingBlockEntity(type: net.minecraft.world.level.block.entity.Bl
     }
     //?}
 
-    //? if >=1.21.9 {
+    //? if >=1.21.6 {
     /*override fun saveAdditional(output: net.minecraft.world.level.storage.ValueOutput) {
         super.saveAdditional(output)
         val tag = CompoundTag()
@@ -129,7 +129,7 @@ abstract class SavingProjectile(type: EntityType<out Projectile>, level: Level) 
 
     protected open fun loadExtra(tag: CompoundTag, registries: HolderLookup.Provider) {}
 
-    //? if >=1.21.9 {
+    //? if >=1.21.6 {
     /*override fun addAdditionalSaveData(output: net.minecraft.world.level.storage.ValueOutput) {
         super.addAdditionalSaveData(output)
         val tag = CompoundTag()

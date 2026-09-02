@@ -17,7 +17,7 @@ import java.util.UUID
  * other, which is how the first attempt at this broke 1.21.1. Distinct names exist on both versions, so
  * a call site and its import read the same everywhere.
  */
-//? if >=1.21.9 {
+//? if >=1.21.5 {
 /*fun CompoundTag.intOr(key: String, fallback: Int): Int = getIntOr(key, fallback)
 
 fun CompoundTag.longOr(key: String, fallback: Long): Long = getLongOr(key, fallback)
@@ -90,7 +90,7 @@ fun putUuid(tag: CompoundTag, key: String, id: UUID) =
  * getters became `Optional`-returning: asking "is there a string at this key" is now the same act as
  * reading it, so the type check folded into the read.
  */
-//? if >=1.21.9 {
+//? if >=1.21.5 {
 /*fun net.minecraft.nbt.CompoundTag.keys(): Set<String> = keySet()
 
 fun net.minecraft.nbt.CompoundTag.hasString(key: String): Boolean = getString(key).isPresent
@@ -114,7 +114,7 @@ fun net.minecraft.nbt.CompoundTag.hasCompound(key: String): Boolean =
  * stack writes an empty tag and an empty or unreadable tag reads back as empty, so a save from either
  * version loads on the other.
  */
-//? if >=1.21.9 {
+//? if >=1.21.5 {
 /*fun readStack(registries: net.minecraft.core.HolderLookup.Provider, tag: net.minecraft.nbt.CompoundTag): net.minecraft.world.item.ItemStack =
     if (tag.isEmpty) net.minecraft.world.item.ItemStack.EMPTY
     else net.minecraft.world.item.ItemStack.CODEC

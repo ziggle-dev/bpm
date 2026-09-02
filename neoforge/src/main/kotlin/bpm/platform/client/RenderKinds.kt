@@ -265,6 +265,182 @@ fun clearTarget(target: com.mojang.blaze3d.pipeline.RenderTarget): Unit = notYet
 
 fun offscreenTarget(width: Int, height: Int): com.mojang.blaze3d.pipeline.TextureTarget =
     com.mojang.blaze3d.pipeline.TextureTarget(null, width, height, true)
+*///?} elif >=1.21.5 {
+/*// 1.21.5 is where a render type stopped carrying its own GL state.
+//
+// The shader, the blend, the cull, the depth test and the write mask all moved into a RenderPipeline --
+// a value built once and reused -- and what is left in a CompositeState is the texture, the lightmap
+// and overlay, the layering and the output target: the things that are still per-DRAW rather than
+// per-program. The construction call changed to match, and lost the vertex format with it, because the
+// pipeline names that too: create(name, bufferSize, affectsCrumbling, sortOnUpload, pipeline, state).
+//
+// So this arm is the 1.21.2 one with its state shards deleted, holding the same pipelines the 1.21.9
+// arm builds. The two bands differ only in how a RenderType is made FROM a pipeline: RenderSetup and
+// the move into the `rendertype` package are both 1.21.9 changes, not 1.21.5 ones.
+
+object BpmPipelines {
+
+    // Translucent, lit, and CULLED: vanilla's ENTITY_TRANSLUCENT recipe with culling left on, which is
+    // exactly what the deleted `entityTranslucentCull` was. Its users draw CLOSED shapes -- a mote cube,
+    // a monitor panel -- whose far faces would otherwise blend through the near ones.
+    val TRANSLUCENT_CULL: com.mojang.blaze3d.pipeline.RenderPipeline =
+        com.mojang.blaze3d.pipeline.RenderPipeline.builder(net.minecraft.client.renderer.RenderPipelines.ENTITY_SNIPPET)
+            .withLocation("pipeline/bpm_entity_translucent_cull")
+            .withShaderDefine("ALPHA_CUTOUT", 0.1f)
+            .withSampler("Sampler1")
+            .withBlend(com.mojang.blaze3d.pipeline.BlendFunction.TRANSLUCENT)
+            .build()
+
+    // Flat colour added onto what is behind it, writing no depth: the energy arc.
+    val ADDITIVE_QUADS: com.mojang.blaze3d.pipeline.RenderPipeline =
+        colourQuadPipeline("bpm_additive_quads", additive = true, depthWrite = false)
+
+    // Flat colour, blended, WRITING depth: the assembler beam, which must occlude what is behind it.
+    val TRANSLUCENT_QUADS: com.mojang.blaze3d.pipeline.RenderPipeline =
+        colourQuadPipeline("bpm_translucent_quads", additive = false, depthWrite = true)
+
+    // Vanilla's LINES with the depth test turned off, for the warden-visor through-walls pass.
+    val LINES_THROUGH_WALLS: com.mojang.blaze3d.pipeline.RenderPipeline =
+        com.mojang.blaze3d.pipeline.RenderPipeline.builder(net.minecraft.client.renderer.RenderPipelines.LINES_SNIPPET)
+            .withLocation("pipeline/bpm_lines_through_walls")
+            .withDepthTestFunction(com.mojang.blaze3d.platform.DepthTestFunction.NO_DEPTH_TEST)
+            .withDepthWrite(false)
+            .build()
+
+    val all: List<com.mojang.blaze3d.pipeline.RenderPipeline>
+        get() = listOf(TRANSLUCENT_CULL, ADDITIVE_QUADS, TRANSLUCENT_QUADS, LINES_THROUGH_WALLS)
+}
+
+// Modelled on vanilla's DEBUG_FILLED_SNIPPET, the stock "flat colour, no texture, no lighting" recipe.
+// Only the blend and the depth write differ between the two this mod needs, and BlendFunction.LIGHTNING
+// is SRC_ALPHA, ONE -- the same additive the old ADDITIVE_TRANSPARENCY shard was.
+private fun colourQuadPipeline(name: String, additive: Boolean, depthWrite: Boolean): com.mojang.blaze3d.pipeline.RenderPipeline =
+    com.mojang.blaze3d.pipeline.RenderPipeline.builder(net.minecraft.client.renderer.RenderPipelines.MATRICES_PROJECTION_SNIPPET)
+        .withLocation("pipeline/" + name)
+        .withVertexShader("core/position_color")
+        .withFragmentShader("core/position_color")
+        .withVertexFormat(com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_COLOR, com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS)
+        .withBlend(
+            if (additive) com.mojang.blaze3d.pipeline.BlendFunction.LIGHTNING
+            else com.mojang.blaze3d.pipeline.BlendFunction.TRANSLUCENT,
+        )
+        .withCull(false)
+        .withDepthWrite(depthWrite)
+        .build()
+
+private val translucentCullCache = HashMap<ResourceLocation, RenderType>()
+
+fun translucentCull(texture: ResourceLocation): RenderType = translucentCullCache.getOrPut(texture) {
+    net.minecraft.client.renderer.RenderType.create(
+        "bpm_entity_translucent_cull",
+        1536,
+        true,
+        true,
+        BpmPipelines.TRANSLUCENT_CULL,
+        net.minecraft.client.renderer.RenderType.CompositeState.builder()
+            .setTextureState(net.minecraft.client.renderer.RenderStateShard.TextureStateShard(texture, false))
+            .setLightmapState(net.minecraft.client.renderer.RenderStateShard.LIGHTMAP)
+            .setOverlayState(net.minecraft.client.renderer.RenderStateShard.OVERLAY)
+            .createCompositeState(true),
+    )
+}
+
+private val colourQuadCache = HashMap<String, RenderType>()
+
+fun additiveQuads(name: String): RenderType = colourQuads(name, BpmPipelines.ADDITIVE_QUADS)
+
+fun translucentQuads(name: String): RenderType = colourQuads(name, BpmPipelines.TRANSLUCENT_QUADS)
+
+private fun colourQuads(name: String, pipeline: com.mojang.blaze3d.pipeline.RenderPipeline): RenderType =
+    colourQuadCache.getOrPut(name) {
+        net.minecraft.client.renderer.RenderType.create(
+            name,
+            256,
+            false,
+            false,
+            pipeline,
+            net.minecraft.client.renderer.RenderType.CompositeState.builder().createCompositeState(false),
+        )
+    }
+
+private val lineTypeCache = HashMap<Pair<Boolean, Float>, RenderType>()
+
+// The width is still part of the TYPE on this band. Per-vertex line width is a 1.21.9 addition, so a
+// LineStateShard carries it here and the cache is keyed by width as well as by the depth test, exactly
+// as on 1.21.2.
+private fun linesType(throughWalls: Boolean, width: Float): RenderType = lineTypeCache.getOrPut(throughWalls to width) {
+    net.minecraft.client.renderer.RenderType.create(
+        "bpm_lines_" + (if (throughWalls) "xray_" else "") + width,
+        1536,
+        false,
+        false,
+        if (throughWalls) BpmPipelines.LINES_THROUGH_WALLS else net.minecraft.client.renderer.RenderPipelines.LINES,
+        net.minecraft.client.renderer.RenderType.CompositeState.builder()
+            .setLineState(net.minecraft.client.renderer.RenderStateShard.LineStateShard(java.util.OptionalDouble.of(width.toDouble())))
+            .setLayeringState(net.minecraft.client.renderer.RenderStateShard.VIEW_OFFSET_Z_LAYERING)
+            // The ITEM-ENTITY target, as on the band below, not the main one the 1.21.9 arm names.
+            // Drawing into it stopped working at 1.21.11, where the frame graph composites that target
+            // before RenderLevelStageEvent fires; that is a 1.21.9 change, and this band still behaves
+            // the way 1.21.4 does. Worth re-checking in game on 1.21.8 -- if the linker outlines are
+            // missing there, this line is why, and MAIN_TARGET is the fix.
+            .setOutputState(net.minecraft.client.renderer.RenderStateShard.ITEM_ENTITY_TARGET)
+            .createCompositeState(false),
+    )
+}
+
+fun worldLines(throughWalls: Boolean, width: Float, draw: (LinePass) -> Unit) {
+    val buffers = net.minecraft.client.Minecraft.getInstance().renderBuffers().bufferSource()
+    val type = linesType(throughWalls, width)
+    draw(BufferLinePass(buffers.getBuffer(type)))
+    buffers.endBatch(type)
+}
+
+private class BufferLinePass(private val consumer: com.mojang.blaze3d.vertex.VertexConsumer) : LinePass {
+
+    override fun line(
+        pose: com.mojang.blaze3d.vertex.PoseStack,
+        from: net.minecraft.world.phys.Vec3,
+        to: net.minecraft.world.phys.Vec3,
+        rgb: FloatArray,
+        alpha: Float,
+    ) {
+        val m = pose.last()
+        val delta = to.subtract(from)
+        val d = if (delta.lengthSqr() < 1e-12) net.minecraft.world.phys.Vec3(0.0, 1.0, 0.0) else delta.normalize()
+        consumer.addVertex(m, from.x.toFloat(), from.y.toFloat(), from.z.toFloat())
+            .setColor(rgb[0], rgb[1], rgb[2], alpha)
+            .setNormal(m, d.x.toFloat(), d.y.toFloat(), d.z.toFloat())
+        consumer.addVertex(m, to.x.toFloat(), to.y.toFloat(), to.z.toFloat())
+            .setColor(rgb[0], rgb[1], rgb[2], alpha)
+            .setNormal(m, d.x.toFloat(), d.y.toFloat(), d.z.toFloat())
+    }
+
+    override fun box(
+        pose: com.mojang.blaze3d.vertex.PoseStack,
+        box: net.minecraft.world.phys.AABB,
+        rgb: FloatArray,
+        alpha: Float,
+    ) {
+        for ((from, to) in boxEdges(box)) line(pose, from, to, rgb, alpha)
+    }
+}
+
+// The same gap the 1.21.9 arm has, and for the same reason: the offscreen-target and projection
+// helpers behind the editor's block previews need the GPU-buffer rewrite, which is outstanding. They
+// THROW rather than no-op, so the missing piece names itself the moment it is first needed instead of
+// silently drawing nothing.
+private fun notYetOnThisBand(what: String): Nothing =
+    error("bpm: " + what + " is not implemented on 1.21.5+ yet -- the Blaze3D GPU-buffer rewrite is outstanding")
+
+fun setGuiProjection(matrix: org.joml.Matrix4f): Unit = notYetOnThisBand("the offscreen GUI projection")
+
+@Suppress("unused")
+fun applyModelView() = Unit
+
+fun clearTarget(target: com.mojang.blaze3d.pipeline.RenderTarget): Unit = notYetOnThisBand("clearing a render target")
+
+fun offscreenTarget(width: Int, height: Int): com.mojang.blaze3d.pipeline.TextureTarget =
+    com.mojang.blaze3d.pipeline.TextureTarget(null, width, height, true)
 *///?} elif >=1.21.2 {
 /*private val translucentCullCache = HashMap<ResourceLocation, RenderType>()
 
@@ -538,6 +714,19 @@ fun lightning(): RenderType = net.minecraft.client.renderer.rendertype.RenderTyp
 fun translucent(): RenderType = notYetOnThisBand("the translucent block layer")
 
 fun gui(): RenderType = notYetOnThisBand("the GUI render type")
+*///?} elif >=1.21.5 {
+/*fun entityTranslucent(texture: ResourceLocation): RenderType =
+    net.minecraft.client.renderer.RenderType.entityTranslucent(texture)
+
+fun lightning(): RenderType = net.minecraft.client.renderer.RenderType.lightning()
+
+// Both of these go before the package move does. `gui()` is deleted at 1.21.5 and the chunk layers
+// leave RenderType at 1.21.6, so naming either here would only work on one of this arm's two bands --
+// and nothing calls them: their last shared-tree caller went when the monitor screen stopped asking for
+// a GUI render type. They answer the same way the 1.21.9 arm does rather than pretending otherwise.
+fun translucent(): RenderType = notYetOnThisBand("the translucent block layer")
+
+fun gui(): RenderType = notYetOnThisBand("the GUI render type")
 *///?} elif >=1.21.2 {
 /*fun entityTranslucent(texture: ResourceLocation): RenderType =
     net.minecraft.client.renderer.RenderType.entityTranslucent(texture)
@@ -586,7 +775,7 @@ fun blockSprite(texture: ResourceLocation): net.minecraft.client.renderer.textur
  * the sense the rest of this file uses the word. The seam is the instruction rather than the value.
  */
 fun drawFluidTranslucent(fluid: net.minecraft.world.level.material.Fluid) {
-    //? if >=1.21.9 {
+    //? if >=1.21.6 {
     /*net.minecraft.client.renderer.ItemBlockRenderTypes.setRenderLayer(fluid, net.minecraft.client.renderer.chunk.ChunkSectionLayer.TRANSLUCENT)
     *///?} else {
     net.minecraft.client.renderer.ItemBlockRenderTypes.setRenderLayer(fluid, net.minecraft.client.renderer.RenderType.translucent())
@@ -611,6 +800,10 @@ fun drawFluidTranslucent(fluid: net.minecraft.world.level.material.Fluid) {
  */
 //? if >=1.21.9 {
 /*fun skinHandle(skin: net.minecraft.world.entity.player.PlayerSkin): Long? = null
+*///?} elif >=1.21.5 {
+/*// The same "no" as the band above, one version earlier: GL names went with the Blaze3D rewrite at
+// 1.21.5, while PlayerSkin itself only moved package at 1.21.9.
+fun skinHandle(skin: net.minecraft.client.resources.PlayerSkin): Long? = null
 *///?} else {
 fun skinHandle(skin: net.minecraft.client.resources.PlayerSkin): Long? =
     net.minecraft.client.Minecraft.getInstance().textureManager.getTexture(skin.texture()).id.toLong()
@@ -618,7 +811,7 @@ fun skinHandle(skin: net.minecraft.client.resources.PlayerSkin): Long? =
 
 /** The handle of an offscreen target's colour attachment. See [skinHandle] for why this can be null. */
 fun targetHandle(target: com.mojang.blaze3d.pipeline.RenderTarget): Long? {
-    //? if >=1.21.9 {
+    //? if >=1.21.5 {
     /*return null
     *///?} else {
     return target.colorTextureId.toLong()
@@ -639,7 +832,7 @@ fun renderItemPreview(
     buffers: net.minecraft.client.renderer.MultiBufferSource.BufferSource,
     stack: net.minecraft.world.item.ItemStack,
 ): Boolean {
-    //? if >=1.21.9 {
+    //? if >=1.21.5 {
     /*return false
     *///?} else {
     target.setClearColor(0f, 0f, 0f, 0f)
@@ -682,7 +875,7 @@ fun renderItemPreview(
  * value, so this waits for it; a screenshot command has nothing better to do meanwhile.
  */
 fun grabScreenshot(target: com.mojang.blaze3d.pipeline.RenderTarget): com.mojang.blaze3d.platform.NativeImage {
-    //? if >=1.21.9 {
+    //? if >=1.21.5 {
     /*val held = java.util.concurrent.CompletableFuture<com.mojang.blaze3d.platform.NativeImage>()
     net.minecraft.client.Screenshot.takeScreenshot(target) { held.complete(it) }
     return held.get(10, java.util.concurrent.TimeUnit.SECONDS)
