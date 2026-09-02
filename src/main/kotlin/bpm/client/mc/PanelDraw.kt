@@ -80,25 +80,21 @@ object PanelDraw {
             val (px, py) = place(p.anchor, p.offsetX, p.offsetY + stacked, (boxW * s).toInt(), (boxH * s).toInt(), screenW, screenH)
             used[p.anchor] = stacked + (boxH * s).toInt() + 6
 
-            val pose = g.pose()
-            pose.pushPose()
-            pose.translate(px.toFloat(), py.toFloat(), 0f)
-            pose.scale(s, s, 1f)
+            bpm.platform.client.guiScaled(g, px.toFloat(), py.toFloat(), s) {
+                glass(g, boxW, boxH)
 
-            glass(g, boxW, boxH)
+                // The mouse, brought into the panel's own unscaled space, so hit-testing needs no scale maths.
+                val lmx = if (mouseX < 0) Int.MIN_VALUE else ((mouseX - px) / s).toInt()
+                val lmy = if (mouseY < 0) Int.MIN_VALUE else ((mouseY - py) / s).toInt()
 
-            // The mouse, brought into the panel's own unscaled space, so hit-testing needs no scale maths.
-            val lmx = if (mouseX < 0) Int.MIN_VALUE else ((mouseX - px) / s).toInt()
-            val lmy = if (mouseY < 0) Int.MIN_VALUE else ((mouseY - py) / s).toInt()
-
-            for (cell in placed) {
-                val found = drawWidget(
-                    g, font, p, p.widgets[cell.index],
-                    PAD + cell.x, PAD + TITLE + cell.y, cell.w, cell.h, lmx, lmy,
-                )
-                if (found != null) hit = found
+                for (cell in placed) {
+                    val found = drawWidget(
+                        g, font, p, p.widgets[cell.index],
+                        PAD + cell.x, PAD + TITLE + cell.y, cell.w, cell.h, lmx, lmy,
+                    )
+                    if (found != null) hit = found
+                }
             }
-            pose.popPose()
         }
         return hit
     }
@@ -162,12 +158,9 @@ object PanelDraw {
                 if (size == 1) {
                     g.drawString(font, shown, tx, y, colour, false)
                 } else {
-                    val pose = g.pose()
-                    pose.pushPose()
-                    pose.translate(tx.toFloat(), y.toFloat(), 0f)
-                    pose.scale(size.toFloat(), size.toFloat(), 1f)
-                    g.drawString(font, shown, 0, 0, colour, false)
-                    pose.popPose()
+                    bpm.platform.client.guiScaled(g, tx.toFloat(), y.toFloat(), size.toFloat()) {
+                        g.drawString(font, shown, 0, 0, colour, false)
+                    }
                 }
             }
 
@@ -219,12 +212,9 @@ object PanelDraw {
                 val inBar = if (header === full || header === short) percent else short
                 val iw = (font.width(inBar) * BAR_TEXT).toInt()
                 if (iw <= width - 4) {
-                    val pose = g.pose()
-                    pose.pushPose()
-                    pose.translate(x + (width - iw) / 2f, by + (bh - LINE * BAR_TEXT) / 2f, 0f)
-                    pose.scale(BAR_TEXT, BAR_TEXT, 1f)
-                    g.drawString(font, inBar, 0, 0, ScreenColours.WHITE, true)
-                    pose.popPose()
+                    bpm.platform.client.guiScaled(g, x + (width - iw) / 2f, by + (bh - LINE * BAR_TEXT) / 2f, BAR_TEXT) {
+                        g.drawString(font, inBar, 0, 0, ScreenColours.WHITE, true)
+                    }
                 }
             }
 

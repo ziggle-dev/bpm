@@ -121,3 +121,31 @@ fun isKeyHeld(key: Int): Boolean {
  */
 fun ctrlHeld(): Boolean =
     isKeyHeld(org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_CONTROL) || isKeyHeld(org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_CONTROL)
+
+/**
+ * Translate and scale the GUI, draw, and put it back.
+ *
+ * The GUI's transform stack stopped being a `PoseStack` at 1.21.9 and became a JOML `Matrix3x2fStack` --
+ * two dimensions, because a GUI never had a third -- so `pushPose`/`popPose` became
+ * `pushMatrix`/`popMatrix` and the translate and scale lost their z.
+ *
+ * A shared wrapper over the two stacks would be a lie (the world's stack really is three-dimensional and
+ * still a PoseStack), which is why the seam is this instead: the only two things the panel ever does to
+ * that stack, named as one operation. Twenty lines against a type the caller then never mentions.
+ */
+inline fun guiScaled(g: net.minecraft.client.gui.GuiGraphics, x: Float, y: Float, scale: Float, body: () -> Unit) {
+    val pose = g.pose()
+    //? if >=1.21.9 {
+    /*pose.pushMatrix()
+    pose.translate(x, y)
+    pose.scale(scale, scale)
+    body()
+    pose.popMatrix()
+    *///?} else {
+    pose.pushPose()
+    pose.translate(x, y, 0f)
+    pose.scale(scale, scale, 1f)
+    body()
+    pose.popPose()
+    //?}
+}
