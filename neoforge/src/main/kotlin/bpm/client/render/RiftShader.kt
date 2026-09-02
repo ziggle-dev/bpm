@@ -3,10 +3,8 @@ package bpm.client.render
 import bpm.Bpm
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.VertexFormat
-import net.minecraft.client.renderer.RenderStateShard
 import bpm.platform.RenderType
 import bpm.platform.ResourceLocation
-import net.neoforged.neoforge.client.event.RegisterShadersEvent
 
 /** Which rift the client draws. Switch live with `/bpm rift <cube|tear>`. */
 
@@ -15,7 +13,7 @@ import net.neoforged.neoforge.client.event.RegisterShadersEvent
  *
  * **No samplers.** Both effects generate everything from value noise in the fragment shader, so there is no
  * texture to paint and no UV layout to keep in step. The format is
- * [DefaultVertexFormat.POSITION_TEX_COLOR_NORMAL] with [RenderStateShard.NO_TEXTURE], and the three
+ * [DefaultVertexFormat.POSITION_TEX_COLOR_NORMAL] with [net.minecraft.client.renderer.RenderStateShard.NO_TEXTURE], and the three
  * non-position channels are carrying data rather than appearance:
  *
  * - **UV0** — where in the face this fragment sits, 0..1.
@@ -52,7 +50,41 @@ object RiftShader : bpm.platform.client.RiftLook {
      * `shaders/core/`, so 1.21.4 wants `bpm:core/rift_cube` where 1.21.1 wants `bpm:rift_cube`. No single
      * spelling works on both -- hence the pair of JSONs under this node's own resources.
      */
-    //? if >=1.21.2 {
+    //? if >=1.21.9 {
+    /*/**
+     * On this band a core shader is not registered at all: a RENDER PIPELINE is, and it names the two
+     * GLSL files as part of its own definition. That is the third shape this registration has taken in
+     * four Minecraft versions, and it is the first one where nothing has to be held on to -- the pipeline
+     * is a value, the game compiles it when it loads resources, and a pack reload cannot leave this
+     * holding a stale handle.
+     *
+     * The GLSL is a translation, not a redesign: the same maths against std140 uniform blocks instead of
+     * loose uniforms. See `src/main/resources-1.21.11/assets/bpm/shaders/core`, which is generated from
+     * the 1.21.1 originals so the two cannot drift.
+     */
+    private fun pipeline(name: String, shader: String): com.mojang.blaze3d.pipeline.RenderPipeline =
+        com.mojang.blaze3d.pipeline.RenderPipeline.builder(net.minecraft.client.renderer.RenderPipelines.MATRICES_PROJECTION_SNIPPET)
+            .withLocation("pipeline/" + name)
+            .withVertexShader(rl(shader))
+            .withFragmentShader(rl(shader))
+            .withVertexFormat(FORMAT, VertexFormat.Mode.QUADS)
+            .withBlend(com.mojang.blaze3d.pipeline.BlendFunction.LIGHTNING)
+            .withCull(false)
+            .withDepthWrite(true)
+            .build()
+
+    private val CUBE_PIPELINE = pipeline("bpm_rift_cube", "core/rift_cube")
+    private val TEAR_PIPELINE = pipeline("bpm_rift_tear", "core/rift_tear")
+
+    fun register(event: net.neoforged.neoforge.client.event.RegisterRenderPipelinesEvent) {
+        event.registerPipeline(CUBE_PIPELINE)
+        event.registerPipeline(TEAR_PIPELINE)
+        Bpm.LOGGER.info("bpm rift pipelines registered (cube, tear)")
+    }
+
+    /** A pipeline is a value, so there is nothing to wait for. */
+    override val ready: Boolean get() = true
+    *///?} elif >=1.21.2 {
     /*private val CUBE_PROGRAM = net.minecraft.client.renderer.ShaderProgram(
         rl("core/rift_cube"), FORMAT, net.minecraft.client.renderer.ShaderDefines.EMPTY,
     )
@@ -60,7 +92,7 @@ object RiftShader : bpm.platform.client.RiftLook {
         rl("core/rift_tear"), FORMAT, net.minecraft.client.renderer.ShaderDefines.EMPTY,
     )
 
-    fun register(event: RegisterShadersEvent) {
+    fun register(event: net.neoforged.neoforge.client.event.RegisterShadersEvent) {
         event.registerShader(CUBE_PROGRAM)
         event.registerShader(TEAR_PROGRAM)
         Bpm.LOGGER.info("bpm rift shaders registered (cube, tear)")
@@ -76,7 +108,7 @@ object RiftShader : bpm.platform.client.RiftLook {
     private var cube: net.minecraft.client.renderer.ShaderInstance? = null
     private var tear: net.minecraft.client.renderer.ShaderInstance? = null
 
-    fun register(event: RegisterShadersEvent) {
+    fun register(event: net.neoforged.neoforge.client.event.RegisterShadersEvent) {
         event.registerShader(net.minecraft.client.renderer.ShaderInstance(event.resourceProvider, rl("rift_cube"), FORMAT)) { cube = it }
         event.registerShader(net.minecraft.client.renderer.ShaderInstance(event.resourceProvider, rl("rift_tear"), FORMAT)) { tear = it }
         Bpm.LOGGER.info("bpm rift shaders registered (cube, tear)")
@@ -97,7 +129,21 @@ object RiftShader : bpm.platform.client.RiftLook {
      * `discard` transparent fragments — and the tear discards everything outside its radius — so only the
      * visible mouth writes depth, never the quad it is cut from.
      */
-    private fun type(name: String, shader: RenderStateShard.ShaderStateShard): RenderType = net.minecraft.client.renderer.RenderType.create(
+    //? if >=1.21.9 {
+    /*private fun pipelineType(name: String, pipeline: com.mojang.blaze3d.pipeline.RenderPipeline): RenderType =
+        net.minecraft.client.renderer.rendertype.RenderType.create(
+            name,
+            net.minecraft.client.renderer.rendertype.RenderSetup.builder(pipeline)
+                .bufferSize(256)
+                .createRenderSetup(),
+        )
+    *///?} else {
+    /*
+     * Everything the composite state says below is now a property of the pipeline itself: the blend, the
+     * cull, the write mask and the vertex format. The only thing that stayed outside it is the buffer
+     * size, which is a hint about batching rather than a piece of GPU state.
+     */
+    private fun type(name: String, shader: net.minecraft.client.renderer.RenderStateShard.ShaderStateShard): RenderType = net.minecraft.client.renderer.RenderType.create(
         name,
         FORMAT,
         VertexFormat.Mode.QUADS,
@@ -106,19 +152,23 @@ object RiftShader : bpm.platform.client.RiftLook {
         false,
         net.minecraft.client.renderer.RenderType.CompositeState.builder()
             .setShaderState(shader)
-            .setTextureState(RenderStateShard.NO_TEXTURE)
-            .setTransparencyState(RenderStateShard.ADDITIVE_TRANSPARENCY)
-            .setCullState(RenderStateShard.NO_CULL)
-            .setWriteMaskState(RenderStateShard.COLOR_DEPTH_WRITE)
+            .setTextureState(net.minecraft.client.renderer.RenderStateShard.NO_TEXTURE)
+            .setTransparencyState(net.minecraft.client.renderer.RenderStateShard.ADDITIVE_TRANSPARENCY)
+            .setCullState(net.minecraft.client.renderer.RenderStateShard.NO_CULL)
+            .setWriteMaskState(net.minecraft.client.renderer.RenderStateShard.COLOR_DEPTH_WRITE)
             .createCompositeState(false),
     )
+    //?}
 
-    //? if >=1.21.2 {
-    /*private val CUBE: RenderType = type("bpm_rift_cube", RenderStateShard.ShaderStateShard(CUBE_PROGRAM))
-    private val TEAR: RenderType = type("bpm_rift_tear", RenderStateShard.ShaderStateShard(TEAR_PROGRAM))
+    //? if >=1.21.9 {
+    /*private val CUBE: RenderType = pipelineType("bpm_rift_cube", CUBE_PIPELINE)
+    private val TEAR: RenderType = pipelineType("bpm_rift_tear", TEAR_PIPELINE)
+    *///?} elif >=1.21.2 {
+    /*private val CUBE: RenderType = type("bpm_rift_cube", net.minecraft.client.renderer.RenderStateShard.ShaderStateShard(CUBE_PROGRAM))
+    private val TEAR: RenderType = type("bpm_rift_tear", net.minecraft.client.renderer.RenderStateShard.ShaderStateShard(TEAR_PROGRAM))
     *///?} else {
-    private val CUBE: RenderType = type("bpm_rift_cube", RenderStateShard.ShaderStateShard { cube })
-    private val TEAR: RenderType = type("bpm_rift_tear", RenderStateShard.ShaderStateShard { tear })
+    private val CUBE: RenderType = type("bpm_rift_cube", net.minecraft.client.renderer.RenderStateShard.ShaderStateShard { cube })
+    private val TEAR: RenderType = type("bpm_rift_tear", net.minecraft.client.renderer.RenderStateShard.ShaderStateShard { tear })
     //?}
 
     private fun rl(path: String) = ResourceLocation.fromNamespaceAndPath(Bpm.ID, path)

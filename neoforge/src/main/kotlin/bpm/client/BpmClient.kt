@@ -44,7 +44,15 @@ object BpmClient {
             Bpm.LOGGER.info("bpm client ready (smoke frames: {})", SmokeRun.frames)
         }
         modBus.addListener(EntityRenderersEvent.RegisterRenderers::class.java, Consumer(bpm.platform.client.NeoRendererRegistry::onRegisterRenderers))
+        //? if >=1.21.9 {
+        /*modBus.addListener(net.neoforged.neoforge.client.event.RegisterRenderPipelinesEvent::class.java, Consumer { e ->
+            bpm.client.render.RiftShader.register(e)
+            // The mod's own flat-colour and translucent pipelines, which the beams and the monitor screen draw with.
+            for (pipeline in bpm.platform.client.BpmPipelines.all) e.registerPipeline(pipeline)
+        })
+        *///?} else {
         modBus.addListener(net.neoforged.neoforge.client.event.RegisterShadersEvent::class.java, Consumer(bpm.client.render.RiftShader::register))
+        //?}
         bpm.platform.client.RiftLooks.install(bpm.client.render.RiftShader)
         modBus.addListener(net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent::class.java, Consumer(bpm.platform.client.NeoKeyRegistry::onRegisterKeys))
         /*
