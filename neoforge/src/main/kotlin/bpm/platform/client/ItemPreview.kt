@@ -87,7 +87,6 @@ internal val previewPipeline: com.mojang.blaze3d.pipeline.RenderPipeline by lazy
 fun renderItemPreview(
     mc: net.minecraft.client.Minecraft,
     target: com.mojang.blaze3d.pipeline.RenderTarget,
-    buffers: net.minecraft.client.renderer.MultiBufferSource.BufferSource,
     stack: net.minecraft.world.item.ItemStack,
 ): Boolean {
     val colour = target.colorTexture ?: return false

@@ -79,13 +79,6 @@ internal fun boxEdges(box: net.minecraft.world.phys.AABB): List<Pair<net.minecra
  * This also decides which GLSL a shader has to be written in, which is why the rift's sources are split
  * at the same version rather than at 1.21.9.
  */
-//? if >=1.21.6 {
-/*private fun matricesSnippet(): com.mojang.blaze3d.pipeline.RenderPipeline.Snippet =
-    net.minecraft.client.renderer.RenderPipelines.MATRICES_PROJECTION_SNIPPET
-*///?} elif >=1.21.5 {
-/*private fun matricesSnippet(): com.mojang.blaze3d.pipeline.RenderPipeline.Snippet =
-    net.minecraft.client.renderer.RenderPipelines.MATRICES_SNIPPET
-*///?}
 
 /**
  * `TextureStateShard` dropped its TriState blur argument at 1.21.6, and is gone entirely at 1.21.9 --
@@ -123,7 +116,7 @@ object BpmPipelines {
             .withLocation("pipeline/bpm_entity_translucent_cull")
             .withShaderDefine("ALPHA_CUTOUT", 0.1f)
             .withShaderDefine("PER_FACE_LIGHTING")
-            .withSampler("Sampler1")
+            .withExtraSampler("Sampler1")
             .withBlend(com.mojang.blaze3d.pipeline.BlendFunction.TRANSLUCENT)
             .build()
 
@@ -149,11 +142,11 @@ object BpmPipelines {
  * the rift shader's JSON asked for in words.
  */
 private fun colourQuadPipeline(name: String, additive: Boolean, depthWrite: Boolean): com.mojang.blaze3d.pipeline.RenderPipeline =
-    com.mojang.blaze3d.pipeline.RenderPipeline.builder(matricesSnippet())
+    matricesBuilder()
         .withLocation("pipeline/" + name)
         .withVertexShader("core/position_color")
         .withFragmentShader("core/position_color")
-        .withVertexFormat(com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_COLOR, com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS)
+        .withQuads(com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_COLOR)
         .withBlend(
             if (additive) com.mojang.blaze3d.pipeline.BlendFunction.LIGHTNING
             else com.mojang.blaze3d.pipeline.BlendFunction.TRANSLUCENT,
@@ -181,18 +174,14 @@ private val colourQuadCache = HashMap<String, RenderType>()
 fun additiveQuads(name: String): RenderType = colourQuadCache.getOrPut(name) {
     net.minecraft.client.renderer.rendertype.RenderType.create(
         name,
-        net.minecraft.client.renderer.rendertype.RenderSetup.builder(BpmPipelines.ADDITIVE_QUADS)
-            .bufferSize(256)
-            .createRenderSetup(),
+        quadRenderSetup(BpmPipelines.ADDITIVE_QUADS),
     )
 }
 
 fun translucentQuads(name: String): RenderType = colourQuadCache.getOrPut(name) {
     net.minecraft.client.renderer.rendertype.RenderType.create(
         name,
-        net.minecraft.client.renderer.rendertype.RenderSetup.builder(BpmPipelines.TRANSLUCENT_QUADS)
-            .bufferSize(256)
-            .createRenderSetup(),
+        quadRenderSetup(BpmPipelines.TRANSLUCENT_QUADS),
     )
 }
 
@@ -224,8 +213,7 @@ private fun linesType(throughWalls: Boolean): RenderType = lineTypeCache.getOrPu
         } else {
             com.mojang.blaze3d.pipeline.RenderPipeline.builder(net.minecraft.client.renderer.RenderPipelines.LINES_SNIPPET)
                 .withLocation("pipeline/bpm_lines_through_walls")
-                .withDepthTestFunction(com.mojang.blaze3d.platform.DepthTestFunction.NO_DEPTH_TEST)
-                .withDepthWrite(false)
+                .withoutDepth()
                 .build()
         }
     net.minecraft.client.renderer.rendertype.RenderType.create(
@@ -247,10 +235,10 @@ private fun linesType(throughWalls: Boolean): RenderType = lineTypeCache.getOrPu
 }
 
 fun worldLines(throughWalls: Boolean, width: Float, draw: (LinePass) -> Unit) {
-    val buffers = net.minecraft.client.Minecraft.getInstance().renderBuffers().bufferSource()
+    val into = immediateWorldDraw()
     val type = linesType(throughWalls)
-    draw(BufferLinePass(buffers.getBuffer(type), width))
-    buffers.endBatch(type)
+    draw(BufferLinePass(into.consumer(type), width))
+    into.flush(type)
 }
 
 private class BufferLinePass(
@@ -296,7 +284,7 @@ fun applyModelView() = Unit
 fun clearTarget(target: com.mojang.blaze3d.pipeline.RenderTarget): Unit = notYetOnThisBand("clearing a render target")
 
 fun offscreenTarget(width: Int, height: Int): com.mojang.blaze3d.pipeline.TextureTarget =
-    com.mojang.blaze3d.pipeline.TextureTarget(null, width, height, true)
+    offscreenColourTarget(width, height)
 *///?} elif >=1.21.5 {
 /*// 1.21.5 is where a render type stopped carrying its own GL state.
 //
@@ -347,11 +335,11 @@ object BpmPipelines {
 // Only the blend and the depth write differ between the two this mod needs, and BlendFunction.LIGHTNING
 // is SRC_ALPHA, ONE -- the same additive the old ADDITIVE_TRANSPARENCY shard was.
 private fun colourQuadPipeline(name: String, additive: Boolean, depthWrite: Boolean): com.mojang.blaze3d.pipeline.RenderPipeline =
-    com.mojang.blaze3d.pipeline.RenderPipeline.builder(matricesSnippet())
+    matricesBuilder()
         .withLocation("pipeline/" + name)
         .withVertexShader("core/position_color")
         .withFragmentShader("core/position_color")
-        .withVertexFormat(com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_COLOR, com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS)
+        .withQuads(com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_COLOR)
         .withBlend(
             if (additive) com.mojang.blaze3d.pipeline.BlendFunction.LIGHTNING
             else com.mojang.blaze3d.pipeline.BlendFunction.TRANSLUCENT,
@@ -472,7 +460,7 @@ fun applyModelView() = Unit
 fun clearTarget(target: com.mojang.blaze3d.pipeline.RenderTarget): Unit = notYetOnThisBand("clearing a render target")
 
 fun offscreenTarget(width: Int, height: Int): com.mojang.blaze3d.pipeline.TextureTarget =
-    com.mojang.blaze3d.pipeline.TextureTarget(null, width, height, true)
+    offscreenColourTarget(width, height)
 *///?} elif >=1.21.2 {
 /*private val translucentCullCache = HashMap<ResourceLocation, RenderType>()
 
@@ -807,7 +795,9 @@ fun blockSprite(texture: ResourceLocation): net.minecraft.client.renderer.textur
  * the sense the rest of this file uses the word. The seam is the instruction rather than the value.
  */
 fun drawFluidTranslucent(fluid: net.minecraft.world.level.material.Fluid) {
-    //? if >=1.21.6 {
+    //? if >=26.1 {
+    /*net.minecraft.client.renderer.block.dispatch.ItemBlockRenderTypes.setRenderLayer(fluid, net.minecraft.client.renderer.chunk.ChunkSectionLayer.TRANSLUCENT)
+    *///?} elif >=1.21.6 {
     /*net.minecraft.client.renderer.ItemBlockRenderTypes.setRenderLayer(fluid, net.minecraft.client.renderer.chunk.ChunkSectionLayer.TRANSLUCENT)
     *///?} else {
     net.minecraft.client.renderer.ItemBlockRenderTypes.setRenderLayer(fluid, net.minecraft.client.renderer.RenderType.translucent())
@@ -895,7 +885,6 @@ fun targetHandle(target: com.mojang.blaze3d.pipeline.RenderTarget): Long? {
 /*fun renderItemPreview(
     mc: net.minecraft.client.Minecraft,
     target: com.mojang.blaze3d.pipeline.RenderTarget,
-    buffers: net.minecraft.client.renderer.MultiBufferSource.BufferSource,
     stack: net.minecraft.world.item.ItemStack,
 ): Boolean = false
 *///?} elif >=1.21.5 <1.21.6 {
@@ -905,14 +894,24 @@ fun targetHandle(target: com.mojang.blaze3d.pipeline.RenderTarget): Long? {
 fun renderItemPreview(
     mc: net.minecraft.client.Minecraft,
     target: com.mojang.blaze3d.pipeline.RenderTarget,
-    buffers: net.minecraft.client.renderer.MultiBufferSource.BufferSource,
     stack: net.minecraft.world.item.ItemStack,
 ): Boolean = false
 *///?} elif <1.21.5 {
+/**
+ * Our own buffer source rather than the game's shared one.
+ *
+ * `mc.renderBuffers().bufferSource()` may already hold geometry another mod queued this frame; flushing
+ * it here would draw that into this 96x96 texture, and leave ours to be flushed into theirs later. This
+ * used to live in `BlockPreviewRenderer` and be passed in, until `MultiBufferSource` stopped existing on
+ * every band -- the reason for it is unchanged, only which side of the seam it sits on.
+ */
+private val previewBuffers: net.minecraft.client.renderer.MultiBufferSource.BufferSource by lazy {
+    net.minecraft.client.renderer.MultiBufferSource.immediate(com.mojang.blaze3d.vertex.ByteBufferBuilder(1536))
+}
+
 fun renderItemPreview(
     mc: net.minecraft.client.Minecraft,
     target: com.mojang.blaze3d.pipeline.RenderTarget,
-    buffers: net.minecraft.client.renderer.MultiBufferSource.BufferSource,
     stack: net.minecraft.world.item.ItemStack,
 ): Boolean {
     target.setClearColor(0f, 0f, 0f, 0f)
@@ -932,7 +931,7 @@ fun renderItemPreview(
      * different one, because then the item lands outside the depth range and clips away silently.
      */
     setGuiProjection(org.joml.Matrix4f().setOrtho(0f, 16f, 16f, 0f, -1000f, 1000f))
-    val graphics = net.minecraft.client.gui.GuiGraphics(mc, buffers)
+    val graphics = net.minecraft.client.gui.GuiGraphics(mc, previewBuffers)
     try {
         graphics.renderItem(stack, 0, 0)
         graphics.flush()

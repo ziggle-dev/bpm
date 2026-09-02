@@ -28,6 +28,16 @@ interface ImmediateDraw : WorldDraw {
 
     /** Somewhere to write geometry of [kind]. Valid until [flush]. */
     fun consumer(kind: bpm.platform.RenderType): com.mojang.blaze3d.vertex.VertexConsumer
+
+    /**
+     * Send just this render type's geometry, leaving anything else pending.
+     *
+     * A caller that drew one kind and ended one batch keeps doing exactly that. Ending ALL of them
+     * instead would be wrong rather than merely wasteful below 26.1, where the drawer is the game's own
+     * buffer source and another mod's geometry may be sitting in it: flushing early reorders their draw
+     * against everything queued after it.
+     */
+    fun flush(kind: bpm.platform.RenderType)
 }
 
 //? if >=26.1 {
@@ -89,10 +99,20 @@ internal class PreparedDraw : ImmediateDraw {
         state.submit(poseStack, ImmediateCollector(this), packedLight, packedOverlay, 0)
     }
 
+    override fun flush(kind: bpm.platform.RenderType) {
+        val builder = builders.remove(kind) ?: return
+        draw(kind, builder)
+    }
+
     override fun flush() {
+        for ((kind, builder) in builders) draw(kind, builder)
+        builders.clear()
+    }
+
+    private fun draw(kind: bpm.platform.RenderType, builder: com.mojang.blaze3d.vertex.BufferBuilder) {
         val device = com.mojang.blaze3d.systems.RenderSystem.getDevice()
-        for ((kind, builder) in builders) {
-            val mesh = builder.build() ?: continue
+        run {
+            val mesh = builder.build() ?: return
             mesh.use { built ->
                 val vertices = device.createBuffer(
                     { "bpm_world_draw" },
@@ -102,13 +122,16 @@ internal class PreparedDraw : ImmediateDraw {
                 try {
                     val indices = com.mojang.blaze3d.systems.RenderSystem.getSequentialBuffer(kind.primitiveTopology())
                     val count = built.drawState().indexCount()
-                    kind.prepare().drawFromBuffer(vertices, indices.getBuffer(count), indices.type(), 0, count, 1)
+                    // (vertices, indices, indexType, baseVertex, firstIndex, indexCount) -- the last three
+                    // are all ints, so getting the order wrong compiles and silently draws nothing. The
+                    // order is read off `drawFromBuffer(StagedVertexBuffer.ExecuteInfo)`, which forwards
+                    // baseVertex, firstIndex, indexCount in that order.
+                    kind.prepare().drawFromBuffer(vertices, indices.getBuffer(count), indices.type(), 0, 0, count)
                 } finally {
                     vertices.close()
                 }
             }
         }
-        builders.clear()
     }
 }
 *///?} elif >=1.21.9 {
@@ -158,6 +181,10 @@ internal class SourceDraw(private val bufferSource: net.minecraft.client.rendere
         drawWorldItem(poseStack, bufferSource, stack, context, packedLight, level, seed)
     }
 
+    override fun flush(kind: bpm.platform.RenderType) {
+        (bufferSource as? net.minecraft.client.renderer.MultiBufferSource.BufferSource)?.endBatch(kind)
+    }
+
     override fun flush() {
         (bufferSource as? net.minecraft.client.renderer.MultiBufferSource.BufferSource)?.endBatch()
     }
@@ -169,6 +196,10 @@ internal class SourceDraw(private val bufferSource: net.minecraft.client.rendere
 
     override fun consumer(kind: bpm.platform.RenderType): com.mojang.blaze3d.vertex.VertexConsumer =
         bufferSource.getBuffer(kind)
+
+    override fun flush(kind: bpm.platform.RenderType) {
+        (bufferSource as? net.minecraft.client.renderer.MultiBufferSource.BufferSource)?.endBatch(kind)
+    }
 }
 //?}
 

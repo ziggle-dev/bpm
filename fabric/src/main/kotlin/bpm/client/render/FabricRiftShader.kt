@@ -1,5 +1,9 @@
 package bpm.client.render
 
+//? if >=1.21.5 {
+/*import bpm.platform.client.withQuads
+*///?}
+
 import bpm.Bpm
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.VertexFormat
@@ -54,11 +58,11 @@ object FabricRiftShader : bpm.platform.client.RiftLook {
     // of loose uniforms. See `src/main/resources-1.21.11/assets/bpm/shaders/core`, which is generated
     // from the 1.21.1 originals so the two cannot drift.
     private fun pipeline(name: String, shader: String): com.mojang.blaze3d.pipeline.RenderPipeline =
-        com.mojang.blaze3d.pipeline.RenderPipeline.builder(matricesSnippet())
+        bpm.platform.client.matricesBuilder()
             .withLocation("pipeline/" + name)
             .withVertexShader(rl(shader))
             .withFragmentShader(rl(shader))
-            .withVertexFormat(FORMAT, VertexFormat.Mode.QUADS)
+            .withQuads(FORMAT)
             .withBlend(com.mojang.blaze3d.pipeline.BlendFunction.LIGHTNING)
             .withCull(false)
             .withDepthWrite(true)
@@ -81,11 +85,11 @@ object FabricRiftShader : bpm.platform.client.RiftLook {
     // NeoForge counterpart. Nothing is registered on either band, which on this loader is not a
     // compromise: Fabric has never had a pipeline registration event.
     private fun pipeline(name: String, shader: String): com.mojang.blaze3d.pipeline.RenderPipeline =
-        com.mojang.blaze3d.pipeline.RenderPipeline.builder(matricesSnippet())
+        bpm.platform.client.matricesBuilder()
             .withLocation("pipeline/" + name)
             .withVertexShader(rl(shader))
             .withFragmentShader(rl(shader))
-            .withVertexFormat(FORMAT, VertexFormat.Mode.QUADS)
+            .withQuads(FORMAT)
             .withBlend(com.mojang.blaze3d.pipeline.BlendFunction.LIGHTNING)
             .withCull(false)
             .withDepthWrite(true)
@@ -173,9 +177,7 @@ object FabricRiftShader : bpm.platform.client.RiftLook {
     private fun pipelineType(name: String, pipeline: com.mojang.blaze3d.pipeline.RenderPipeline): RenderType =
         net.minecraft.client.renderer.rendertype.RenderType.create(
             name,
-            net.minecraft.client.renderer.rendertype.RenderSetup.builder(pipeline)
-                .bufferSize(256)
-                .createRenderSetup(),
+            bpm.platform.client.quadRenderSetup(pipeline),
         )
     *///?} elif >=1.21.5 {
     /*private fun pipelineType(name: String, pipeline: com.mojang.blaze3d.pipeline.RenderPipeline): RenderType =

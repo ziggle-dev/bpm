@@ -1,5 +1,9 @@
 package bpm.client.render
 
+//? if >=1.21.5 {
+/*import bpm.platform.client.withQuads
+*///?}
+
 import bpm.Bpm
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.VertexFormat
@@ -74,11 +78,11 @@ object RiftShader : bpm.platform.client.RiftLook {
      * the 1.21.1 originals so the two cannot drift.
      */
     private fun pipeline(name: String, shader: String): com.mojang.blaze3d.pipeline.RenderPipeline =
-        com.mojang.blaze3d.pipeline.RenderPipeline.builder(matricesSnippet())
+        bpm.platform.client.matricesBuilder()
             .withLocation("pipeline/" + name)
             .withVertexShader(rl(shader))
             .withFragmentShader(rl(shader))
-            .withVertexFormat(FORMAT, VertexFormat.Mode.QUADS)
+            .withQuads(FORMAT)
             .withBlend(com.mojang.blaze3d.pipeline.BlendFunction.LIGHTNING)
             .withCull(false)
             .withDepthWrite(true)
@@ -104,11 +108,11 @@ object RiftShader : bpm.platform.client.RiftLook {
     // time a render pass is set to it, and registration only moves that compile earlier -- the same
     // thing FabricRiftShader relies on, where no such event exists on any band.
     private fun pipeline(name: String, shader: String): com.mojang.blaze3d.pipeline.RenderPipeline =
-        com.mojang.blaze3d.pipeline.RenderPipeline.builder(matricesSnippet())
+        bpm.platform.client.matricesBuilder()
             .withLocation("pipeline/" + name)
             .withVertexShader(rl(shader))
             .withFragmentShader(rl(shader))
-            .withVertexFormat(FORMAT, VertexFormat.Mode.QUADS)
+            .withQuads(FORMAT)
             .withBlend(com.mojang.blaze3d.pipeline.BlendFunction.LIGHTNING)
             .withCull(false)
             .withDepthWrite(true)
@@ -166,12 +170,7 @@ object RiftShader : bpm.platform.client.RiftLook {
      */
     //? if >=1.21.9 {
     /*private fun pipelineType(name: String, pipeline: com.mojang.blaze3d.pipeline.RenderPipeline): RenderType =
-        net.minecraft.client.renderer.rendertype.RenderType.create(
-            name,
-            net.minecraft.client.renderer.rendertype.RenderSetup.builder(pipeline)
-                .bufferSize(256)
-                .createRenderSetup(),
-        )
+        net.minecraft.client.renderer.rendertype.RenderType.create(name, bpm.platform.client.quadRenderSetup(pipeline))
     *///?} elif >=1.21.5 {
     /*// Same pipeline, older way of naming one: a CompositeState with nothing left in it, because every
     // piece of state this render type used to carry now lives in the pipeline. The buffer size is the

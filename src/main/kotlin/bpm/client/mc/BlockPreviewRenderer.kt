@@ -11,9 +11,7 @@ import dev.ziggle.vscript.editor.host.IconRef
 import dev.ziggle.vscript.editor.host.IconRegion
 import dev.ziggle.vscript.editor.host.IconSource
 import net.minecraft.client.Minecraft
-import com.mojang.blaze3d.vertex.ByteBufferBuilder
 import bpm.platform.client.GuiGraphics
-import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
 import bpm.platform.ResourceLocation
@@ -143,16 +141,16 @@ object BlockPreviewRenderer : BlockPreviews, ItemIcons, IconSource {
     }
 
     /**
-     * Our own buffer source rather than the game's shared one.
+     * False when this band has no offscreen path -- see [bpm.platform.client.renderItemPreview].
      *
-     * `mc.renderBuffers().bufferSource()` may already hold geometry another mod queued this frame; flushing it
-     * here would draw that into this 96x96 texture, and leave ours to be flushed into theirs later.
+     * The buffers this draws through belong to the seam, not to here, and deliberately are not the game's
+     * shared ones: `mc.renderBuffers().bufferSource()` may already hold geometry another mod queued this
+     * frame, and flushing it here would draw that into this 96x96 texture and leave ours to be flushed
+     * into theirs later. That reason lives on the other side of the seam now because `MultiBufferSource`
+     * does not exist on every band this compiles for.
      */
-    private val buffers: MultiBufferSource.BufferSource by lazy { MultiBufferSource.immediate(ByteBufferBuilder(1536)) }
-
-    /** False when this band has no offscreen path -- see [bpm.platform.client.renderItemPreview]. */
     private fun render(mc: Minecraft, slot: Slot, stack: ItemStack): Boolean =
-        bpm.platform.client.renderItemPreview(mc, slot.target, buffers, stack)
+        bpm.platform.client.renderItemPreview(mc, slot.target, stack)
 
     /** What `/bpm previews` reports — enough to tell "nothing was asked for" from "everything failed". */
     fun diagnostics(): String {
