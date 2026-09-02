@@ -7,7 +7,20 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
  */
 plugins {
     id("dev.kikugie.stonecutter")
-    id("net.neoforged.moddev") version "2.0.144"
+    /*
+     * TWO ModDevGradle plugins, neither applied here -- the band chooses, exactly as the Fabric branch
+     * chooses between its two Looms.
+     *
+     * `legacyforge` is described as an addon, but it APPLIES the plugins it needs itself (five of them,
+     * read from its bytecode), so applying it on top of `moddev` fails with "Cannot add a configuration
+     * with name 'accessTransformers' as a configuration with that name already exists". It replaces it.
+     *
+     * It brings SRG: from 1.20.1 the mod is written against Mojang names and REOBFUSCATED on the way
+     * out, so `jar` produces the SRG artifact and the readable one moves to `build/devlibs` with a
+     * `-dev` classifier. Nothing above 1.20.1 has a reobfuscation step at all.
+     */
+    id("net.neoforged.moddev") version "2.0.144" apply false
+    id("net.neoforged.moddev.legacyforge") version "2.0.144" apply false
     // The SAME Kotlin plugin version as the included vscript build: a composite loads one copy of a plugin,
     // and two versions of the Kotlin plugin in one build fail to load at all.
     kotlin("jvm") version "2.3.21"
@@ -165,14 +178,14 @@ repositories {
  *
  * It stays part of the bpm mod, so nothing about packaging or dev runs changes.
  */
-val core by sourceSets.creating
+val core = sourceSets.create("core")
 
 /*
  * **The dev-only source set.** `src/dev/kotlin` holds the debugging endpoint (a websocket console with a Lua
  * `eval`) that is never shipped: it is compiled against `main`, added to the mod's classes in dev runs, and
  * left out of the jar. `main` reaches it only reflectively, by name, so a build without it is complete.
  */
-val dev by sourceSets.creating
+val dev = sourceSets.create("dev")
 
 sourceSets {
     main {
@@ -398,20 +411,58 @@ kotlin.sourceSets.named("test") {
  * `gameLibraries` is the bundled list as a resolvable set (used by tooling); `devLibraries` holds the dev-only
  * Lua console and is put on the boot layer of runs and tests — plain Java, so the boot layer suits it.
  */
-val gameLibraries by configurations.creating {
+val gameLibraries = configurations.create("gameLibraries") {
     isCanBeConsumed = false
     isCanBeResolved = true
     isTransitive = false
 }
-val devLibraries by configurations.creating {
+val devLibraries = configurations.create("devLibraries") {
     isCanBeConsumed = false
     isCanBeResolved = true
     isTransitive = true
 }
 configurations["devImplementation"].extendsFrom(devLibraries)
 
-neoForge {
-    version = neoVersion
+/*
+ * Which plugin, and therefore which extension.
+ *
+ * `legacyForge` and `neoForge` both extend `ModDevExtension`, so everything below -- runs, access
+ * transformers, the lot -- is configured once against the BASE type and only the version is set per
+ * band. `moddevExtension` is the name the chosen plugin registered.
+ */
+val legacyBand = stonecutter.eval(minecraftVersion, "<1.20.2")
+apply(plugin = if (legacyBand) "net.neoforged.moddev.legacyforge" else "net.neoforged.moddev")
+
+val moddevExtension = if (legacyBand) "legacyForge" else "neoForge"
+
+/*
+ * Read OUT here, used INSIDE the run configuration below.
+ *
+ * Touching `project` from inside a run block is deprecated -- those blocks are configured lazily and may
+ * outlive the point where reaching for the project is safe -- and Gradle compiles the deprecation as an
+ * error in this script. The values themselves are just the two `-P` flags the run harness takes.
+ */
+val editorFrames = (project.findProperty("frames") ?: "0").toString()
+val quickPlayWorld = project.findProperty("world")?.toString()
+if (legacyBand) {
+    extensions.configure<net.neoforged.moddevgradle.legacyforge.dsl.LegacyForgeExtension>(moddevExtension) {
+        /*
+         * `enable { neoForgeVersion = ... }`, NOT `version = ...`.
+         *
+         * `version` on this extension means MINECRAFTFORGE -- setting it asks for
+         * `net.minecraftforge:forge`, which has no 47.1.106 because that build number is NeoForge's. The
+         * plugin knows both coordinates and picks `net.neoforged:forge` only when the version arrives
+         * through the settings object.
+         */
+        enable { neoForgeVersion = neoVersion }
+    }
+} else {
+    extensions.configure<net.neoforged.moddevgradle.dsl.NeoForgeExtension>(moddevExtension) {
+        version = neoVersion
+    }
+}
+
+extensions.configure<net.neoforged.moddevgradle.dsl.ModDevExtension>(moddevExtension) {
 
     /*
      * The counterpart of the Fabric branch's access widener, scoped identically: 1.21.5-1.21.8 only.
@@ -425,10 +476,10 @@ neoForge {
         create("client") {
             client()
             // `gradlew runClient -Pframes=120`: open the editor on the title screen, draw N frames, write a marker, quit.
-            systemProperty("bpm.editor.frames", (project.findProperty("frames") ?: "0").toString())
+            systemProperty("bpm.editor.frames", editorFrames)
             // `gradlew runClient -Pworld="Test World"`: straight into that single-player world (created if missing).
-            if (project.hasProperty("world")) {
-                programArguments.addAll("--quickPlaySingleplayer", project.property("world").toString())
+            if (quickPlayWorld != null) {
+                programArguments.addAll("--quickPlaySingleplayer", quickPlayWorld)
             }
         }
         create("server") {
@@ -476,9 +527,22 @@ neoForge {
         }
     }
 
-    unitTest {
-        enable()
-        testedMod = mods.getByName("bpm")
+}
+
+/*
+ * The 123 unit tests run on 1.21.1 and NOT on 1.20.1, and that is a limitation rather than a choice.
+ *
+ * `unitTest { }` is declared on `NeoForgeExtension`. `LegacyForgeExtension` extends the same
+ * `ModDevExtension` base but does not carry it -- MDG's legacy path has no in-game unit-test
+ * integration at all -- so there is nothing to enable on that band. Written against the extension by
+ * type, since neither is a generated accessor any more.
+ */
+if (!legacyBand) {
+    extensions.configure<net.neoforged.moddevgradle.dsl.NeoForgeExtension>(moddevExtension) {
+        unitTest {
+            enable()
+            testedMod = mods.getByName("bpm")
+        }
     }
 }
 
@@ -516,7 +580,18 @@ dependencies {
     if (stonecutter.eval(minecraftVersion, ">=26.1")) {
         implementation("maven.modrinth:geckolib:$geckolibVersion")
     } else {
-        implementation("software.bernie.geckolib:geckolib-neoforge-$minecraftVersion:$geckolibVersion")
+        /*
+         * `forge` rather than `neoforge` on 1.20.1, and not only because that is the fork point.
+         *
+         * BOTH artifacts exist for this version, and they are not the same library: `geckolib-neoforge-
+         * 1.20.1` stops at 4.4.9 while `geckolib-forge-1.20.1` reaches 4.8.4 -- which is the version the
+         * Fabric branch resolves for the same Minecraft. Taking the Forge one keeps both loaders on ONE
+         * GeckoLib API for this band, so the renderer seam stays a single body; taking the NeoForge one
+         * would mean 4.4 here and 4.8 there. A NeoForge 1.20.1 mod loads a Forge 47 jar, because at this
+         * version they are the same file.
+         */
+        val geckoLoader = if (legacyBand) "forge" else "neoforge"
+        implementation("software.bernie.geckolib:geckolib-$geckoLoader-$minecraftVersion:$geckolibVersion")
     }
 
     // Dev runs only: Mekanism (core + generators) to test the energy and fluid verbs against real machines,
