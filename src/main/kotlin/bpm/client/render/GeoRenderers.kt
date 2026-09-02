@@ -166,6 +166,20 @@ fun geoItemRenderer(item: net.minecraft.world.item.Item, consumer: java.util.fun
  * The idle animations are Molang-driven (see the READMEs in `art/`): an unset variable evaluates to 0, which
  * freezes the core, so every variable each model reads is set here from the animatable being rendered.
  */
+/**
+ * What a Molang variable is allowed to look at.
+ *
+ * [animatable] is the thing being drawn. [stack] is the item stack it is being drawn FROM, when there is
+ * one -- `variable.linked` needs it, because whether a linker glows depends on the stack in the hand
+ * rather than on the item type.
+ *
+ * `stack` is NULL on GeckoLib 4.8. That band's per-frame hook is `GeoModel.applyMolangQueries`, which is
+ * handed the animatable and nothing else; the stack is known to the renderer there, not the model. The
+ * consequence is small and worth stating: on 1.20.1 a bound linker does not spin faster than an unbound
+ * one. Everything else in this map reads the animatable and is unaffected.
+ */
+class MolangCtx(val animatable: Any?, val stack: net.minecraft.world.item.ItemStack?)
+
 object GeoRenderers {
     fun registerRenderers() = ClientRenderers.renderers { sink ->
         sink.blockEntity(ModBlockEntities.CONTROLLER.get()) { ControllerRenderer(it) }
@@ -175,10 +189,21 @@ object GeoRenderers {
         sink.entity(bpm.world.entity.ModEntities.PULSE.get()) { LinkerPulseRenderer(it) }
     }
 
-    fun installMolang() {
+    /**
+     * Every Molang variable this mod defines, as a pure function of the thing being drawn.
+     *
+     * A map rather than a series of registration calls because the two GeckoLib eras install them
+     * differently and neither should have to know what the values MEAN. 5.x asks an actor for its
+     * animatable and answers per query; 4.8 has no actor at all -- its `setValue` takes a bare supplier --
+     * so the model sets them per frame with the animatable in hand. Both consume this same map.
+     *
+     * `Any?` rather than `GeoAnimatable`: what each branch does is a `when` over the mod's own types, and
+     * making the parameter GeckoLib-shaped would drag the library into a file that is otherwise pure.
+     */
+    val MOLANG: Map<String, (MolangCtx) -> Double> = linkedMapOf(
         // Controller (block and item): spin/bob follow the status; the phase is per block.
-        MolangQueries.setActorVariable<Any>("variable.spin_speed") { actor ->
-            when (val a = actor.animatable()) {
+        "variable.spin_speed" to { c: MolangCtx ->
+            when (val a = c.animatable) {
                 is ControllerBlockEntity -> if (statusOf(a) == ControllerStatus.RUNNING) 1.0 else 0.5
                 is LinkerItem -> 1.0
                 is bpm.world.items.QuantumTetherItem -> 1.0
@@ -186,73 +211,75 @@ object GeoRenderers {
                 is bpm.world.entity.QuantumWardenEntity -> 1.0
                 else -> 0.6
             }
-        }
-        MolangQueries.setActorVariable<Any>("variable.bob_amount") { actor ->
-            when (val a = actor.animatable()) {
+        },
+        "variable.bob_amount" to { c: MolangCtx ->
+            when (val a = c.animatable) {
                 is ControllerBlockEntity -> if (statusOf(a) == ControllerStatus.RUNNING) 1.0 else 0.4
                 is bpm.world.entity.QuantumWardenEntity -> 1.0
                 else -> 0.5
             }
-        }
-        MolangQueries.setActorVariable<Any>("variable.beam_speed") { actor ->
-            when (val a = actor.animatable()) {
+        },
+        "variable.beam_speed" to { c: MolangCtx ->
+            when (val a = c.animatable) {
                 is ControllerBlockEntity -> if (statusOf(a) == ControllerStatus.RUNNING) 0.5 else 0.0
                 else -> 0.0
             }
-        }
-        MolangQueries.setActorVariable<Any>("variable.beam_power") { actor ->
-            when (val a = actor.animatable()) {
+        },
+        "variable.beam_power" to { c: MolangCtx ->
+            when (val a = c.animatable) {
                 is ControllerBlockEntity -> if (statusOf(a) == ControllerStatus.RUNNING) 1.0 else 0.0
                 else -> 0.0
             }
-        }
-        MolangQueries.setActorVariable<Any>("variable.phase") { actor ->
-            when (val a = actor.animatable()) {
+        },
+        "variable.phase" to { c: MolangCtx ->
+            when (val a = c.animatable) {
                 is ControllerBlockEntity -> a.animPhase
                 is bpm.world.devices.DeviceBlockEntity -> a.animPhase
                 is bpm.world.entity.QuantumWardenEntity -> a.animPhase
                 else -> 0.0
             }
-        }
+        },
         // Devices: the gate's flow direction, the pedestal's core, the turret's aim.
-        MolangQueries.setActorVariable<Any>("variable.direction") { actor ->
-            when (val a = actor.animatable()) {
+        "variable.direction" to { c: MolangCtx ->
+            when (val a = c.animatable) {
                 is bpm.world.devices.GateBlockEntity -> a.direction.toDouble()
                 else -> 1.0
             }
-        }
-        MolangQueries.setActorVariable<Any>("variable.has_core") { actor ->
-            when (val a = actor.animatable()) {
+        },
+        "variable.has_core" to { c: MolangCtx ->
+            when (val a = c.animatable) {
                 is bpm.world.devices.PedestalBlockEntity -> if (a.showsCore) 1.0 else 0.0
                 else -> 1.0
             }
-        }
+        },
         // A pedestal holding an ingredient aims its prongs at it; an empty one rests.
-        MolangQueries.setActorVariable<Any>("variable.has_item") { actor ->
-            when (val a = actor.animatable()) {
+        "variable.has_item" to { c: MolangCtx ->
+            when (val a = c.animatable) {
                 is bpm.world.devices.PedestalBlockEntity -> if (a.held.isEmpty) 0.0 else 1.0
                 else -> 0.0
             }
-        }
-        MolangQueries.setActorVariable<Any>("variable.target_yaw") { actor ->
-            (actor.animatable() as? bpm.world.devices.TurretBlockEntity)?.targetYaw?.toDouble() ?: 0.0
-        }
-        MolangQueries.setActorVariable<Any>("variable.target_pitch") { actor ->
-            (actor.animatable() as? bpm.world.devices.TurretBlockEntity)?.targetPitch?.toDouble() ?: 0.0
-        }
+        },
+        "variable.target_yaw" to { c: MolangCtx ->
+            (c.animatable as? bpm.world.devices.TurretBlockEntity)?.targetYaw?.toDouble() ?: 0.0
+        },
+        "variable.target_pitch" to { c: MolangCtx ->
+            (c.animatable as? bpm.world.devices.TurretBlockEntity)?.targetPitch?.toDouble() ?: 0.0
+        },
         // The Warden's stage and shield.
-        MolangQueries.setActorVariable<Any>("variable.stage") { actor -> (actor.animatable() as? bpm.world.entity.QuantumWardenEntity)?.stage?.toDouble() ?: 1.0 }
-        MolangQueries.setActorVariable<Any>("variable.shield") { actor -> if ((actor.animatable() as? bpm.world.entity.QuantumWardenEntity)?.shielded == true) 1.0 else 0.0 }
+        "variable.stage" to { c: MolangCtx -> (c.animatable as? bpm.world.entity.QuantumWardenEntity)?.stage?.toDouble() ?: 1.0 },
+        "variable.shield" to { c: MolangCtx -> if ((c.animatable as? bpm.world.entity.QuantumWardenEntity)?.shielded == true) 1.0 else 0.0 },
         // Linker: 1 while a controller is bound to the stack being drawn.
         // …and the tether: 1 while the stack being drawn is bound to a controller, which speeds its ring up
         // and swells the gem, exactly as a bound linker spins faster.
-        MolangQueries.setActorVariable<Any>("variable.linked") { actor ->
-            val stack = bpm.platform.client.actorStack(actor)
+        "variable.linked" to { c: MolangCtx ->
+            val stack = c.stack
             val bound = stack != null &&
                 (stack.hasComp(ModComponents.SELECTED_CONTROLLER.get()) || stack.hasComp(ModComponents.TETHER_CONTROLLER.get()))
             if (bound) 1.0 else 0.0
-        }
-    }
+        },
+    )
+
+    fun installMolang() = bpm.platform.client.installMolang(MOLANG)
 
     private fun statusOf(be: ControllerBlockEntity): ControllerStatus {
         val state = be.blockState

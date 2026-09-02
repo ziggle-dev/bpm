@@ -146,3 +146,52 @@ fun geckoAsset(path: ResourceLocation): ResourceLocation {
     return path
     //?}
 }
+
+
+/**
+ * Install the mod's Molang variables.
+ *
+ * The two GeckoLib eras disagree about what a Molang variable IS, and it is not a rename.
+ *
+ * 5.x has `MolangQueries.setActorVariable`: a query is answered per ACTOR, and the actor hands back the
+ * animatable being drawn, so one registration serves every model.
+ *
+ * 4.8 has `MolangParser.setValue`, which takes a bare `DoubleSupplier` and no actor at all -- its
+ * variables are global. Per-animatable values go through the model instead: `GeoModel` there has an
+ * `applyMolangQueries` hook that runs each frame with the animatable in hand, which is where
+ * [applyMolang] sets them. So on that band this call registers nothing and the model does the work.
+ */
+fun installMolang(variables: Map<String, (bpm.client.render.MolangCtx) -> Double>) {
+    //? if >=1.21 {
+    for ((name, value) in variables) {
+        bpm.platform.MolangQueries.setActorVariable<Any>(name) { actor ->
+            value(bpm.client.render.MolangCtx(actor.animatable(), actorStack(actor)))
+        }
+    }
+    //?} else {
+    /*// Nothing global to register: see applyMolang, which the model calls per frame.
+    molangVariables = variables
+    *///?}
+}
+
+//? if >=1.21 {
+/** No-op above 4.8: the actor variables installed above already carry the animatable. */
+@Suppress("UNUSED_PARAMETER")
+fun applyMolang(animatable: Any?) = Unit
+//?} else {
+/*private var molangVariables: Map<String, (bpm.client.render.MolangCtx) -> Double> = emptyMap()
+
+/**
+ * Set every variable for [animatable], for the frame about to be drawn.
+ *
+ * Called from the model's `applyMolangQueries`, which is the only point on 4.8 where the animatable and
+ * the parser are both in hand. The suppliers capture the animatable rather than reading it later,
+ * because `setValue` keeps them and a stale capture would animate the wrong thing.
+ */
+fun applyMolang(animatable: Any?) {
+    val parser = software.bernie.geckolib.core.molang.MolangParser.INSTANCE
+    for ((name, value) in molangVariables) {
+        parser.setValue(name) { value(bpm.client.render.MolangCtx(animatable, null)) }
+    }
+}
+*///?}

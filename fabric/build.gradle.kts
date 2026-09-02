@@ -411,6 +411,18 @@ dependencies {
     add(deobf, "net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
     // Fabric Language Kotlin is this loader's KotlinForForge: it supplies the stdlib in a player's game.
     add(deobf, "net.fabricmc:fabric-language-kotlin:$flkVersion")
+
+    /*
+     * McLib, only where GeckoLib 4.x needs it.
+     *
+     * GeckoLib 4.8's MolangParser extends com.eliotlash.mclib.math.MathBuilder. Kotlin has to see a
+     * supertype to use the subtype, so without this the parser is unusable with "Cannot access
+     * MathBuilder which is a supertype of MolangParser". It arrives transitively at runtime either way;
+     * this puts it on the COMPILE classpath. The 5.x line has no such dependency.
+     */
+    if (stonecutter.eval(minecraftVersion, "<1.20.2")) {
+        compileOnly("com.eliotlash.mclib:mclib:20")
+    }
     // GeckoLib publishes per loader from the same source; the model, animation and Molang APIs the mod
     // uses are identical, which is why none of bpm's renderer code is loader-specific.
     /*
