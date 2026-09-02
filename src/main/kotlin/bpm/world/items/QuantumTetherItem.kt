@@ -1,5 +1,8 @@
 package bpm.world.items
 
+import bpm.platform.registry.comp
+import bpm.platform.registry.hasComp
+
 import bpm.world.ControllerBlockEntity
 import bpm.world.Grant
 import bpm.world.Grants
@@ -69,7 +72,7 @@ class QuantumTetherItem(properties: Properties) : TooltipItem(properties), GeoIt
         val be = level.getBlockEntity(pos) as? ControllerBlockEntity ?: return InteractionResult.PASS
         val here = GlobalPos.of(level.dimension(), pos)
 
-        if (stack.get(ModComponents.TETHER_CONTROLLER.get()) == here && be.links.byPlayer(player.uuid) != null) {
+        if (stack.comp(ModComponents.TETHER_CONTROLLER.get()) == here && be.links.byPlayer(player.uuid) != null) {
             say(player, "already tethered to ${pos.toShortString()} · ${Grants.label(grantsOf(stack))}")
             return InteractionResult.CONSUME
         }
@@ -98,7 +101,7 @@ class QuantumTetherItem(properties: Properties) : TooltipItem(properties), GeoIt
         if (!player.isShiftKeyDown) return bpm.platform.Use.pass(stack)
         if (level.isClientSide) return bpm.platform.Use.success(stack)
 
-        val bound = stack.get(ModComponents.TETHER_CONTROLLER.get()) ?: run {
+        val bound = stack.comp(ModComponents.TETHER_CONTROLLER.get()) ?: run {
             say(player, "sneak-use a controller to tether yourself to it")
             return bpm.platform.Use.fail(stack)
         }
@@ -135,7 +138,7 @@ class QuantumTetherItem(properties: Properties) : TooltipItem(properties), GeoIt
     override fun carriedTick(stack: ItemStack, level: net.minecraft.server.level.ServerLevel, entity: Entity, inHand: Boolean) {
         if (level.gameTime % SEEN_EVERY != 0L) return
         val player = entity as? Player ?: return
-        val bound = stack.get(ModComponents.TETHER_CONTROLLER.get()) ?: return
+        val bound = stack.comp(ModComponents.TETHER_CONTROLLER.get()) ?: return
         if (bound.dimension() != level.dimension() || !level.isLoaded(bound.pos())) return
         val be = level.getBlockEntity(bound.pos()) as? ControllerBlockEntity ?: return
         if (be.links.seen(player.uuid, player.blockPosition(), level.dimension())) be.setChanged()
@@ -145,7 +148,7 @@ class QuantumTetherItem(properties: Properties) : TooltipItem(properties), GeoIt
 
     override fun lore(stack: ItemStack, add: (Component) -> Unit) {
         super.lore(stack, add)
-        val bound = stack.get(ModComponents.TETHER_CONTROLLER.get())
+        val bound = stack.comp(ModComponents.TETHER_CONTROLLER.get())
         if (bound == null) {
             add(Component.translatable("item.bpm.quantum_tether.unbound").withStyle(ChatFormatting.GRAY))
             return
@@ -157,9 +160,9 @@ class QuantumTetherItem(properties: Properties) : TooltipItem(properties), GeoIt
     }
 
     /** A bound tether glints, so it is obvious at a glance that something can reach you. */
-    override fun isFoil(stack: ItemStack): Boolean = stack.has(ModComponents.TETHER_CONTROLLER.get())
+    override fun isFoil(stack: ItemStack): Boolean = stack.hasComp(ModComponents.TETHER_CONTROLLER.get())
 
-    private fun grantsOf(stack: ItemStack): Set<Grant> = Grants.parse(stack.get(ModComponents.TETHER_GRANTS.get()))
+    private fun grantsOf(stack: ItemStack): Set<Grant> = Grants.parse(stack.comp(ModComponents.TETHER_GRANTS.get()))
 
     private fun say(player: Player, text: String) = player.showMessage(Component.literal("[bpm] $text"), true)
 

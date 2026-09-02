@@ -1,5 +1,10 @@
 package bpm.world
 
+import bpm.platform.registry.comp
+import bpm.platform.registry.hasComp
+import bpm.platform.registry.removeComp
+import bpm.platform.registry.setComp
+
 import net.minecraft.core.GlobalPos
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.ItemStack
@@ -120,27 +125,27 @@ object Tethers {
     fun credential(player: Player, controller: GlobalPos): Set<Grant>? {
         for (stack in TetherSources.stacks(player)) {
             if (stack.isEmpty) continue
-            if (stack.get(ModComponents.TETHER_CONTROLLER.get()) != controller) continue
-            return Grants.parse(stack.get(ModComponents.TETHER_GRANTS.get()))
+            if (stack.comp(ModComponents.TETHER_CONTROLLER.get()) != controller) continue
+            return Grants.parse(stack.comp(ModComponents.TETHER_GRANTS.get()))
         }
         return null
     }
 
     /** Whether [stack] is somebody's tether — bound to any controller, not just one. */
-    fun isCredential(stack: ItemStack): Boolean = stack.has(ModComponents.TETHER_CONTROLLER.get())
+    fun isCredential(stack: ItemStack): Boolean = stack.hasComp(ModComponents.TETHER_CONTROLLER.get())
 
     /** The tether stack [player] carries for [controller], for the commands and the tooltip. */
     fun stack(player: Player, controller: GlobalPos): ItemStack? =
-        TetherSources.stacks(player).firstOrNull { !it.isEmpty && it.get(ModComponents.TETHER_CONTROLLER.get()) == controller }
+        TetherSources.stacks(player).firstOrNull { !it.isEmpty && it.comp(ModComponents.TETHER_CONTROLLER.get()) == controller }
 
     /** Bind [stack] to [controller] with [grants] — what the tether does on sneak-use, and what `/bpm tether` does. */
     fun bind(stack: ItemStack, controller: GlobalPos, grants: Set<Grant>) {
-        stack.set(ModComponents.TETHER_CONTROLLER.get(), controller)
-        stack.set(ModComponents.TETHER_GRANTS.get(), Grants.format(grants))
+        stack.setComp(ModComponents.TETHER_CONTROLLER.get(), controller)
+        stack.setComp(ModComponents.TETHER_GRANTS.get(), Grants.format(grants))
     }
 
     fun unbind(stack: ItemStack) {
-        stack.remove(ModComponents.TETHER_CONTROLLER.get())
-        stack.remove(ModComponents.TETHER_GRANTS.get())
+        stack.removeComp(ModComponents.TETHER_CONTROLLER.get())
+        stack.removeComp(ModComponents.TETHER_GRANTS.get())
     }
 }

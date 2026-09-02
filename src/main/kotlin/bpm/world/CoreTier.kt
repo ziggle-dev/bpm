@@ -1,5 +1,8 @@
 package bpm.world
 
+import bpm.platform.registry.comp
+import bpm.platform.registry.setComp
+
 import bpm.platform.events.BpmEvents
 import bpm.platform.events.ClickPhase
 import bpm.platform.events.Crafted
@@ -71,7 +74,7 @@ enum class CoreTier(
             else -> null
         }
 
-        fun of(stack: ItemStack): CoreTier = byKey(stack.get(ModComponents.CORE_TIER.get()))
+        fun of(stack: ItemStack): CoreTier = byKey(stack.comp(ModComponents.CORE_TIER.get()))
     }
 }
 
@@ -90,6 +93,6 @@ object CoreTiers {
             val t = CoreTier.of(inv.getItem(i).item) ?: continue
             if (tier == null || t.ordinal > tier.ordinal) tier = t
         }
-        result.set(ModComponents.CORE_TIER.get(), (tier ?: CoreTier.STABLE).key)
+        result.setComp(ModComponents.CORE_TIER.get(), (tier ?: CoreTier.STABLE).key)
     }
 }

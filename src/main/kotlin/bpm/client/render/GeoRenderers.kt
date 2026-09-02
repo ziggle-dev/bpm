@@ -1,5 +1,7 @@
 package bpm.client.render
 
+import bpm.platform.registry.hasComp
+
 import bpm.platform.idOf
 
 import bpm.Bpm
@@ -247,7 +249,7 @@ object GeoRenderers {
         MolangQueries.setActorVariable<Any>("variable.linked") { actor ->
             val stack = bpm.platform.client.actorStack(actor)
             val bound = stack != null &&
-                (stack.has(ModComponents.SELECTED_CONTROLLER.get()) || stack.has(ModComponents.TETHER_CONTROLLER.get()))
+                (stack.hasComp(ModComponents.SELECTED_CONTROLLER.get()) || stack.hasComp(ModComponents.TETHER_CONTROLLER.get()))
             if (bound) 1.0 else 0.0
         }
     }

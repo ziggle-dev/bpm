@@ -1,5 +1,8 @@
 package bpm.world.items
 
+import bpm.platform.registry.compOr
+import bpm.platform.registry.setComp
+
 import bpm.library.BpmLibrary
 import bpm.library.Programs
 import bpm.world.ContentBlocks
@@ -54,15 +57,15 @@ class PhaseGauntletItem(properties: Properties) : TooltipItem(properties) {
         val stack = player.getItemInHand(hand)
         if (bpm.platform.onCooldown(player, stack)) return bpm.platform.Use.pass(stack)
         if (level.isClientSide) return bpm.platform.Use.success(stack)
-        val blinks = stack.getOrDefault(ModComponents.BLINKS.get(), 0)
+        val blinks = stack.compOr(ModComponents.BLINKS.get(), 0)
         if (blinks >= BLINKS_PER_SHARD && !player.isCreative) {
             if (!take(player, ContentItems.ENTANGLIUM_SHARD.get())) {
                 say(player, "the gauntlet needs an Entanglium Shard")
                 return bpm.platform.Use.fail(stack)
             }
-            stack.set(ModComponents.BLINKS.get(), 0)
+            stack.setComp(ModComponents.BLINKS.get(), 0)
         } else {
-            stack.set(ModComponents.BLINKS.get(), blinks + 1)
+            stack.setComp(ModComponents.BLINKS.get(), blinks + 1)
         }
         val to = destination(level, player) ?: run {
             say(player, "nowhere to blink to")
@@ -113,7 +116,7 @@ class PhaseGauntletItem(properties: Properties) : TooltipItem(properties) {
 
     override fun lore(stack: ItemStack, add: (Component) -> Unit) {
         super.lore(stack, add)
-        add(Component.literal("Charge: ${BLINKS_PER_SHARD - stack.getOrDefault(ModComponents.BLINKS.get(), 0)} blinks"))
+        add(Component.literal("Charge: ${BLINKS_PER_SHARD - stack.compOr(ModComponents.BLINKS.get(), 0)} blinks"))
     }
 
     companion object {
@@ -134,12 +137,12 @@ class EntangledCompassItem(properties: Properties) : TooltipItem(properties) {
         val stack = player.getItemInHand(hand)
         if (!player.isShiftKeyDown) return bpm.platform.Use.pass(stack)
         if (!level.isClientSide) {
-            val next = when (stack.getOrDefault(ModComponents.COMPASS_MODE.get(), MODE_ORE)) {
+            val next = when (stack.compOr(ModComponents.COMPASS_MODE.get(), MODE_ORE)) {
                 MODE_ORE -> MODE_GATE
                 MODE_GATE -> MODE_CONTROLLER
                 else -> MODE_ORE
             }
-            stack.set(ModComponents.COMPASS_MODE.get(), next)
+            stack.setComp(ModComponents.COMPASS_MODE.get(), next)
             found.remove(player.uuid)
             say(player, "compass seeks: ${label(next)}")
         }
@@ -150,7 +153,7 @@ class EntangledCompassItem(properties: Properties) : TooltipItem(properties) {
         val player = entity as? ServerPlayer ?: return
         if (!inHand) return
         if (level.gameTime % 20 != 0L) return
-        val mode = stack.getOrDefault(ModComponents.COMPASS_MODE.get(), MODE_ORE)
+        val mode = stack.compOr(ModComponents.COMPASS_MODE.get(), MODE_ORE)
         val target = target(level, player, mode)
         if (target == null) {
             say(player, "${label(mode)}: nothing within ${SCAN.toInt()} blocks")

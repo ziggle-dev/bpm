@@ -1,5 +1,11 @@
 package bpm.world
 
+import bpm.platform.registry.comp
+import bpm.platform.registry.compOr
+import bpm.platform.registry.hasComp
+import bpm.platform.registry.removeComp
+import bpm.platform.registry.setComp
+
 import bpm.Bpm
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -60,7 +66,7 @@ class LinkerItem(properties: Properties) : bpm.platform.BpmItem(properties), Geo
      */
     internal fun useFirst(level: Level, player: Player, stack: ItemStack, pos: BlockPos, face: Direction): InteractionResult {
         if (bpm.chamber.ChamberDimension.isChamber(level) || player.isShiftKeyDown) return InteractionResult.PASS
-        if (!stack.has(ModComponents.SELECTED_CONTROLLER.get())) return InteractionResult.PASS
+        if (!stack.hasComp(ModComponents.SELECTED_CONTROLLER.get())) return InteractionResult.PASS
         if (level.getBlockEntity(pos) is ControllerBlockEntity) return InteractionResult.PASS
         if (level.isClientSide) return InteractionResult.SUCCESS
         return link(level, player, stack, pos, face)
@@ -84,7 +90,7 @@ class LinkerItem(properties: Properties) : bpm.platform.BpmItem(properties), Geo
     private fun link(level: Level, player: Player, stack: ItemStack, pos: BlockPos, face: Direction): InteractionResult {
         val target = level.getBlockEntity(pos)
         if (target is ControllerBlockEntity && player.isShiftKeyDown) {
-            stack.set(ModComponents.SELECTED_CONTROLLER.get(), GlobalPos.of(level.dimension(), pos))
+            stack.setComp(ModComponents.SELECTED_CONTROLLER.get(), GlobalPos.of(level.dimension(), pos))
             say(player, "linker bound to the controller at ${pos.toShortString()}")
             animate(level, player, stack, "link")
             target.triggerAnim("overlay", "open")
@@ -142,7 +148,7 @@ class LinkerItem(properties: Properties) : bpm.platform.BpmItem(properties), Geo
             val r = pulse(level, player, hand)
             return if (r == InteractionResult.PASS) bpm.platform.Use.pass(stack) else bpm.platform.Use.sided(stack, level.isClientSide)
         }
-        if (player.isShiftKeyDown && stack.has(ModComponents.SELECTED_CONTROLLER.get())) {
+        if (player.isShiftKeyDown && stack.hasComp(ModComponents.SELECTED_CONTROLLER.get())) {
             if (!level.isClientSide) {
                 // A link whose block is gone has no face to click: the air click along the line of sight finds it.
                 val controller = selected(level, stack)
@@ -152,7 +158,7 @@ class LinkerItem(properties: Properties) : bpm.platform.BpmItem(properties), Geo
                     changed(level, controller)
                     say(player, "unlinked '${gone.name}' — its block was gone")
                 } else {
-                    stack.remove(ModComponents.SELECTED_CONTROLLER.get())
+                    stack.removeComp(ModComponents.SELECTED_CONTROLLER.get())
                     say(player, "linker cleared")
                 }
                 animate(level, player, stack, "unlink")
@@ -164,16 +170,16 @@ class LinkerItem(properties: Properties) : bpm.platform.BpmItem(properties), Geo
 
     override fun lore(stack: ItemStack, add: (Component) -> Unit) {
         super.lore(stack, add)
-        val sel = stack.get(ModComponents.SELECTED_CONTROLLER.get())
+        val sel = stack.comp(ModComponents.SELECTED_CONTROLLER.get())
         add(
             if (sel == null) Component.translatable("item.bpm.quantum_linker.unbound")
             else Component.translatable("item.bpm.quantum_linker.bound", sel.pos().toShortString()),
         )
-        if (stack.getOrDefault(ModComponents.CHARGED.get(), false)) add(Component.literal("Specials: ${charges(stack)} / $MAX_CHARGES"))
+        if (stack.compOr(ModComponents.CHARGED.get(), false)) add(Component.literal("Specials: ${charges(stack)} / $MAX_CHARGES"))
     }
 
     private fun selected(level: Level, stack: ItemStack): ControllerBlockEntity? {
-        val sel = stack.get(ModComponents.SELECTED_CONTROLLER.get()) ?: return null
+        val sel = stack.comp(ModComponents.SELECTED_CONTROLLER.get()) ?: return null
         if (sel.dimension() != level.dimension()) return null
         if (!level.isLoaded(sel.pos())) return null
         return level.getBlockEntity(sel.pos()) as? ControllerBlockEntity
@@ -183,7 +189,7 @@ class LinkerItem(properties: Properties) : bpm.platform.BpmItem(properties), Geo
 
     /** Inside a chamber the wand is a weapon of sorts: a decohering pulse, from whichever hand holds it. */
     /** Specials left. */
-    fun charges(stack: ItemStack): Int = stack.getOrDefault(ModComponents.CHARGES.get(), MAX_CHARGES)
+    fun charges(stack: ItemStack): Int = stack.compOr(ModComponents.CHARGES.get(), MAX_CHARGES)
 
     /** Spends one special; false (and a word) when they are gone. */
     private fun spend(stack: ItemStack, player: Player): Boolean {
@@ -192,13 +198,13 @@ class LinkerItem(properties: Properties) : bpm.platform.BpmItem(properties), Geo
             say(player, "no specials left — use the linker on the core pedestal to recharge")
             return false
         }
-        stack.set(ModComponents.CHARGES.get(), left - 1)
+        stack.setComp(ModComponents.CHARGES.get(), left - 1)
         return true
     }
 
     /** The pedestal fills the wand again — used with the linker in hand. */
     fun recharge(stack: ItemStack, player: Player) {
-        stack.set(ModComponents.CHARGES.get(), MAX_CHARGES)
+        stack.setComp(ModComponents.CHARGES.get(), MAX_CHARGES)
         bpm.platform.addCooldown(player, stack, 10)
         say(player, "the linker hums — $MAX_CHARGES specials")
         (player.level() as? net.minecraft.server.level.ServerLevel)?.let { l ->
@@ -237,7 +243,7 @@ class LinkerItem(properties: Properties) : bpm.platform.BpmItem(properties), Geo
         val stack = player.getItemInHand(hand)
         if (stack.item !is LinkerItem) return false
         val now = level.gameTime
-        val ready = stack.getOrDefault(ModComponents.TRACK_READY_AT.get(), 0L)
+        val ready = stack.compOr(ModComponents.TRACK_READY_AT.get(), 0L)
         if (now < ready) {
             say(player, "tracking pulse ready in ${((ready - now) / 20) + 1} s")
             return true
@@ -260,7 +266,7 @@ class LinkerItem(properties: Properties) : bpm.platform.BpmItem(properties), Geo
         pulse.seek(warden)
         level.addFreshEntity(pulse)
         level.playSound(null, player.x, player.y, player.z, net.minecraft.sounds.SoundEvents.BEACON_ACTIVATE, net.minecraft.sounds.SoundSource.PLAYERS, 0.6f, 1.6f)
-        stack.set(ModComponents.TRACK_READY_AT.get(), now + TRACK_COOLDOWN)
+        stack.setComp(ModComponents.TRACK_READY_AT.get(), now + TRACK_COOLDOWN)
         animate(level, player, stack, "link")
         say(player, "locked on the Warden — ${charges(stack)} special${if (charges(stack) == 1) "" else "s"} left")
         return true
@@ -269,14 +275,14 @@ class LinkerItem(properties: Properties) : bpm.platform.BpmItem(properties), Geo
     /** The wand hums in a chamber: the glint follows a component the server keeps in step with where the holder is. */
     override fun carriedTick(stack: ItemStack, level: net.minecraft.server.level.ServerLevel, entity: net.minecraft.world.entity.Entity, inHand: Boolean) {
         val charged = bpm.chamber.ChamberDimension.isChamber(level)
-        if (stack.getOrDefault(ModComponents.CHARGED.get(), false) != charged) {
-            stack.set(ModComponents.CHARGED.get(), charged)
+        if (stack.compOr(ModComponents.CHARGED.get(), false) != charged) {
+            stack.setComp(ModComponents.CHARGED.get(), charged)
             // Every visit starts with a full wand; the pedestal is the recharge inside.
-            if (charged) stack.set(ModComponents.CHARGES.get(), MAX_CHARGES)
+            if (charged) stack.setComp(ModComponents.CHARGES.get(), MAX_CHARGES)
         }
     }
 
-    override fun isFoil(stack: ItemStack): Boolean = stack.getOrDefault(ModComponents.CHARGED.get(), false)
+    override fun isFoil(stack: ItemStack): Boolean = stack.compOr(ModComponents.CHARGED.get(), false)
 
     /**
      * The link table changed: saved, pushed to the clients tracking the block (the HUD reads it there), and
@@ -348,7 +354,7 @@ class LinkerItem(properties: Properties) : bpm.platform.BpmItem(properties), Geo
         val LINK: RawAnimation = RawAnimation.begin().thenPlay("animation.quantum_linker.link")
         val UNLINK: RawAnimation = RawAnimation.begin().thenPlay("animation.quantum_linker.unlink")
 
-        fun selectedPos(stack: ItemStack): BlockPos? = stack.get(ModComponents.SELECTED_CONTROLLER.get())?.pos()
+        fun selectedPos(stack: ItemStack): BlockPos? = stack.comp(ModComponents.SELECTED_CONTROLLER.get())?.pos()
 
         /**
          * The link along [player]'s line of sight (within the wand's reach, through air only) — what a sneak-use

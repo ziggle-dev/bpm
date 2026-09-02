@@ -102,3 +102,56 @@ object Wire {
     val globalPos: Any? = null
 }
 *///?}
+
+
+/*
+ * Reading and writing a component on a stack.
+ *
+ * From 1.20.5 these are `ItemStack`'s own methods and these wrappers are one call deep. Below it there
+ * is no such thing: the value lives in the stack's tag under the component's full `namespace:path`, and
+ * the key's codec is what turns it into NBT and back.
+ *
+ * Named `comp`/`setComp` rather than `get`/`set` on purpose. An extension cannot shadow a member, so on
+ * 1.20.5 and up `stack.get(key)` would silently keep resolving to vanilla's method and the seam would do
+ * nothing -- which is exactly the sort of thing that compiles everywhere and is wrong on one band.
+ */
+//? if >=1.20.5 {
+fun <T : Any> net.minecraft.world.item.ItemStack.comp(key: ComponentKey<T>): T? = get(key)
+
+fun <T : Any> net.minecraft.world.item.ItemStack.compOr(key: ComponentKey<T>, fallback: T): T =
+    getOrDefault(key, fallback)
+
+fun <T : Any> net.minecraft.world.item.ItemStack.setComp(key: ComponentKey<T>, value: T) {
+    set(key, value)
+}
+
+fun net.minecraft.world.item.ItemStack.hasComp(key: ComponentKey<*>): Boolean = has(key)
+
+fun net.minecraft.world.item.ItemStack.removeComp(key: ComponentKey<*>) {
+    remove(key)
+}
+//?} else {
+/*fun <T : Any> net.minecraft.world.item.ItemStack.comp(key: ComponentKey<T>): T? {
+    val tag = this.tag ?: return null
+    val stored = tag.get(key.name) ?: return null
+    // A tag written by an older or broken save decodes to nothing rather than throwing: a missing
+    // component reads the same as an absent one, which is what every caller already handles.
+    return key.codec.parse(net.minecraft.nbt.NbtOps.INSTANCE, stored).result().orElse(null)
+}
+
+fun <T : Any> net.minecraft.world.item.ItemStack.compOr(key: ComponentKey<T>, fallback: T): T =
+    comp(key) ?: fallback
+
+fun <T : Any> net.minecraft.world.item.ItemStack.setComp(key: ComponentKey<T>, value: T) {
+    val encoded = key.codec.encodeStart(net.minecraft.nbt.NbtOps.INSTANCE, value).result().orElse(null)
+        ?: return
+    orCreateTag.put(key.name, encoded)
+}
+
+fun net.minecraft.world.item.ItemStack.hasComp(key: ComponentKey<*>): Boolean =
+    this.tag?.contains(key.name) == true
+
+fun net.minecraft.world.item.ItemStack.removeComp(key: ComponentKey<*>) {
+    this.tag?.remove(key.name)
+}
+*///?}
