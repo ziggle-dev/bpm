@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "Replaces the branch-shared models/item/experience_bucket.json, which uses the `neoforge:fluid_container`",
+    "MODEL LOADER. That loader is gone by this band, and a model asking for one is a hard JSON parse",
+    "failure rather than a missing texture, so leaving the shared file to be found here breaks the client",
+    "at load.",
+    "A plain empty bucket, matching what the other nodes fall back to. It is only reached if the",
+    "client-item JSON beside it is missing, and an empty bucket then reads as 'something is wrong with",
+    "this item' rather than as a different fluid."
+  ],
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "minecraft:item/bucket"
+  }
+}

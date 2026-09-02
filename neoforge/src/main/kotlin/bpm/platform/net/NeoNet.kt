@@ -45,12 +45,19 @@ object NeoNet : PlatformNet {
         onClient: (P) -> Unit,
     ) {
         /*
-         * Two handlers from 1.21.9, one that inspects the flow before it.
+         * Two handlers from the 1.21.6 band, one that inspects the flow before it.
          *
-         * The single-handler `playBidirectional` used to register both directions. From 1.21.9 it
-         * registers the SERVER side only and expects the client side through
-         * `RegisterClientPayloadHandlersEvent` -- and NeoForge now VALIDATES that, refusing to load a mod
-         * with a clientbound payload nobody handles.
+         * The single-handler `playBidirectional` used to register both directions. In the 1.21.6 band it
+         * registers the SERVER side only -- and NeoForge VALIDATES that, refusing to load a mod with a
+         * clientbound payload nobody handles. This is not a compile error: both overloads exist, the
+         * three-argument one simply stops meaning what it used to, so it fails at load with
+         * "Some clientbound payloads are missing client-side handlers: [bpm:chunk]" and takes the whole
+         * client with it. Verified by javap: 21.1, 21.4 and 21.5 have only the three-argument form;
+         * 21.8 and 21.11 have both.
+         *
+         * Keyed at >=1.21.6 rather than at the 21.8 where it was measured, deliberately. If a 1.21.6 or
+         * 1.21.7 node is ever added and the overload is not there yet, this fails to COMPILE, which is
+         * found immediately; keyed at >=1.21.8 the same node would compile and then die at load.
          *
          * This mod has exactly one bidirectional payload, `bpm:chunk`, which carries every big message in
          * pieces: the whole editor protocol rides on it. So on that band the check is the difference
@@ -58,7 +65,7 @@ object NeoNet : PlatformNet {
          * form is also the clearer statement, since the two handlers were already separate functions --
          * but it does not exist below 1.21.9, so both spellings stay.
          */
-        //? if >=1.21.9 {
+        //? if >=1.21.6 {
         /*pending += { r ->
             r.playBidirectional(
                 type,
