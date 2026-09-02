@@ -145,7 +145,7 @@ typealias DataTicket<D> = com.geckolib.constant.dataticket.DataTicket<D>
 typealias GeoRenderProvider = com.geckolib.animatable.client.GeoRenderProvider
 typealias GeoModel<T> = com.geckolib.model.GeoModel<T>
 typealias SingletonGeoAnimatable = com.geckolib.animatable.SingletonGeoAnimatable
-*///?} else {
+*///?} elif >=1.21 {
 typealias RawAnimation = software.bernie.geckolib.animation.RawAnimation
 typealias GeckoLibUtil = software.bernie.geckolib.util.GeckoLibUtil
 typealias AnimatableInstanceCache = software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
@@ -159,7 +159,24 @@ typealias DataTicket<D> = software.bernie.geckolib.constant.dataticket.DataTicke
 typealias GeoRenderProvider = software.bernie.geckolib.animatable.client.GeoRenderProvider
 typealias GeoModel<T> = software.bernie.geckolib.model.GeoModel<T>
 typealias SingletonGeoAnimatable = software.bernie.geckolib.animatable.SingletonGeoAnimatable
-//?}
+//?} else {
+/*// GeckoLib 4.8. Four of these thirteen sit under `core` here and one has a different NAME: what the
+// 1.21 line calls `GeoRenderProvider` was `RenderProvider`. The other eight are already where the arm
+// above puts them, which is why this reads as a near-copy.
+typealias RawAnimation = software.bernie.geckolib.core.animation.RawAnimation
+typealias GeckoLibUtil = software.bernie.geckolib.util.GeckoLibUtil
+typealias AnimatableInstanceCache = software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache
+typealias GeoAnimatable = software.bernie.geckolib.core.animatable.GeoAnimatable
+typealias GeoItem = software.bernie.geckolib.animatable.GeoItem
+typealias GeoBlockEntity = software.bernie.geckolib.animatable.GeoBlockEntity
+typealias GeoEntity = software.bernie.geckolib.animatable.GeoEntity
+typealias MolangQueries = software.bernie.geckolib.core.molang.MolangQueries
+typealias DataTickets = software.bernie.geckolib.constant.DataTickets
+typealias DataTicket<D> = software.bernie.geckolib.constant.dataticket.DataTicket<D>
+typealias GeoRenderProvider = software.bernie.geckolib.animatable.client.RenderProvider
+typealias GeoModel<T> = software.bernie.geckolib.model.GeoModel<T>
+typealias SingletonGeoAnimatable = software.bernie.geckolib.animatable.SingletonGeoAnimatable
+*///?}
 
 /*
  * The renderer family, aliased so the branch files' 1.21.9 arms do not name a package at all.
