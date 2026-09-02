@@ -880,8 +880,11 @@ fun targetHandle(target: com.mojang.blaze3d.pipeline.RenderTarget): Long? {
  * `ItemRenderer.renderStatic`, so the same trick needs a different first step; the picker falls back to
  * labels there, as it did everywhere before this.
  */
-//? if >=1.21.9 {
-/*fun renderItemPreview(
+//? if >=26.1 {
+/*// 26.1 answers false for now. It has no `MultiBufferSource` to route an item's quads through and
+// builds its pipelines against bind groups, so the drawing half needs a third body; the quad routing
+// above it would be identical. The picker falls back to labels here.
+fun renderItemPreview(
     mc: net.minecraft.client.Minecraft,
     target: com.mojang.blaze3d.pipeline.RenderTarget,
     stack: net.minecraft.world.item.ItemStack,

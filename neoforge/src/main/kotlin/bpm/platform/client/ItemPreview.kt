@@ -21,36 +21,8 @@ package bpm.platform.client
  * lit by a fixed rig anyway; flat and correct beats lit and unreachable.
  */
 
-//? if >=1.21.6 <1.21.9 {
-/*/** Writes a model's quads as POSITION_TEX_COLOR, dropping the attributes a flat draw does not read. */
-private class FlatConsumer(
-    private val out: com.mojang.blaze3d.vertex.VertexConsumer,
-) : com.mojang.blaze3d.vertex.VertexConsumer {
-
-    override fun addVertex(x: Float, y: Float, z: Float): com.mojang.blaze3d.vertex.VertexConsumer {
-        out.addVertex(x, y, z)
-        return this
-    }
-
-    override fun setColor(r: Int, g: Int, b: Int, a: Int): com.mojang.blaze3d.vertex.VertexConsumer {
-        out.setColor(r, g, b, a)
-        return this
-    }
-
-    override fun setUv(u: Float, v: Float): com.mojang.blaze3d.vertex.VertexConsumer {
-        out.setUv(u, v)
-        return this
-    }
-
-    // Overlay, lightmap and normal: accepted and dropped. See the note at the top of the file.
-    override fun setUv1(u: Int, v: Int): com.mojang.blaze3d.vertex.VertexConsumer = this
-
-    override fun setUv2(u: Int, v: Int): com.mojang.blaze3d.vertex.VertexConsumer = this
-
-    override fun setNormal(x: Float, y: Float, z: Float): com.mojang.blaze3d.vertex.VertexConsumer = this
-}
-
-/** One buffer for every render type the model asks for. */
+//? if >=1.21.6 <26.1 {
+/*/** One buffer for every render type the model asks for. */
 private class OneBuffer(
     private val consumer: com.mojang.blaze3d.vertex.VertexConsumer,
 ) : net.minecraft.client.renderer.MultiBufferSource {
