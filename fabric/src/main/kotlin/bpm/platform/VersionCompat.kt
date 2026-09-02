@@ -414,3 +414,17 @@ fun fullPermissionSource(
         name, net.minecraft.network.chat.Component.literal(name), server, null,
     )
     //?}
+
+/**
+ * A message across the middle of the screen, above the hotbar.
+ *
+ * `displayClientMessage(component, actionBar)` became `sendSystemMessage(component, actionBar)` at 26.1 --
+ * the same two arguments meaning the same two things, under the name the server side always used.
+ */
+fun showActionBar(player: net.minecraft.world.entity.player.Player, message: net.minecraft.network.chat.Component) {
+    //? if >=26.1 {
+    /*player.sendSystemMessage(message, true)
+    *///?} else {
+    player.displayClientMessage(message, true)
+    //?}
+}

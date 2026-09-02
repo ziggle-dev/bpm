@@ -12,7 +12,7 @@ import dev.ziggle.vscript.editor.host.IconRegion
 import dev.ziggle.vscript.editor.host.IconSource
 import net.minecraft.client.Minecraft
 import com.mojang.blaze3d.vertex.ByteBufferBuilder
-import net.minecraft.client.gui.GuiGraphics
+import bpm.platform.client.GuiGraphics
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries

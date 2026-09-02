@@ -2,7 +2,7 @@ package bpm.client.mc
 
 import bpm.client.mc.imgui.BpmImGui
 import bpm.client.mc.imgui.ScreenInput
-import net.minecraft.client.gui.GuiGraphics
+import bpm.platform.client.GuiGraphics
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
 import org.lwjgl.glfw.GLFW

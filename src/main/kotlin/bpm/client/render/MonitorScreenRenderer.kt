@@ -7,7 +7,7 @@ import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.math.Axis
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
-import net.minecraft.client.renderer.LightTexture
+import bpm.platform.client.LightTexture
 import bpm.platform.client.WorldDraw
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.core.Direction

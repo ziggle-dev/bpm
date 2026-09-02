@@ -11,11 +11,11 @@ import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.DeltaTracker
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
-import net.minecraft.client.gui.GuiGraphics
+import bpm.platform.client.GuiGraphics
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.renderer.GameRenderer
 import net.minecraft.client.renderer.LevelRenderer
-import net.minecraft.client.renderer.LightTexture
+import bpm.platform.client.LightTexture
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
 import bpm.platform.ResourceLocation
