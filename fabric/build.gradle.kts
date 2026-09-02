@@ -12,7 +12,17 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
  */
 plugins {
     id("dev.kikugie.stonecutter")
-    id("dev.architectury.loom") version "1.17.491"
+    /*
+     * Upstream Fabric Loom, not Architectury's fork.
+     *
+     * This branch only builds Fabric -- the NeoForge branch is on ModDevGradle -- so the fork bought
+     * nothing, and it cannot set up 26.x: Architectury Loom stops at 1.17.491 with no support for a
+     * deobfuscated Minecraft. Nothing Architectury-specific was in use here; the switch is this id.
+     *
+     * A SNAPSHOT, which is not a choice: 26.x support landed on the 1.17 line after 1.17.20 and there is
+     * no release carrying it. This is the version Fabric's own 26.2 example mod uses.
+     */
+    id("net.fabricmc.fabric-loom") version "1.17-SNAPSHOT"
     kotlin("jvm") version "2.3.21"
 }
 
@@ -238,21 +248,31 @@ loom {
     }
 }
 
+/*
+ * `modImplementation` remaps a dependency from intermediary into the namespace being compiled against.
+ * On 26.x there is no such namespace and nothing to remap, so these are plain `implementation` there --
+ * which is what Fabric's own 26.2 example does. `deobf` names the right one per band so the dependency
+ * list below reads the same on all of them.
+ */
+val deobf = if (stonecutter.eval(minecraftVersion, ">=26.1")) "implementation" else "modImplementation"
+
 dependencies {
     minecraft("com.mojang:minecraft:$minecraftVersion")
     /*
-     * From 26.1 the game ships DEOBFUSCATED and Mojang publishes no mappings for it at all -- 26.2's
-     * version manifest has `client` and `server` downloads and nothing else -- so this line is what
-     * blocks a Fabric node on that band. It fails with "Failed to find official mojang mappings for
-     * 26.2", and `loom.layered {}`, which is the honest request for a game needing no mapping layer,
-     * NPEs inside Loom instead. Left as it is on purpose: a named error is more use than an NPE, and
-     * whatever Loom offers for the deobfuscated era does not exist yet to be written here.
+     * NOTHING is declared here on 26.x, and the silence is the configuration.
+     *
+     * The game ships DEOBFUSCATED from 26.1: Mojang publishes no mappings, and Fabric publishes neither
+     * intermediary nor yarn, because the classes already carry the names this mod is written against.
+     * Declaring none is how a build says so. Asking for Mojang mappings there fails with "Failed to find
+     * official mojang mappings for 26.2".
      */
-    mappings(loom.officialMojangMappings())
-    modImplementation("net.fabricmc:fabric-loader:$fabricLoaderVersion")
-    modImplementation("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
+    if (!stonecutter.eval(minecraftVersion, ">=26.1")) {
+        mappings(loom.officialMojangMappings())
+    }
+    add(deobf, "net.fabricmc:fabric-loader:$fabricLoaderVersion")
+    add(deobf, "net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
     // Fabric Language Kotlin is this loader's KotlinForForge: it supplies the stdlib in a player's game.
-    modImplementation("net.fabricmc:fabric-language-kotlin:$flkVersion")
+    add(deobf, "net.fabricmc:fabric-language-kotlin:$flkVersion")
     // GeckoLib publishes per loader from the same source; the model, animation and Molang APIs the mod
     // uses are identical, which is why none of bpm's renderer code is loader-specific.
     /*
@@ -263,9 +283,9 @@ dependencies {
      * already a repository here, so the 26.x pin is a Modrinth version id rather than a version number.
      */
     if (stonecutter.eval(minecraftVersion, ">=26.1")) {
-        modImplementation("maven.modrinth:geckolib:$geckolibVersion")
+        add(deobf, "maven.modrinth:geckolib:$geckolibVersion")
     } else {
-        modImplementation("software.bernie.geckolib:geckolib-fabric-$minecraftVersion:$geckolibVersion")
+        add(deobf, "software.bernie.geckolib:geckolib-fabric-$minecraftVersion:$geckolibVersion")
     }
     /*
      * Team Reborn's Energy API.
@@ -278,7 +298,7 @@ dependencies {
      * library that expects to be bundled, and one more required download for a verb that should just
      * work is a bad trade.
      */
-    modImplementation("teamreborn:energy:$energyApiVersion")
+    add(deobf, "teamreborn:energy:$energyApiVersion")
     include("teamreborn:energy:$energyApiVersion")
     // JEI's API on the compile path only, exactly as on NeoForge: a pack without JEI never loads the
     // plugin class, because @JeiPlugin is read by JEI itself.
