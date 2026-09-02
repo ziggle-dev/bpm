@@ -17,6 +17,57 @@ import bpm.platform.ResourceLocation
  * replaced the builder itself. The seam did not move once.
  */
 
+
+/**
+ * A world-space line pass: segments and box outlines.
+ *
+ * This is the effect, not the machinery, and what it hides is a real three-way difference. Until 1.21.9 a
+ * line's WIDTH was global GL state set by `RenderSystem.lineWidth`, drawing through walls meant
+ * `RenderSystem.disableDepthTest` around the pass, and the whole thing went into a raw `Tesselator` and
+ * out through `BufferUploader`. From 1.21.9 the width is a per-vertex attribute of a new vertex format,
+ * depth testing belongs to the pipeline, and `BufferUploader` does not exist.
+ *
+ * A caller that only ever wanted "a two-pixel box, optionally through walls" should not have to know any
+ * of that, and now does not.
+ */
+interface LinePass {
+
+    /** A segment from [from] to [to]. */
+    fun line(
+        pose: com.mojang.blaze3d.vertex.PoseStack,
+        from: net.minecraft.world.phys.Vec3,
+        to: net.minecraft.world.phys.Vec3,
+        rgb: FloatArray,
+        alpha: Float,
+    )
+
+    /** The twelve edges of [box]. */
+    fun box(
+        pose: com.mojang.blaze3d.vertex.PoseStack,
+        box: net.minecraft.world.phys.AABB,
+        rgb: FloatArray,
+        alpha: Float,
+    )
+}
+
+/** The twelve edges of a box, as pairs of corners. Shared: a box is a box on every band. */
+internal fun boxEdges(box: net.minecraft.world.phys.AABB): List<Pair<net.minecraft.world.phys.Vec3, net.minecraft.world.phys.Vec3>> {
+    fun p(x: Double, y: Double, z: Double) = net.minecraft.world.phys.Vec3(x, y, z)
+    val a = p(box.minX, box.minY, box.minZ)
+    val b = p(box.maxX, box.minY, box.minZ)
+    val c = p(box.maxX, box.minY, box.maxZ)
+    val d = p(box.minX, box.minY, box.maxZ)
+    val e = p(box.minX, box.maxY, box.minZ)
+    val f = p(box.maxX, box.maxY, box.minZ)
+    val g = p(box.maxX, box.maxY, box.maxZ)
+    val h = p(box.minX, box.maxY, box.maxZ)
+    return listOf(
+        a to b, b to c, c to d, d to a,
+        e to f, f to g, g to h, h to e,
+        a to e, b to f, c to g, d to h,
+    )
+}
+
 //? if >=1.21.9 {
 /*/**
  * Every pipeline this mod draws with, declared together because they are registered together.
@@ -127,14 +178,74 @@ fun translucentQuads(name: String): RenderType = colourQuadCache.getOrPut(name) 
 private fun notYetOnThisBand(what: String): Nothing =
     error("bpm: " + what + " is not implemented on 1.21.9+ yet -- the Blaze3D GPU-buffer rewrite is outstanding")
 
-fun useLinesShader(): Unit = notYetOnThisBand("the raw line pass")
+private val lineTypeCache = HashMap<Boolean, RenderType>()
 
-fun lineBox(
-    pose: com.mojang.blaze3d.vertex.PoseStack,
-    builder: com.mojang.blaze3d.vertex.VertexConsumer,
-    box: net.minecraft.world.phys.AABB,
-    r: Float, g: Float, b: Float, a: Float,
-): Unit = notYetOnThisBand("line boxes")
+/**
+ * Vanilla's own LINES pipeline, with the depth test turned off for the through-walls variant.
+ *
+ * The width is deliberately absent: from 1.21.9 it rides on each vertex, so one type serves every width.
+ */
+private fun linesType(throughWalls: Boolean): RenderType = lineTypeCache.getOrPut(throughWalls) {
+    val pipeline =
+        if (!throughWalls) {
+            net.minecraft.client.renderer.RenderPipelines.LINES
+        } else {
+            com.mojang.blaze3d.pipeline.RenderPipeline.builder(net.minecraft.client.renderer.RenderPipelines.LINES_SNIPPET)
+                .withLocation("pipeline/bpm_lines_through_walls")
+                .withDepthTestFunction(com.mojang.blaze3d.platform.DepthTestFunction.NO_DEPTH_TEST)
+                .withDepthWrite(false)
+                .build()
+        }
+    net.minecraft.client.renderer.rendertype.RenderType.create(
+        if (throughWalls) "bpm_lines_through_walls" else "bpm_lines",
+        net.minecraft.client.renderer.rendertype.RenderSetup.builder(pipeline)
+            .setLayeringTransform(net.minecraft.client.renderer.rendertype.LayeringTransform.VIEW_OFFSET_Z_LAYERING)
+            .setOutputTarget(net.minecraft.client.renderer.rendertype.OutputTarget.ITEM_ENTITY_TARGET)
+            .createRenderSetup(),
+    )
+}
+
+fun worldLines(throughWalls: Boolean, width: Float, draw: (LinePass) -> Unit) {
+    val buffers = net.minecraft.client.Minecraft.getInstance().renderBuffers().bufferSource()
+    val type = linesType(throughWalls)
+    draw(BufferLinePass(buffers.getBuffer(type), width))
+    buffers.endBatch(type)
+}
+
+private class BufferLinePass(
+    private val consumer: com.mojang.blaze3d.vertex.VertexConsumer,
+    private val width: Float,
+) : LinePass {
+
+    override fun line(
+        pose: com.mojang.blaze3d.vertex.PoseStack,
+        from: net.minecraft.world.phys.Vec3,
+        to: net.minecraft.world.phys.Vec3,
+        rgb: FloatArray,
+        alpha: Float,
+    ) {
+        val m = pose.last()
+        val delta = to.subtract(from)
+        val d = if (delta.lengthSqr() < 1e-12) net.minecraft.world.phys.Vec3(0.0, 1.0, 0.0) else delta.normalize()
+        consumer.addVertex(m, from.x.toFloat(), from.y.toFloat(), from.z.toFloat())
+            .setColor(rgb[0], rgb[1], rgb[2], alpha)
+            .setNormal(m, d.x.toFloat(), d.y.toFloat(), d.z.toFloat())
+            .setLineWidth(width)
+        consumer.addVertex(m, to.x.toFloat(), to.y.toFloat(), to.z.toFloat())
+            .setColor(rgb[0], rgb[1], rgb[2], alpha)
+            .setNormal(m, d.x.toFloat(), d.y.toFloat(), d.z.toFloat())
+            .setLineWidth(width)
+    }
+
+    override fun box(
+        pose: com.mojang.blaze3d.vertex.PoseStack,
+        box: net.minecraft.world.phys.AABB,
+        rgb: FloatArray,
+        alpha: Float,
+    ) {
+        for ((from, to) in boxEdges(box)) line(pose, from, to, rgb, alpha)
+    }
+}
 
 fun setGuiProjection(matrix: org.joml.Matrix4f): Unit = notYetOnThisBand("the offscreen GUI projection")
 
@@ -169,16 +280,74 @@ fun translucentCull(texture: ResourceLocation): RenderType = translucentCullCach
 private fun positionColorShader(): net.minecraft.client.renderer.RenderStateShard.ShaderStateShard =
     net.minecraft.client.renderer.RenderStateShard.ShaderStateShard(net.minecraft.client.renderer.CoreShaders.POSITION_COLOR)
 
-fun useLinesShader() {
-    com.mojang.blaze3d.systems.RenderSystem.setShader(net.minecraft.client.renderer.CoreShaders.RENDERTYPE_LINES)
+private val lineTypeCache = HashMap<Pair<Boolean, Float>, RenderType>()
+
+/**
+ * Built rather than taken from `RenderType.lines()`, for two reasons.
+ *
+ * The width is part of the TYPE on this band -- a `LineStateShard`, which is global GL state under the
+ * covers -- and the through-walls variant needs the depth test off, which the stock one does not offer.
+ */
+private fun linesType(throughWalls: Boolean, width: Float): RenderType = lineTypeCache.getOrPut(throughWalls to width) {
+    net.minecraft.client.renderer.RenderType.create(
+        "bpm_lines_" + (if (throughWalls) "xray_" else "") + width,
+        com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_COLOR_NORMAL,
+        com.mojang.blaze3d.vertex.VertexFormat.Mode.LINES,
+        1536,
+        false,
+        false,
+        net.minecraft.client.renderer.RenderType.CompositeState.builder()
+            .setShaderState(net.minecraft.client.renderer.RenderStateShard.RENDERTYPE_LINES_SHADER)
+            .setLineState(net.minecraft.client.renderer.RenderStateShard.LineStateShard(java.util.OptionalDouble.of(width.toDouble())))
+            .setLayeringState(net.minecraft.client.renderer.RenderStateShard.VIEW_OFFSET_Z_LAYERING)
+            .setTransparencyState(net.minecraft.client.renderer.RenderStateShard.TRANSLUCENT_TRANSPARENCY)
+            .setOutputState(net.minecraft.client.renderer.RenderStateShard.ITEM_ENTITY_TARGET)
+            .setWriteMaskState(net.minecraft.client.renderer.RenderStateShard.COLOR_DEPTH_WRITE)
+            .setCullState(net.minecraft.client.renderer.RenderStateShard.NO_CULL)
+            .setDepthTestState(
+                if (throughWalls) net.minecraft.client.renderer.RenderStateShard.NO_DEPTH_TEST
+                else net.minecraft.client.renderer.RenderStateShard.LEQUAL_DEPTH_TEST,
+            )
+            .createCompositeState(false),
+    )
 }
 
-fun lineBox(
-    pose: com.mojang.blaze3d.vertex.PoseStack,
-    builder: com.mojang.blaze3d.vertex.VertexConsumer,
-    box: net.minecraft.world.phys.AABB,
-    r: Float, g: Float, b: Float, a: Float,
-) = net.minecraft.client.renderer.ShapeRenderer.renderLineBox(pose, builder, box, r, g, b, a)
+fun worldLines(throughWalls: Boolean, width: Float, draw: (LinePass) -> Unit) {
+    val buffers = net.minecraft.client.Minecraft.getInstance().renderBuffers().bufferSource()
+    val type = linesType(throughWalls, width)
+    draw(BufferLinePass(buffers.getBuffer(type)))
+    buffers.endBatch(type)
+}
+
+private class BufferLinePass(private val consumer: com.mojang.blaze3d.vertex.VertexConsumer) : LinePass {
+
+    override fun line(
+        pose: com.mojang.blaze3d.vertex.PoseStack,
+        from: net.minecraft.world.phys.Vec3,
+        to: net.minecraft.world.phys.Vec3,
+        rgb: FloatArray,
+        alpha: Float,
+    ) {
+        val m = pose.last()
+        val delta = to.subtract(from)
+        val d = if (delta.lengthSqr() < 1e-12) net.minecraft.world.phys.Vec3(0.0, 1.0, 0.0) else delta.normalize()
+        consumer.addVertex(m, from.x.toFloat(), from.y.toFloat(), from.z.toFloat())
+            .setColor(rgb[0], rgb[1], rgb[2], alpha)
+            .setNormal(m, d.x.toFloat(), d.y.toFloat(), d.z.toFloat())
+        consumer.addVertex(m, to.x.toFloat(), to.y.toFloat(), to.z.toFloat())
+            .setColor(rgb[0], rgb[1], rgb[2], alpha)
+            .setNormal(m, d.x.toFloat(), d.y.toFloat(), d.z.toFloat())
+    }
+
+    override fun box(
+        pose: com.mojang.blaze3d.vertex.PoseStack,
+        box: net.minecraft.world.phys.AABB,
+        rgb: FloatArray,
+        alpha: Float,
+    ) {
+        for ((from, to) in boxEdges(box)) line(pose, from, to, rgb, alpha)
+    }
+}
 
 fun setGuiProjection(matrix: org.joml.Matrix4f) =
     com.mojang.blaze3d.systems.RenderSystem.setProjectionMatrix(matrix, com.mojang.blaze3d.ProjectionType.ORTHOGRAPHIC)
@@ -230,16 +399,74 @@ fun translucentCull(texture: ResourceLocation): RenderType = translucentCullCach
 private fun positionColorShader(): net.minecraft.client.renderer.RenderStateShard.ShaderStateShard =
     net.minecraft.client.renderer.RenderStateShard.ShaderStateShard(net.minecraft.client.renderer.GameRenderer::getPositionColorShader)
 
-fun useLinesShader() {
-    com.mojang.blaze3d.systems.RenderSystem.setShader(net.minecraft.client.renderer.GameRenderer::getRendertypeLinesShader)
+private val lineTypeCache = HashMap<Pair<Boolean, Float>, RenderType>()
+
+/**
+ * Built rather than taken from `RenderType.lines()`, for two reasons.
+ *
+ * The width is part of the TYPE on this band -- a `LineStateShard`, which is global GL state under the
+ * covers -- and the through-walls variant needs the depth test off, which the stock one does not offer.
+ */
+private fun linesType(throughWalls: Boolean, width: Float): RenderType = lineTypeCache.getOrPut(throughWalls to width) {
+    net.minecraft.client.renderer.RenderType.create(
+        "bpm_lines_" + (if (throughWalls) "xray_" else "") + width,
+        com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_COLOR_NORMAL,
+        com.mojang.blaze3d.vertex.VertexFormat.Mode.LINES,
+        1536,
+        false,
+        false,
+        net.minecraft.client.renderer.RenderType.CompositeState.builder()
+            .setShaderState(net.minecraft.client.renderer.RenderStateShard.RENDERTYPE_LINES_SHADER)
+            .setLineState(net.minecraft.client.renderer.RenderStateShard.LineStateShard(java.util.OptionalDouble.of(width.toDouble())))
+            .setLayeringState(net.minecraft.client.renderer.RenderStateShard.VIEW_OFFSET_Z_LAYERING)
+            .setTransparencyState(net.minecraft.client.renderer.RenderStateShard.TRANSLUCENT_TRANSPARENCY)
+            .setOutputState(net.minecraft.client.renderer.RenderStateShard.ITEM_ENTITY_TARGET)
+            .setWriteMaskState(net.minecraft.client.renderer.RenderStateShard.COLOR_DEPTH_WRITE)
+            .setCullState(net.minecraft.client.renderer.RenderStateShard.NO_CULL)
+            .setDepthTestState(
+                if (throughWalls) net.minecraft.client.renderer.RenderStateShard.NO_DEPTH_TEST
+                else net.minecraft.client.renderer.RenderStateShard.LEQUAL_DEPTH_TEST,
+            )
+            .createCompositeState(false),
+    )
 }
 
-fun lineBox(
-    pose: com.mojang.blaze3d.vertex.PoseStack,
-    builder: com.mojang.blaze3d.vertex.VertexConsumer,
-    box: net.minecraft.world.phys.AABB,
-    r: Float, g: Float, b: Float, a: Float,
-) = net.minecraft.client.renderer.LevelRenderer.renderLineBox(pose, builder, box, r, g, b, a)
+fun worldLines(throughWalls: Boolean, width: Float, draw: (LinePass) -> Unit) {
+    val buffers = net.minecraft.client.Minecraft.getInstance().renderBuffers().bufferSource()
+    val type = linesType(throughWalls, width)
+    draw(BufferLinePass(buffers.getBuffer(type)))
+    buffers.endBatch(type)
+}
+
+private class BufferLinePass(private val consumer: com.mojang.blaze3d.vertex.VertexConsumer) : LinePass {
+
+    override fun line(
+        pose: com.mojang.blaze3d.vertex.PoseStack,
+        from: net.minecraft.world.phys.Vec3,
+        to: net.minecraft.world.phys.Vec3,
+        rgb: FloatArray,
+        alpha: Float,
+    ) {
+        val m = pose.last()
+        val delta = to.subtract(from)
+        val d = if (delta.lengthSqr() < 1e-12) net.minecraft.world.phys.Vec3(0.0, 1.0, 0.0) else delta.normalize()
+        consumer.addVertex(m, from.x.toFloat(), from.y.toFloat(), from.z.toFloat())
+            .setColor(rgb[0], rgb[1], rgb[2], alpha)
+            .setNormal(m, d.x.toFloat(), d.y.toFloat(), d.z.toFloat())
+        consumer.addVertex(m, to.x.toFloat(), to.y.toFloat(), to.z.toFloat())
+            .setColor(rgb[0], rgb[1], rgb[2], alpha)
+            .setNormal(m, d.x.toFloat(), d.y.toFloat(), d.z.toFloat())
+    }
+
+    override fun box(
+        pose: com.mojang.blaze3d.vertex.PoseStack,
+        box: net.minecraft.world.phys.AABB,
+        rgb: FloatArray,
+        alpha: Float,
+    ) {
+        for ((from, to) in boxEdges(box)) line(pose, from, to, rgb, alpha)
+    }
+}
 
 fun setGuiProjection(matrix: org.joml.Matrix4f) =
     com.mojang.blaze3d.systems.RenderSystem.setProjectionMatrix(matrix, com.mojang.blaze3d.vertex.VertexSorting.ORTHOGRAPHIC_Z)

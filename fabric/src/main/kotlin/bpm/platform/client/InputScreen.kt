@@ -111,3 +111,13 @@ fun isKeyHeld(key: Int): Boolean {
     return com.mojang.blaze3d.platform.InputConstants.isKeyDown(window.window, key)
     //?}
 }
+
+/**
+ * Whether a control key is held.
+ *
+ * `Screen.hasControlDown()` is gone at 1.21.9, and it was the wrong thing to ask anyway: this is a WORLD
+ * interaction, not a screen one, and there is no screen open when it is asked. Reading the two keys is
+ * the same answer with none of that borrowed context.
+ */
+fun ctrlHeld(): Boolean =
+    isKeyHeld(org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_CONTROL) || isKeyHeld(org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_CONTROL)

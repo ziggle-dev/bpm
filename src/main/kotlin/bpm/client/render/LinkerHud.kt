@@ -7,11 +7,7 @@ import bpm.world.ControllerBlockEntity
 import bpm.world.LinkerItem
 import bpm.world.items.WardenVisorItem
 import com.mojang.blaze3d.systems.RenderSystem
-import com.mojang.blaze3d.vertex.BufferUploader
-import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.PoseStack
-import com.mojang.blaze3d.vertex.Tesselator
-import com.mojang.blaze3d.vertex.VertexFormat
 import net.minecraft.client.DeltaTracker
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
@@ -48,6 +44,9 @@ object LinkerHud {
 
     /** Presence links are orchid, as they are in the panel — a person reads apart from a chest at a glance. */
     private val ORCHID = floatArrayOf(0.79f, 0.37f, 0.65f)
+    /** The linker outlines are two pixels wide, which reads at arm.s length without shouting. */
+    private const val WIDTH = 2f
+
     private const val LABEL_RANGE = 48.0
 
     fun install() {
@@ -82,7 +81,7 @@ object LinkerHud {
      * the arm does not wave for a use that never reached the server.
      */
     private fun onInteract(player: net.minecraft.world.entity.player.Player): Boolean {
-        if (!Screen.hasControlDown()) return true
+        if (!bpm.platform.client.ctrlHeld()) return true
         val mc = Minecraft.getInstance()
         if (linkerIn(player) == null || ChamberDimension.isChamber(player.level())) return true
         val be = controller(player) ?: return true
@@ -122,13 +121,9 @@ object LinkerHud {
         // hung on them has to be too or it judders a tick behind the head it belongs to.
         val partial = event.delta.getGameTimeDeltaPartialTick(true)
 
-        bpm.platform.client.useLinesShader()
-        RenderSystem.enableBlend()
-        RenderSystem.defaultBlendFunc()
-        RenderSystem.lineWidth(2f)
-        if (throughWalls) RenderSystem.disableDepthTest() else RenderSystem.enableDepthTest()
-        RenderSystem.disableCull()
-        val builder = Tesselator.getInstance().begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL)
+        // One pass for everything: blend, cull and depth are the render type's business now, and the
+        // width rides on the vertices from 1.21.9. See [bpm.platform.client.LinePass].
+        bpm.platform.client.worldLines(throughWalls, WIDTH) { lines ->
         pose.pushPose()
         pose.translate(-cam.x, -cam.y, -cam.z)
 
@@ -141,36 +136,32 @@ object LinkerHud {
             // the body being drawn, not the one the last tick left behind.
             val at = who.getPosition(partial)
             val bounds = who.boundingBox.move(at.x - who.x, at.y - who.y, at.z - who.z)
-            box(pose, builder, bounds.inflate(0.08), ORCHID, 0.9f)
-            line(pose, builder, centre, at.add(0.0, who.bbHeight * 0.5, 0.0), ORCHID, 0.6f)
+            lines.box(pose, bounds.inflate(0.08), ORCHID, 0.9f)
+            lines.line(pose, centre, at.add(0.0, who.bbHeight * 0.5, 0.0), ORCHID, 0.6f)
         }
         for (link in be.links.blocks) {
             // A link whose block is gone is drawn amber: aim at it and sneak-use to unlink.
             val colour = if (player.level().getBlockState(link.pos).isAir) AMBER else TEAL
-            box(pose, builder, AABB(link.pos).inflate(0.02), colour, 0.9f)
+            lines.box(pose, AABB(link.pos).inflate(0.02), colour, 0.9f)
             link.side?.let { face ->
                 val fb = AABB(link.pos)
                 val f = faceBox(fb, face).inflate(0.03)
-                box(pose, builder, f, colour, 1f)
+                lines.box(pose, f, colour, 1f)
             }
-            line(pose, builder, centre, Vec3.atCenterOf(link.pos), colour, 0.6f)
+            lines.line(pose, centre, Vec3.atCenterOf(link.pos), colour, 0.6f)
         }
         // The looked-at block: green when the next use links it, red when it is out of reach.
         val hit = mc.hitResult as? BlockHitResult
         if (hit != null && hit.type == HitResult.Type.BLOCK && hit.blockPos != be.blockPos) {
             val ok = hit.blockPos.closerThan(be.blockPos, range)
-            box(pose, builder, faceBox(AABB(hit.blockPos), hit.direction).inflate(0.01), if (ok) GREEN else RED, 1f)
+            lines.box(pose, faceBox(AABB(hit.blockPos), hit.direction).inflate(0.01), if (ok) GREEN else RED, 1f)
         } else {
             LinkerItem.linkAhead(player.level(), player, be)?.let { ahead ->
-                box(pose, builder, AABB(ahead.pos).inflate(0.05), if (player.isShiftKeyDown) RED else AMBER, 1f)
+                lines.box(pose, AABB(ahead.pos).inflate(0.05), if (player.isShiftKeyDown) RED else AMBER, 1f)
             }
         }
         pose.popPose()
-        // Nothing to draw (no links, nothing aimed at) leaves the builder empty; `buildOrThrow` would throw on that.
-        builder.build()?.let { BufferUploader.drawWithShader(it) }
-        RenderSystem.enableCull()
-        RenderSystem.enableDepthTest()
-        RenderSystem.lineWidth(1f)
+        }
         labels(mc, player, be, cam, pose, partial)
     }
 
@@ -178,7 +169,7 @@ object LinkerHud {
     private fun labels(mc: Minecraft, player: Player, be: ControllerBlockEntity, cam: Vec3, pose: PoseStack, partial: Float) {
         val buffers = mc.renderBuffers().bufferSource()
         val font = mc.font
-        val orientation = mc.entityRenderDispatcher.cameraOrientation()
+        val orientation = mc.gameRenderer.mainCamera.rotation()
         val bg = (mc.options.getBackgroundOpacity(0.25f) * 255).toInt() shl 24
         for (link in be.links.presence) {
             val who = tethered(player, link) ?: continue
@@ -225,17 +216,6 @@ object LinkerHud {
         net.minecraft.core.Direction.SOUTH -> AABB(b.minX, b.minY, b.maxZ, b.maxX, b.maxY, b.maxZ)
         net.minecraft.core.Direction.WEST -> AABB(b.minX, b.minY, b.minZ, b.minX, b.maxY, b.maxZ)
         net.minecraft.core.Direction.EAST -> AABB(b.maxX, b.minY, b.minZ, b.maxX, b.maxY, b.maxZ)
-    }
-
-    private fun box(pose: PoseStack, builder: com.mojang.blaze3d.vertex.VertexConsumer, box: AABB, rgb: FloatArray, a: Float) {
-        bpm.platform.client.lineBox(pose, builder, box, rgb[0], rgb[1], rgb[2], a)
-    }
-
-    private fun line(pose: PoseStack, builder: com.mojang.blaze3d.vertex.VertexConsumer, from: Vec3, to: Vec3, rgb: FloatArray, a: Float) {
-        val m = pose.last()
-        val d = to.subtract(from).normalize()
-        builder.addVertex(m, from.x.toFloat(), from.y.toFloat(), from.z.toFloat()).setColor(rgb[0], rgb[1], rgb[2], a).setNormal(m, d.x.toFloat(), d.y.toFloat(), d.z.toFloat())
-        builder.addVertex(m, to.x.toFloat(), to.y.toFloat(), to.z.toFloat()).setColor(rgb[0], rgb[1], rgb[2], a).setNormal(m, d.x.toFloat(), d.y.toFloat(), d.z.toFloat())
     }
 
     // ---- the crosshair line -----------------------------------------------------------------------------
