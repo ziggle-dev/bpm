@@ -69,6 +69,15 @@ abstract class BossMonster(type: EntityType<out Monster>, level: Level) : Monste
     //?}
 
     /**
+     * Whether Peaceful would unmake this boss. Always false, and asked by a game test.
+     *
+     * Public and band-neutral, because from 1.21.9 there is no method to override and therefore nothing
+     * for a test to call: the answer is decided at registration by `EntityType.isAllowedInPeaceful`, and
+     * what a test can still check is the mod's intent, which is what this states.
+     */
+    fun despawnsInPeaceful(): Boolean = false
+
+    /**
      * Write and read this boss's own fields, as a compound.
      *
      * The same bridge [SavingProjectile] carries, spelled out again because a monster cannot extend a

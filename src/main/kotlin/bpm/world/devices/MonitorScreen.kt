@@ -1,5 +1,6 @@
 package bpm.world.devices
 
+import bpm.platform.listOr
 import net.minecraft.core.BlockPos
 import net.minecraft.core.HolderLookup
 import net.minecraft.nbt.CompoundTag
@@ -60,7 +61,7 @@ data class Widget(
         if (label.isNotEmpty()) t.putString("label", label)
         if (value != 0.0) t.putDouble("value", value)
         if (max != 0.0) t.putDouble("max", max)
-        if (!item.isEmpty) t.put("item", item.save(registries))
+        if (!item.isEmpty) t.put("item", bpm.platform.writeStack(registries, item))
         if (fluid.isNotEmpty()) t.putString("fluid", fluid)
         if (colour.isNotEmpty()) t.putString("colour", colour)
         if (size != 1) t.putInt("size", size)
@@ -210,4 +211,4 @@ internal fun CompoundTag.putWidgets(key: String, widgets: List<Widget>, registri
 }
 
 internal fun CompoundTag.getWidgets(key: String, registries: HolderLookup.Provider): List<Widget> =
-    if (contains(key)) Widget.loadAll(getList(key, Tag.TAG_COMPOUND.toInt()), registries) else emptyList()
+    if (contains(key)) Widget.loadAll(listOr(key), registries) else emptyList()

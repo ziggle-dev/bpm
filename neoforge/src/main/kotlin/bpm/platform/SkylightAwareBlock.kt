@@ -20,6 +20,45 @@ import net.minecraft.world.level.block.state.BlockState
  * several of them.
  */
 abstract class SkylightAwareBlock(properties: Properties) : Block(properties) {
+
+    /**
+     * Something is standing in this block, on the server.
+     *
+     * `entityInside` gained an `InsideBlockEffectApplier` and a `firstTick` flag at 1.21.9 -- the applier
+     * so a block can queue an effect rather than apply it inline, and the flag so it can tell the first
+     * tick of contact from the rest. Neither is wanted here, and the older bodies' `isClientSide` guard
+     * is folded in so this is called under the same circumstances on every band.
+     */
+    protected open fun insideBlock(
+        state: BlockState,
+        level: net.minecraft.server.level.ServerLevel,
+        pos: net.minecraft.core.BlockPos,
+        entity: net.minecraft.world.entity.Entity,
+    ) {}
+
+    //? if >=1.21.9 {
+    /*override fun entityInside(
+        state: BlockState,
+        level: net.minecraft.world.level.Level,
+        pos: net.minecraft.core.BlockPos,
+        entity: net.minecraft.world.entity.Entity,
+        effects: net.minecraft.world.entity.InsideBlockEffectApplier,
+        firstTick: Boolean,
+    ) {
+        super.entityInside(state, level, pos, entity, effects, firstTick)
+        (level as? net.minecraft.server.level.ServerLevel)?.let { insideBlock(state, it, pos, entity) }
+    }
+    *///?} else {
+    override fun entityInside(
+        state: BlockState,
+        level: net.minecraft.world.level.Level,
+        pos: net.minecraft.core.BlockPos,
+        entity: net.minecraft.world.entity.Entity,
+    ) {
+        super.entityInside(state, level, pos, entity)
+        (level as? net.minecraft.server.level.ServerLevel)?.let { insideBlock(state, it, pos, entity) }
+    }
+    //?}
     /** Whether skylight passes through. Overridden by shared code; called by whichever signature exists. */
     protected abstract fun propagatesSkylight(state: BlockState): Boolean
 

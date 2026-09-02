@@ -8,8 +8,8 @@ object NeoPlatform : PlatformInfo {
     override val gameDir: Path get() = FMLPaths.GAMEDIR.get()
     override val configDir: Path get() = FMLPaths.CONFIGDIR.get()
     //? if >=1.21.9 {
-    /*override val isClient: Boolean get() = net.neoforged.fml.loading.FMLLoader.getDist().isClient
-    override val isProduction: Boolean get() = net.neoforged.fml.loading.FMLLoader.isProduction()
+    /*override val isClient: Boolean get() = net.neoforged.fml.loading.FMLEnvironment.getDist().isClient
+    override val isProduction: Boolean get() = net.neoforged.fml.loading.FMLEnvironment.isProduction()
     *///?} else {
     override val isClient: Boolean get() = net.neoforged.fml.loading.FMLEnvironment.dist.isClient
     override val isProduction: Boolean get() = net.neoforged.fml.loading.FMLEnvironment.production

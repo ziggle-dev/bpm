@@ -51,7 +51,19 @@ object NeoNet : PlatformNet {
         }
     }
 
+    /**
+     * Client to server.
+     *
+     * Split out of `PacketDistributor` into a client-only `ClientPacketDistributor` at 1.21.9, which is
+     * honest -- this direction was only ever callable from a client, and the class it lived in is loaded
+     * on dedicated servers too.
+     */
+    //? if >=1.21.9 {
+    /*override fun sendToServer(payload: CustomPacketPayload) =
+        net.neoforged.neoforge.client.network.ClientPacketDistributor.sendToServer(payload)
+    *///?} else {
     override fun sendToServer(payload: CustomPacketPayload) = PacketDistributor.sendToServer(payload)
+    //?}
 
     override fun sendToPlayer(player: ServerPlayer, payload: CustomPacketPayload) =
         PacketDistributor.sendToPlayer(player, payload)

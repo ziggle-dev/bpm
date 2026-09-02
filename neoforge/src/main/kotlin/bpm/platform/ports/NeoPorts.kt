@@ -129,6 +129,17 @@ private fun fluidResource(volume: FluidVolume): net.neoforged.neoforge.transfer.
 private fun net.neoforged.neoforge.transfer.fluid.FluidResource.toVolume(mb: Int): FluidVolume =
     if (isEmpty || mb <= 0) FluidVolume.EMPTY else FluidVolume(fluid, Droplets.ofMb(mb), toStack(1).componentsPatch)
 
+/**
+ * A volume as a `FluidStack`.
+ *
+ * `FluidStack` survived the transfer-API replacement -- it is still how NeoForge's FLUID TYPE hooks talk,
+ * which is what [bpm.platform.world.NeoFluidBehaviour] needs -- even though nothing in the new resource
+ * API takes one. So it is built here rather than being reached for through a handler.
+ */
+fun FluidVolume.toStack(): net.neoforged.neoforge.fluids.FluidStack =
+    if (isEmpty) net.neoforged.neoforge.fluids.FluidStack.EMPTY
+    else net.neoforged.neoforge.fluids.FluidStack(fluid.builtInRegistryHolder(), mb, components)
+
 class HandlerFluidPort(private val handler: FluidHandler) : FluidPort {
     override val tanks: Int get() = handler.size()
 

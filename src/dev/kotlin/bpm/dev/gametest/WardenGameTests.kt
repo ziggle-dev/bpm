@@ -63,7 +63,7 @@ class WardenGameTests {
         helper.setBlock(pedestalPos, DeviceBlocks.CORE_PEDESTAL.get().defaultBlockState().setValue(PedestalBlock.HAS_CORE, false))
         val w = QuantumWardenEntity.spawnAt(helper.level, helper.absolutePos(pedestalPos), null)
         w.setNoAi(true)
-        helper.assertTrue(!w.shouldDespawnInPeaceful(), "the Warden would despawn on Peaceful")
+        helper.assertTrue(!w.despawnsInPeaceful(), "the Warden would despawn on Peaceful")
         helper.startSequence()
             .thenExecuteAfter(10) { helper.assertTrue(w.isAlive && !w.isRemoved, "the Warden vanished within 10 ticks") }
             .thenExecute { w.discard() }

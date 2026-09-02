@@ -753,8 +753,8 @@ class PhaseBlock(properties: Properties) : bpm.platform.SkylightAwareBlock(prope
     }
 
     /** Inside a decohered trail tile, anything living but the Warden is hurt — the reason not to follow it. */
-    override fun entityInside(state: BlockState, level: Level, pos: BlockPos, entity: Entity) {
-        if (level.isClientSide || state.getValue(SOLID)) return
+    override fun insideBlock(state: BlockState, level: net.minecraft.server.level.ServerLevel, pos: BlockPos, entity: Entity) {
+        if (state.getValue(SOLID)) return
         if (entity !is LivingEntity || entity is bpm.world.entity.QuantumWardenEntity) return
         if (entity is Player && (entity.isCreative || entity.isSpectator)) return
         val be = level.getBlockEntity(pos) as? PhaseBlockEntity ?: return
