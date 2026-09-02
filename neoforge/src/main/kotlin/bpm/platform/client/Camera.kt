@@ -1,18 +1,30 @@
 package bpm.platform.client
 
 /**
- * Where the camera is, this frame.
+ * The camera, this frame -- where it is and which way it faces.
  *
- * `Camera` grew a record-style `position()` accessor at 1.21.9 and made the field behind it private, so
- * the Kotlin property that used to read `getPosition()` now resolves to something it may not touch. One
- * line either way, and the caller says what it wants rather than how to get it.
+ * Two changes a band apart, each of which stops a plain property read from working.
  *
- * Everything else this mod asks the camera -- `rotation()` in particular -- is spelled the same on every
- * band and is called directly.
+ * At 1.21.9 `Camera` grew a record-style `position()` and made the field behind it private. At 26.1
+ * `GameRenderer` did the same to `mainCamera`: the field is private and a public `mainCamera()` sits
+ * beside it, so from that band even REACHING the camera has to be spelled as a call. Kotlin resolves a
+ * same-named field ahead of a method, which is what turns both of these into errors rather than
+ * deprecation warnings -- the same trap `AbstractTexture.texture` sprang one band earlier.
  */
+
+private fun camera(): net.minecraft.client.Camera =
+    //? if >=26.1 {
+    /*net.minecraft.client.Minecraft.getInstance().gameRenderer.mainCamera()
+    *///?} else {
+    net.minecraft.client.Minecraft.getInstance().gameRenderer.mainCamera
+    //?}
+
 fun cameraPos(): net.minecraft.world.phys.Vec3 =
     //? if >=1.21.9 {
-    /*net.minecraft.client.Minecraft.getInstance().gameRenderer.mainCamera.position()
+    /*camera().position()
     *///?} else {
-    net.minecraft.client.Minecraft.getInstance().gameRenderer.mainCamera.position
+    camera().position
     //?}
+
+/** Which way the camera faces -- what a world label is turned by so it reads flat to the player. */
+fun cameraRotation(): org.joml.Quaternionf = camera().rotation()

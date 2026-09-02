@@ -50,10 +50,10 @@ internal class PreparedDraw : ImmediateDraw {
         draw(poseStack.last(), consumer(kind))
     }
 
-    // Text and items are NOT drawn on this band yet, and they no-op rather than throwing because this runs
-    // once a frame: a throw would either crash the client or be swallowed into a silent disable, and
-    // neither says more than nothing drawn does. Text wants `Font.prepareText` and a prepared-text state;
-    // an item wants its quads routed the way `ItemPreview` routes them. Both are outstanding.
+    // Text is NOT drawn on this band yet, and it no-ops rather than throwing because this runs once a
+    // frame: a throw would either crash the client or be swallowed into a silent disable, and neither
+    // says more than nothing drawn does. It wants `Font.prepareText` walked with a `GlyphVisitor` that
+    // writes into one of these batches, which is real work and is outstanding.
     override fun text(
         poseStack: com.mojang.blaze3d.vertex.PoseStack,
         text: net.minecraft.util.FormattedCharSequence,
@@ -66,6 +66,15 @@ internal class PreparedDraw : ImmediateDraw {
         packedLight: Int,
     ) = Unit
 
+    /**
+     * Resolve the item and submit it to ourselves.
+     *
+     * This is the same two steps as every band from 1.21.9 -- resolve the stack to an
+     * `ItemStackRenderState`, submit that to a collector -- with [ImmediateCollector] on the other end
+     * catching the submission. What is different here is that the collector draws into THIS, so the
+     * item's quads land in the same per-render-type batches as everything else and go out on one
+     * [flush] with them.
+     */
     override fun item(
         poseStack: com.mojang.blaze3d.vertex.PoseStack,
         stack: net.minecraft.world.item.ItemStack,
@@ -73,7 +82,12 @@ internal class PreparedDraw : ImmediateDraw {
         packedLight: Int,
         packedOverlay: Int,
         seed: Int,
-    ) = Unit
+    ) {
+        val mc = net.minecraft.client.Minecraft.getInstance()
+        val state = net.minecraft.client.renderer.item.ItemStackRenderState()
+        mc.itemModelResolver.updateForTopItem(state, stack, context, mc.level, null, seed)
+        state.submit(poseStack, ImmediateCollector(this), packedLight, packedOverlay, 0)
+    }
 
     override fun flush() {
         val device = com.mojang.blaze3d.systems.RenderSystem.getDevice()

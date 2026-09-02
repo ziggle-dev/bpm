@@ -168,9 +168,9 @@ object LinkerHud {
 
     /** Each link's name (and face) as a sign over its block — amber when the block is gone. */
     private fun labels(mc: Minecraft, player: Player, be: ControllerBlockEntity, cam: Vec3, pose: PoseStack, partial: Float) {
-        val buffers = mc.renderBuffers().bufferSource()
+        val draw = bpm.platform.client.immediateWorldDraw()
         val font = mc.font
-        val orientation = mc.gameRenderer.mainCamera.rotation()
+        val orientation = bpm.platform.client.cameraRotation()
         val bg = (mc.options.getBackgroundOpacity(0.25f) * 255).toInt() shl 24
         for (link in be.links.presence) {
             val who = tethered(player, link) ?: continue
@@ -180,10 +180,10 @@ object LinkerHud {
             pose.translate(at.x - cam.x, at.y + who.bbHeight + 0.5 - cam.y, at.z - cam.z)
             pose.mulPose(orientation)
             pose.scale(-0.025f, -0.025f, 0.025f)
-            val m = pose.last().pose()
             val x = -font.width(link.name) / 2f
-            font.drawInBatch(link.name, x, 0f, 0x20FFFFFF, false, m, buffers, Font.DisplayMode.SEE_THROUGH, bg, FULL_BRIGHT)
-            font.drawInBatch(link.name, x, 0f, 0xFFF0A3D6.toInt(), false, m, buffers, Font.DisplayMode.NORMAL, 0, FULL_BRIGHT)
+            val glyphs = net.minecraft.network.chat.Component.literal(link.name).visualOrderText
+            draw.text(pose, glyphs, x, 0f, 0x20FFFFFF, false, Font.DisplayMode.SEE_THROUGH, bg, FULL_BRIGHT)
+            draw.text(pose, glyphs, x, 0f, 0xFFF0A3D6.toInt(), false, Font.DisplayMode.NORMAL, 0, FULL_BRIGHT)
             pose.popPose()
         }
         for (link in be.links.blocks) {
@@ -195,13 +195,13 @@ object LinkerHud {
             pose.translate(p.x + 0.5 - cam.x, p.y + 1.3 - cam.y, p.z + 0.5 - cam.z)
             pose.mulPose(orientation)
             pose.scale(-0.025f, -0.025f, 0.025f)
-            val m = pose.last().pose()
             val x = -font.width(text) / 2f
-            font.drawInBatch(text, x, 0f, 0x20FFFFFF, false, m, buffers, Font.DisplayMode.SEE_THROUGH, bg, FULL_BRIGHT)
-            font.drawInBatch(text, x, 0f, if (gone) 0xFFFFB84D.toInt() else 0xFF4DFFD8.toInt(), false, m, buffers, Font.DisplayMode.NORMAL, 0, FULL_BRIGHT)
+            val glyphs = net.minecraft.network.chat.Component.literal(text).visualOrderText
+            draw.text(pose, glyphs, x, 0f, 0x20FFFFFF, false, Font.DisplayMode.SEE_THROUGH, bg, FULL_BRIGHT)
+            draw.text(pose, glyphs, x, 0f, if (gone) 0xFFFFB84D.toInt() else 0xFF4DFFD8.toInt(), false, Font.DisplayMode.NORMAL, 0, FULL_BRIGHT)
             pose.popPose()
         }
-        buffers.endBatch()
+        draw.flush()
     }
 
     /** The player a presence link points at, when this client can see them. */
