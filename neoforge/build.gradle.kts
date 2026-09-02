@@ -245,6 +245,27 @@ kotlin.sourceSets.named("main") {
     }
 }
 
+/*
+ * The game tests run on one Minecraft version, not on all of them.
+ *
+ * 1.21.9 replaced the annotation-driven GameTest framework with a data-driven one: a test is a registered
+ * `TestInstance` described by JSON, and `@GameTest`, NeoForge's `@GameTestHolder` and
+ * `@PrefixGameTestTemplate` are all gone. Porting sixty-five tests to that shape would be a rewrite of the
+ * safety net rather than a use of it, and the plan already says as much -- "given the vanilla GameTest API
+ * churn across 1.21.x/26.x, consider running GameTest on ONE MC version per loader".
+ *
+ * 1.21.1 is that version. The tests exercise server logic -- transfers, chamber state, trap damage, core
+ * tiers -- which is exactly the part of the mod that does NOT change between bands, so running them on one
+ * node loses very little. The `dev` source set's other members (the commands and the Lua console) are not
+ * excluded: `runClient` depends on them, and a launchable client on every band is the point.
+ */
+val gameTestsCompile = stonecutter.eval(stonecutter.current.version, "<1.21.9")
+kotlin.sourceSets.named("dev") {
+    if (!gameTestsCompile) {
+        kotlin.exclude("bpm/dev/gametest/**")
+    }
+}
+
 
 
 /*

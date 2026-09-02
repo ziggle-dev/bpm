@@ -77,8 +77,8 @@ object BlockPreviewRenderer : BlockPreviews, ItemIcons, IconSource {
         val skin = mc.level?.players()?.firstOrNull { it.uuid == uuid }?.skin
             ?: net.minecraft.client.resources.DefaultPlayerSkin.get(uuid)
         // Widened where it is produced, not where it is drawn: IconRegion takes a Long because from
-        // 1.21.6 the game stops handing out GL names at all. Today this is still one, so it widens here.
-        val id = mc.textureManager.getTexture(skin.texture()).id.toLong()
+        // 1.21.6 the game stops handing out GL names at all -- and from 1.21.9 it stops having any.
+        val id = bpm.platform.client.skinHandle(skin) ?: return null
         // 8/64 .. 16/64 — the face; the hat layer at 40/64 is left off, it reads as noise at this size.
         return IconRegion(id, 0.125f, 0.125f, 0.25f, 0.25f)
     }
@@ -96,7 +96,8 @@ object BlockPreviewRenderer : BlockPreviews, ItemIcons, IconSource {
         slot.wantedAt = System.currentTimeMillis()
         if (!slot.rendered) return null
         // A frame buffer's texture is upside down for a GUI: flip V.
-        return IconRegion(slot.target.colorTextureId.toLong(), 0f, 1f, 1f, 0f)
+        val id = bpm.platform.client.targetHandle(slot.target) ?: return null
+        return IconRegion(id, 0f, 1f, 1f, 0f)
     }
 
     override fun labelOf(itemId: String): String? = slots[itemId]?.label?.ifEmpty { null }
@@ -124,7 +125,7 @@ object BlockPreviewRenderer : BlockPreviews, ItemIcons, IconSource {
             val stack = ItemStack(item)
             slot.label = stack.hoverName.string
             runCatching { render(mc, slot, stack) }
-                .onSuccess { slot.rendered = true }
+                .onSuccess { drawn -> slot.rendered = drawn }
                 .onFailure {
                     lastFailure = "$id: $it"
                     Bpm.LOGGER.warn("item picture failed for {}: {}", id, it.toString())
@@ -149,35 +150,9 @@ object BlockPreviewRenderer : BlockPreviews, ItemIcons, IconSource {
      */
     private val buffers: MultiBufferSource.BufferSource by lazy { MultiBufferSource.immediate(ByteBufferBuilder(1536)) }
 
-    private fun render(mc: Minecraft, slot: Slot, stack: ItemStack) {
-        val target = slot.target
-        target.setClearColor(0f, 0f, 0f, 0f)
-        bpm.platform.client.clearTarget(target)
-        target.bindWrite(true)
-        RenderSystem.backupProjectionMatrix()
-        val modelView = RenderSystem.getModelViewStack()
-        modelView.pushMatrix()
-        modelView.identity()
-        bpm.platform.client.applyModelView()
-        // A 16-unit GUI space against an IDENTITY model-view, both set here.
-        //
-        // This used to set only the projection, with a 1000..21000 depth range chosen to match the -11000 Z
-        // push the vanilla GUI model-view happens to carry — that is, it borrowed whatever model-view the
-        // frame had left lying around. It works in a plain client and fails wherever another mod has set a
-        // different one, because then the item lands outside the depth range and clips away silently.
-        bpm.platform.client.setGuiProjection(Matrix4f().setOrtho(0f, 16f, 16f, 0f, -1000f, 1000f))
-        val graphics = GuiGraphics(mc, buffers)
-        try {
-            graphics.renderItem(stack, 0, 0)
-            graphics.flush()
-        } finally {
-            modelView.popMatrix()
-            bpm.platform.client.applyModelView()
-            RenderSystem.restoreProjectionMatrix()
-            target.unbindWrite()
-            mc.mainRenderTarget.bindWrite(true)
-        }
-    }
+    /** False when this band has no offscreen path -- see [bpm.platform.client.renderItemPreview]. */
+    private fun render(mc: Minecraft, slot: Slot, stack: ItemStack): Boolean =
+        bpm.platform.client.renderItemPreview(mc, slot.target, buffers, stack)
 
     /** What `/bpm previews` reports — enough to tell "nothing was asked for" from "everything failed". */
     fun diagnostics(): String {

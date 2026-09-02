@@ -2,7 +2,6 @@ package bpm.client.mc.imgui
 
 import bpm.Bpm
 import com.mojang.blaze3d.systems.RenderSystem
-import com.mojang.blaze3d.vertex.BufferUploader
 import imgui.ImGui
 import imgui.ImGuiIO
 import imgui.flag.ImGuiConfigFlags
@@ -126,7 +125,7 @@ object BpmImGui {
         } finally {
             ImGui.render()
             backend.renderDrawData(ImGui.getDrawData())
-            BufferUploader.reset()
+            bpm.platform.client.resetVertexBuffers()
             bpm.platform.client.applyModelView()
         }
     }

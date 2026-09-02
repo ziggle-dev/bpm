@@ -60,7 +60,7 @@ object DevCommands {
         }
         server.submit<Unit> {
             val level = server.overworld()
-            val stack = CommandSourceStack(source, Vec3.atCenterOf(level.sharedSpawnPos), Vec2.ZERO, level, 4, "bpm-dev", Component.literal("bpm-dev"), server, null)
+            val stack = bpm.platform.fullPermissionSource(source, level, Vec3.atCenterOf(bpm.platform.spawnPosOf(level)), "bpm-dev", server)
             server.commands.performPrefixedCommand(stack, text)
         }.get(30, TimeUnit.SECONDS)
         return DevJson.obj("type" to "cmd", "output" to lines)
@@ -101,7 +101,7 @@ object DevCommands {
         val given = java.nio.file.Path.of(path.trim().ifBlank { "bpm-shot.png" })
         // A relative path is relative to the game dir (the dev run's `run/`), an absolute one is taken as given.
         val out = if (given.isAbsolute) given else FMLPaths.GAMEDIR.get().resolve(given)
-        val image: NativeImage = mc.submit<NativeImage> { Screenshot.takeScreenshot(mc.mainRenderTarget) }.get(10, TimeUnit.SECONDS)
+        val image: NativeImage = mc.submit<NativeImage> { bpm.platform.client.grabScreenshot(mc.mainRenderTarget) }.get(10, TimeUnit.SECONDS)
         return try {
             Files.createDirectories(out.toAbsolutePath().parent)
             image.writeToFile(out)

@@ -382,3 +382,29 @@ val SLOWNESS: net.minecraft.core.Holder<net.minecraft.world.effect.MobEffect>
     *///?} else {
     get() = net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN
     //?}
+
+/**
+ * A command source with full permission, for the dev harness to run commands through.
+ *
+ * `CommandSourceStack` took an int permission level until 1.21.9 and takes a `PermissionSet` after it,
+ * so the whole construction is switched rather than one argument. `ALL_PERMISSIONS` is what level 4 meant.
+ */
+fun fullPermissionSource(
+    source: net.minecraft.commands.CommandSource,
+    level: net.minecraft.server.level.ServerLevel,
+    at: net.minecraft.world.phys.Vec3,
+    name: String,
+    server: net.minecraft.server.MinecraftServer,
+): net.minecraft.commands.CommandSourceStack =
+    //? if >=1.21.9 {
+    /*net.minecraft.commands.CommandSourceStack(
+        source, at, net.minecraft.world.phys.Vec2.ZERO, level,
+        net.minecraft.server.permissions.PermissionSet.ALL_PERMISSIONS,
+        name, net.minecraft.network.chat.Component.literal(name), server, null,
+    )
+    *///?} else {
+    net.minecraft.commands.CommandSourceStack(
+        source, at, net.minecraft.world.phys.Vec2.ZERO, level, 4,
+        name, net.minecraft.network.chat.Component.literal(name), server, null,
+    )
+    //?}

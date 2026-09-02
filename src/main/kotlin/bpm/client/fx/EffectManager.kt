@@ -274,7 +274,7 @@ object EffectManager {
                 } else {
                     pose.mulPose(Axis.YP.rotationDegrees((f.t + partial) * 24f + f.seed))
                     pose.scale(scale * 0.55f, scale * 0.55f, scale * 0.55f)
-                    Minecraft.getInstance().itemRenderer.renderStatic(f.stack, ItemDisplayContext.GROUND, light, OverlayTexture.NO_OVERLAY, pose, buffers, level, f.seed)
+                    bpm.platform.client.drawWorldItem(pose, buffers, f.stack, ItemDisplayContext.GROUND, light, level, f.seed)
                 }
                 pose.popPose()
             }
@@ -319,7 +319,7 @@ object EffectManager {
             pose.mulPose(Axis.YP.rotationDegrees(yawOf(at.facing) + 180f))
             pose.mulPose(Axis.XP.rotationDegrees(angle - 20f))
             pose.scale(0.7f, 0.7f, 0.7f)
-            Minecraft.getInstance().itemRenderer.renderStatic(stack, ItemDisplayContext.THIRD_PERSON_RIGHT_HAND, LevelRenderer.getLightColor(level, at.cell(partial)), OverlayTexture.NO_OVERLAY, pose, buffers, level, 0)
+            bpm.platform.client.drawWorldItem(pose, buffers, stack, ItemDisplayContext.THIRD_PERSON_RIGHT_HAND, LevelRenderer.getLightColor(level, at.cell(partial)), level, 0)
             pose.popPose()
         }
     }

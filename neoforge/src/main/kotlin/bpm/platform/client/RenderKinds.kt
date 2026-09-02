@@ -583,3 +583,101 @@ fun drawFluidTranslucent(fluid: net.minecraft.world.level.material.Fluid) {
     net.minecraft.client.renderer.ItemBlockRenderTypes.setRenderLayer(fluid, net.minecraft.client.renderer.RenderType.translucent())
     //?}
 }
+
+/**
+ * The three things the editor's icon strip asks of a texture, and the one band that cannot answer.
+ *
+ * The skin's own type moved package at 1.21.9 as well, which is why the whole signature is switched
+ * here rather than just the body. ImGui identifies a texture by an opaque handle, and until 1.21.6 that
+ * handle was simply the OpenGL
+ * name -- which the game handed out freely, and which is why [dev.ziggle.vscript.editor.IconRegion]
+ * takes a `Long`. From 1.21.9 there are no GL names anywhere in the client: a texture is a `GpuTexture`
+ * behind a `GpuTextureView`, and a render target's colour attachment is the same. Nothing can be
+ * flattened to a long without the ImGui backend that consumes a view directly, which is a piece of work
+ * in its own right (the RenderPipeline backend the plan calls S1) and is not done.
+ *
+ * So on that band these answer "no", and the picker falls back to the labels it already shows while a
+ * preview is still rendering. The strip is poorer; nothing else in the editor is affected, and nothing
+ * pretends to have drawn something it did not.
+ */
+//? if >=1.21.9 {
+/*fun skinHandle(skin: net.minecraft.world.entity.player.PlayerSkin): Long? = null
+*///?} else {
+fun skinHandle(skin: net.minecraft.client.resources.PlayerSkin): Long? =
+    net.minecraft.client.Minecraft.getInstance().textureManager.getTexture(skin.texture()).id.toLong()
+//?}
+
+/** The handle of an offscreen target's colour attachment. See [skinHandle] for why this can be null. */
+fun targetHandle(target: com.mojang.blaze3d.pipeline.RenderTarget): Long? {
+    //? if >=1.21.9 {
+    /*return null
+    *///?} else {
+    return target.colorTextureId.toLong()
+    //?}
+}
+
+/**
+ * Draw [stack] into [target] as a thumbnail, in a 16-unit GUI space against an identity model-view.
+ *
+ * False when this band has no path for it. Binding a target for writing, clearing it and flushing a GUI
+ * batch into it were all `RenderTarget` and `RenderSystem` calls that 1.21.9 replaced with a render pass
+ * opened on a `GpuDevice` -- the same rewrite [skinHandle] is waiting on, and there is no point doing
+ * half of it: a thumbnail nothing can reference is a thumbnail nobody sees.
+ */
+fun renderItemPreview(
+    mc: net.minecraft.client.Minecraft,
+    target: com.mojang.blaze3d.pipeline.RenderTarget,
+    buffers: net.minecraft.client.renderer.MultiBufferSource.BufferSource,
+    stack: net.minecraft.world.item.ItemStack,
+): Boolean {
+    //? if >=1.21.9 {
+    /*return false
+    *///?} else {
+    target.setClearColor(0f, 0f, 0f, 0f)
+    clearTarget(target)
+    target.bindWrite(true)
+    com.mojang.blaze3d.systems.RenderSystem.backupProjectionMatrix()
+    val modelView = com.mojang.blaze3d.systems.RenderSystem.getModelViewStack()
+    modelView.pushMatrix()
+    modelView.identity()
+    applyModelView()
+    /*
+     * A 16-unit GUI space against an IDENTITY model-view, both set here.
+     *
+     * This used to set only the projection, with a 1000..21000 depth range chosen to match the -11000 Z
+     * push the vanilla GUI model-view happens to carry -- that is, it borrowed whatever model-view the
+     * frame had left lying around. It works in a plain client and fails wherever another mod has set a
+     * different one, because then the item lands outside the depth range and clips away silently.
+     */
+    setGuiProjection(org.joml.Matrix4f().setOrtho(0f, 16f, 16f, 0f, -1000f, 1000f))
+    val graphics = net.minecraft.client.gui.GuiGraphics(mc, buffers)
+    try {
+        graphics.renderItem(stack, 0, 0)
+        graphics.flush()
+    } finally {
+        modelView.popMatrix()
+        applyModelView()
+        com.mojang.blaze3d.systems.RenderSystem.restoreProjectionMatrix()
+        target.unbindWrite()
+        mc.mainRenderTarget.bindWrite(true)
+    }
+    return true
+    //?}
+}
+
+/**
+ * Grab the main render target as an image.
+ *
+ * `Screenshot.takeScreenshot` returned the image until 1.21.9 and now hands it to a consumer instead --
+ * the read back off the GPU is asynchronous there, so it cannot return one. The dev harness wants a
+ * value, so this waits for it; a screenshot command has nothing better to do meanwhile.
+ */
+fun grabScreenshot(target: com.mojang.blaze3d.pipeline.RenderTarget): com.mojang.blaze3d.platform.NativeImage {
+    //? if >=1.21.9 {
+    /*val held = java.util.concurrent.CompletableFuture<com.mojang.blaze3d.platform.NativeImage>()
+    net.minecraft.client.Screenshot.takeScreenshot(target) { held.complete(it) }
+    return held.get(10, java.util.concurrent.TimeUnit.SECONDS)
+    *///?} else {
+    return net.minecraft.client.Screenshot.takeScreenshot(target)
+    //?}
+}

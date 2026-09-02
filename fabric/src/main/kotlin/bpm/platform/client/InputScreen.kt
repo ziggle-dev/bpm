@@ -149,3 +149,84 @@ inline fun guiScaled(g: net.minecraft.client.gui.GuiGraphics, x: Float, y: Float
     pose.popPose()
     //?}
 }
+
+/**
+ * The GLFW handle of the game window.
+ *
+ * `Window.getWindow()` became the record-style `handle()` at 1.21.9. Same long, and the ImGui host needs
+ * it to ask GLFW about modifier keys directly.
+ */
+fun windowHandle(): Long {
+    val window = net.minecraft.client.Minecraft.getInstance().window
+    //? if >=1.21.9 {
+    /*return window.handle()
+    *///?} else {
+    return window.window
+    //?}
+}
+
+/**
+ * Push out whatever Minecraft has batched for the GUI, so a raw draw lands on top of it rather than under.
+ *
+ * `GuiGraphics.flush()` is gone from 1.21.9, and there is nothing to replace it with: the GUI became an
+ * EXTRACT phase that records draws into a `GuiRenderState` and renders them later, so there is no batch
+ * in flight to flush at the moment a screen draws. Correct on that band is to do nothing.
+ */
+fun flushGui(g: net.minecraft.client.gui.GuiGraphics) {
+    // From 1.21.9 there is nothing in flight to flush, so this is deliberately empty there.
+    //? if <1.21.9 {
+    g.flush()
+    //?}
+}
+
+/**
+ * Put the shared vertex buffer back to a known state after a foreign renderer has drawn.
+ *
+ * `BufferUploader.reset()` existed because the ImGui backend binds its own VAO and buffers behind
+ * Minecraft's back, and vanilla cached which one it thought was bound. From 1.21.9 there is no such
+ * cache and no such class -- Blaze3D owns its buffers through a `GpuDevice` and does not assume.
+ */
+fun resetVertexBuffers() {
+    // From 1.21.9 there is no cached binding to correct, so this is deliberately empty there.
+    //? if <1.21.9 {
+    com.mojang.blaze3d.vertex.BufferUploader.reset()
+    //?}
+}
+
+/**
+ * Draw an item model in the world, into a buffer source.
+ *
+ * Returns false on a band where it cannot be done. From 1.21.9 an item is drawn by resolving it to an
+ * `ItemStackRenderState` and SUBMITTING that to a collector, and a caller holding only a
+ * `MultiBufferSource` -- which is what the level-render event still hands out -- has no collector to
+ * submit to. There is no immediate path, so the honest answer is "not here".
+ *
+ * The one caller is the mote of an item flying into a rift, and [bpm.client.fx.EffectManager] already
+ * documents the stance this follows: the effect is decoration for a transfer that has already happened,
+ * and is never worth more than it costs. The fluid drip and the rift itself are unaffected.
+ */
+fun drawWorldItem(
+    pose: com.mojang.blaze3d.vertex.PoseStack,
+    buffers: net.minecraft.client.renderer.MultiBufferSource,
+    stack: net.minecraft.world.item.ItemStack,
+    context: net.minecraft.world.item.ItemDisplayContext,
+    light: Int,
+    level: net.minecraft.world.level.Level,
+    seed: Int,
+): Boolean {
+    //? if >=1.21.9 {
+    /*return false
+    *///?} else {
+    net.minecraft.client.Minecraft.getInstance().itemRenderer.renderStatic(
+        stack,
+        context,
+        light,
+        net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY,
+        pose,
+        buffers,
+        level as? net.minecraft.client.multiplayer.ClientLevel,
+        seed,
+    )
+    return true
+    //?}
+}

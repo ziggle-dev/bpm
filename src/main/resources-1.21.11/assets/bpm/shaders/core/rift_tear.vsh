@@ -1,9 +1,10 @@
+#version 330
+
 // GENERATED from ../../../../../resources/assets/bpm/shaders/core/rift_tear.vsh -- do not edit the body here.
 //
 // From 1.21.9 a core shader's uniforms arrive in std140 blocks rather than one at a time: ModelViewMat and
 // ColorModulator come from DynamicTransforms, ProjMat from Projection, GameTime from Globals. The bodies
 // below are the 1.21.1 files unchanged; only these first lines differ, which is the point.
-#version 330
 
 #moj_import <minecraft:dynamictransforms.glsl>
 #moj_import <minecraft:projection.glsl>

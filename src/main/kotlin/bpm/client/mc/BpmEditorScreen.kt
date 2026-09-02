@@ -43,12 +43,12 @@ open class BpmEditorScreen(
     override fun render(graphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
         if (dimsWorld) renderBackground(graphics, mouseX, mouseY, partialTick)
         // Minecraft batches its GUI draws; flush them before raw GL draws over the top.
-        graphics.flush()
+        bpm.platform.client.flushGui(graphics)
         val w = minecraft!!.window
         val fbScale = w.width.toFloat() / w.screenWidth.toFloat()
         BpmImGui.frame(
             w.screenWidth.toFloat(), w.screenHeight.toFloat(), fbScale,
-            pump = { io -> input.syncModifiers(io, w.window) },
+            pump = { io -> input.syncModifiers(io, bpm.platform.client.windowHandle()) },
             bareRoot = !dimsWorld,
             body = body,
         )
