@@ -1,6 +1,7 @@
 package bpm.platform.ports
 
-import net.minecraft.core.component.DataComponentPatch
+import bpm.platform.ComponentPatch
+import bpm.platform.emptyPatch
 import net.minecraft.world.Container
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.material.Fluid
@@ -50,14 +51,14 @@ object Droplets {
 /**
  * A quantity of one fluid. The loader-free stand-in for NeoForge's `FluidStack`.
  *
- * Carries a [DataComponentPatch] because a fluid can be more than its id — NeoForge tanks compare
+ * Carries a [ComponentPatch] because a fluid can be more than its id — NeoForge tanks compare
  * components when deciding whether two stacks may share a tank, and dropping that would silently let
  * unlike fluids merge.
  */
 data class FluidVolume(
     val fluid: Fluid,
     val droplets: Long,
-    val components: DataComponentPatch = DataComponentPatch.EMPTY,
+    val components: ComponentPatch = emptyPatch(),
 ) {
     val isEmpty: Boolean get() = droplets <= 0L || fluid == Fluids.EMPTY
 
@@ -72,7 +73,7 @@ data class FluidVolume(
     companion object {
         val EMPTY = FluidVolume(Fluids.EMPTY, 0L)
 
-        fun ofMb(fluid: Fluid, mb: Int, components: DataComponentPatch = DataComponentPatch.EMPTY) =
+        fun ofMb(fluid: Fluid, mb: Int, components: ComponentPatch = emptyPatch()) =
             FluidVolume(fluid, Droplets.ofMb(mb), components)
 
         fun bucket(fluid: Fluid) = FluidVolume(fluid, Droplets.PER_BUCKET)

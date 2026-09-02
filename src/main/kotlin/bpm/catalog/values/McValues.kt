@@ -4,7 +4,6 @@ import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
 import dev.ziggle.vscript.vm.StructValue
 import net.minecraft.core.BlockPos
-import net.minecraft.core.component.DataComponentPatch
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
@@ -109,16 +108,16 @@ object ItemStackValue {
         val r = record(value) ?: return ItemStack.EMPTY
         val item = RegistryIds.item(r.get("item")?.toString().orEmpty()) ?: return ItemStack.EMPTY
         val count = BlockPosValue.int(r.get("count")).coerceAtLeast(1)
-        val patch = r.get("components")?.toString()?.takeIf { it.isNotBlank() }?.let { text ->
-            runCatching { DataComponentPatch.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(text)).result().orElse(null) }.getOrNull()
-        } ?: DataComponentPatch.EMPTY
-        return ItemStack(BuiltInRegistries.ITEM.wrapAsHolder(item), count, patch)
+        val patch = r.get("components")?.toString()?.takeIf { it.isNotBlank() }
+            ?.let { text -> bpm.platform.patchFromText(text) }
+            ?: bpm.platform.emptyPatch()
+        return bpm.platform.stackWith(item, count, patch)
     }
 
     private fun componentsText(stack: ItemStack): String? {
-        val patch = stack.componentsPatch
-        if (patch.isEmpty) return null
-        return runCatching { DataComponentPatch.CODEC.encodeStart(JsonOps.INSTANCE, patch).result().orElse(null)?.toString() }.getOrNull()
+        val patch = bpm.platform.patchOf(stack)
+        if (bpm.platform.patchIsEmpty(patch)) return null
+        return bpm.platform.patchToText(patch)
     }
 }
 
