@@ -814,6 +814,33 @@ fun drawFluidTranslucent(fluid: net.minecraft.world.level.material.Fluid) {
     //?}
 }
 
+//? if >=1.21.5 {
+/*/**
+ * A handle ImGui can draw a loaded texture with.
+ *
+ * `AbstractTexture.texture` reads as a field on 1.21.5-1.21.8, where the access widener makes it
+ * reachable, and as `getTexture()` from 1.21.9, where it is public -- Kotlin spells both the same way,
+ * so one line covers all three bands.
+ *
+ * Null when the texture has not been uploaded yet, which is normal for a skin still being fetched: the
+ * caller falls back to a label and asks again next frame.
+ */
+private fun textureHandle(id: ResourceLocation): Long? = runCatching {
+    val loaded = net.minecraft.client.Minecraft.getInstance().textureManager.getTexture(id)
+    //-? the accessor differs; see below
+    gpuTextureOf(loaded)?.let { ImGuiTextures.handleFor(it) }
+}.getOrNull()
+*///?}
+
+//? if >=1.21.9 {
+/*private fun gpuTextureOf(t: net.minecraft.client.renderer.texture.AbstractTexture): com.mojang.blaze3d.textures.GpuTexture? =
+    t.getTexture()
+*///?} elif >=1.21.5 {
+/*// The widened field. Kotlin will not synthesise a property here because the field itself is in scope.
+private fun gpuTextureOf(t: net.minecraft.client.renderer.texture.AbstractTexture): com.mojang.blaze3d.textures.GpuTexture? =
+    t.texture
+*///?}
+
 /**
  * The three things the editor's icon strip asks of a texture, and the one band that cannot answer.
  *
@@ -831,11 +858,13 @@ fun drawFluidTranslucent(fluid: net.minecraft.world.level.material.Fluid) {
  * pretends to have drawn something it did not.
  */
 //? if >=1.21.9 {
-/*fun skinHandle(skin: net.minecraft.world.entity.player.PlayerSkin): Long? = null
+/*// `PlayerSkin.texture()` became `body()`, and a skin's parts are ClientAssets rather than bare ids.
+fun skinHandle(skin: net.minecraft.world.entity.player.PlayerSkin): Long? =
+    textureHandle(skin.body().texturePath())
 *///?} elif >=1.21.5 {
-/*// The same "no" as the band above, one version earlier: GL names went with the Blaze3D rewrite at
-// 1.21.5, while PlayerSkin itself only moved package at 1.21.9.
-fun skinHandle(skin: net.minecraft.client.resources.PlayerSkin): Long? = null
+/*// PlayerSkin only moved package at 1.21.9; the lookup is the same on both.
+fun skinHandle(skin: net.minecraft.client.resources.PlayerSkin): Long? =
+    textureHandle(skin.texture())
 *///?} else {
 fun skinHandle(skin: net.minecraft.client.resources.PlayerSkin): Long? =
     net.minecraft.client.Minecraft.getInstance().textureManager.getTexture(skin.texture()).id.toLong()
@@ -844,7 +873,7 @@ fun skinHandle(skin: net.minecraft.client.resources.PlayerSkin): Long? =
 /** The handle of an offscreen target's colour attachment. See [skinHandle] for why this can be null. */
 fun targetHandle(target: com.mojang.blaze3d.pipeline.RenderTarget): Long? {
     //? if >=1.21.5 {
-    /*return null
+    /*return target.colorTexture?.let { ImGuiTextures.handleFor(it) }
     *///?} else {
     return target.colorTextureId.toLong()
     //?}
@@ -853,20 +882,39 @@ fun targetHandle(target: com.mojang.blaze3d.pipeline.RenderTarget): Long? {
 /**
  * Draw [stack] into [target] as a thumbnail, in a 16-unit GUI space against an identity model-view.
  *
- * False when this band has no path for it. Binding a target for writing, clearing it and flushing a GUI
- * batch into it were all `RenderTarget` and `RenderSystem` calls that 1.21.9 replaced with a render pass
- * opened on a `GpuDevice` -- the same rewrite [skinHandle] is waiting on, and there is no point doing
- * half of it: a thumbnail nothing can reference is a thumbnail nobody sees.
+ * Three bodies, and on 1.21.6-1.21.8 NONE of them: that band's is in [bpm.platform.client] `ItemPreview`,
+ * because getting an item's quads into a pass of our own is a page of code rather than a branch. Here the
+ * arms are wrapped around the whole function so that band declares nothing at all and the other file
+ * owns the name.
+ *
+ * 1.21.9 still answers false. Its item rendering goes through the submit model rather than
+ * `ItemRenderer.renderStatic`, so the same trick needs a different first step; the picker falls back to
+ * labels there, as it did everywhere before this.
  */
+//? if >=1.21.9 {
+/*fun renderItemPreview(
+    mc: net.minecraft.client.Minecraft,
+    target: com.mojang.blaze3d.pipeline.RenderTarget,
+    buffers: net.minecraft.client.renderer.MultiBufferSource.BufferSource,
+    stack: net.minecraft.world.item.ItemStack,
+): Boolean = false
+*///?} elif >=1.21.5 <1.21.6 {
+/*// 1.21.5 answers false for now. Its pipelines take loose uniforms and its render pass takes the target
+// texture rather than a view, so the drawing half needs a third body; the quad routing above it would be
+// identical. The picker falls back to labels here, as it did everywhere before this.
+fun renderItemPreview(
+    mc: net.minecraft.client.Minecraft,
+    target: com.mojang.blaze3d.pipeline.RenderTarget,
+    buffers: net.minecraft.client.renderer.MultiBufferSource.BufferSource,
+    stack: net.minecraft.world.item.ItemStack,
+): Boolean = false
+*///?} elif <1.21.5 {
 fun renderItemPreview(
     mc: net.minecraft.client.Minecraft,
     target: com.mojang.blaze3d.pipeline.RenderTarget,
     buffers: net.minecraft.client.renderer.MultiBufferSource.BufferSource,
     stack: net.minecraft.world.item.ItemStack,
 ): Boolean {
-    //? if >=1.21.5 {
-    /*return false
-    *///?} else {
     target.setClearColor(0f, 0f, 0f, 0f)
     clearTarget(target)
     target.bindWrite(true)
@@ -896,8 +944,8 @@ fun renderItemPreview(
         mc.mainRenderTarget.bindWrite(true)
     }
     return true
-    //?}
 }
+//?}
 
 /**
  * Grab the main render target as an image.

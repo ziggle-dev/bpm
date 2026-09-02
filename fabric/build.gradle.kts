@@ -41,17 +41,29 @@ group = "bpm"
 base { archivesName = "$modId-fabric" }
 
 /*
- * No access widener, on any band.
+ * One access widener, on two bands.
  *
- * There was one, for a single field: `SpriteContents.originalImage`, which the fluid gauge averaged to
- * tint a bar. NeoForge compiles against a Minecraft whose access transformers have already widened that;
- * Fabric does not, so the branch carried a widener to match. It is gone because the read is gone -- the
- * gauge now averages the texture off the resource manager, which is public API on every version. That is
- * the better shape anyway: the field is private before 1.21.9 and, from 1.21.9, deleted outright in
- * favour of a package-private mip array, so the widener would have needed a per-band rewrite AND a
- * migration to Loom's ClassTweaker format, which accepts only the `intermediary` namespace where this
- * branch is Mojmap throughout.
+ * There was one for `SpriteContents.originalImage`, and it went: the fluid gauge now averages the texture
+ * off the resource manager, which is public API everywhere. This is a different one, for
+ * `AbstractTexture.texture` -- the GpuTexture behind a loaded texture, which the editor's item thumbnails
+ * and player-head icons need a handle for.
+ *
+ * Scoped to 1.21.5-1.21.8 deliberately. Below 1.21.5 the field does not exist; from 1.21.9
+ * `AbstractTexture.getTexture()` is public and there is nothing to widen. That scoping is also what keeps
+ * it on Loom's CLASSIC access-widener path: from 1.21.9 Loom takes the ClassTweaker route, which accepts
+ * only the `intermediary` namespace, and this branch is Mojmap throughout.
  */
+val widensAccess = stonecutter.eval(minecraftVersion, ">=1.21.5 <1.21.9")
+
+loom {
+    if (widensAccess) {
+        // OUTSIDE the resources tree on purpose. Stonecutter shares `fabric/src/main/resources` across
+        // every node, and Loom picks up a widener sitting there whether or not this points at it -- so a
+        // file meant for two bands would be read by all of them. Loom copies it into the built jar and
+        // declares it in fabric.mod.json itself.
+        accessWidenerPath = rootProject.file("fabric/accesswidener/bpm.accesswidener")
+    }
+}
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 

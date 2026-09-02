@@ -361,6 +361,14 @@ configurations["devImplementation"].extendsFrom(devLibraries)
 neoForge {
     version = neoVersion
 
+    /*
+     * The counterpart of the Fabric branch's access widener, scoped identically: 1.21.5-1.21.8 only.
+     * Below that the field does not exist, above it `AbstractTexture.getTexture()` is public.
+     */
+    if (stonecutter.eval(minecraftVersion, ">=1.21.5 <1.21.9")) {
+        accessTransformers.from(rootProject.file("neoforge/accesstransformer/bpm.cfg"))
+    }
+
     runs {
         create("client") {
             client()

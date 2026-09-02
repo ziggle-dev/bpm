@@ -1,0 +1,119 @@
+package bpm.platform.client
+
+/*
+ * Item thumbnails for the editor's picker, on the bands where a render target stopped being something
+ * you can bind and draw into.
+ *
+ * Until 1.21.5 this was four calls: clear the target, bind it, let `GuiGraphics.renderItem` draw, unbind.
+ * `RenderTarget` has none of those any more -- no `bindWrite`, no `clear`, no `setClearColor` -- because
+ * a target is now written by opening a render pass on its texture. So the item's geometry has to be got
+ * into a pass of our own, which is what this file does.
+ *
+ * The trick is that `MultiBufferSource` is a ONE-METHOD interface. Vanilla's item renderer will happily
+ * emit a model's quads into whatever consumer it is handed, so it is handed one that writes them all
+ * into a single buffer regardless of which render type asked. That skips the whole question of
+ * reproducing vanilla's render types against a different output target, which is the part that has no
+ * public answer.
+ *
+ * Lighting is skipped on purpose rather than by omission. The consumer accepts the light and overlay
+ * attributes and drops them, writing POSITION_TEX_COLOR, so the mesh draws with the same flat pipeline
+ * the ImGui backend uses -- no lightmap texture to bind, no entity shader, no `Sampler2`. A GUI item is
+ * lit by a fixed rig anyway; flat and correct beats lit and unreachable.
+ */
+
+//? if >=1.21.6 <1.21.9 {
+/*/** Writes a model's quads as POSITION_TEX_COLOR, dropping the attributes a flat draw does not read. */
+private class FlatConsumer(
+    private val out: com.mojang.blaze3d.vertex.VertexConsumer,
+) : com.mojang.blaze3d.vertex.VertexConsumer {
+
+    override fun addVertex(x: Float, y: Float, z: Float): com.mojang.blaze3d.vertex.VertexConsumer {
+        out.addVertex(x, y, z)
+        return this
+    }
+
+    override fun setColor(r: Int, g: Int, b: Int, a: Int): com.mojang.blaze3d.vertex.VertexConsumer {
+        out.setColor(r, g, b, a)
+        return this
+    }
+
+    override fun setUv(u: Float, v: Float): com.mojang.blaze3d.vertex.VertexConsumer {
+        out.setUv(u, v)
+        return this
+    }
+
+    // Overlay, lightmap and normal: accepted and dropped. See the note at the top of the file.
+    override fun setUv1(u: Int, v: Int): com.mojang.blaze3d.vertex.VertexConsumer = this
+
+    override fun setUv2(u: Int, v: Int): com.mojang.blaze3d.vertex.VertexConsumer = this
+
+    override fun setNormal(x: Float, y: Float, z: Float): com.mojang.blaze3d.vertex.VertexConsumer = this
+}
+
+/** One buffer for every render type the model asks for. */
+private class OneBuffer(
+    private val consumer: com.mojang.blaze3d.vertex.VertexConsumer,
+) : net.minecraft.client.renderer.MultiBufferSource {
+    override fun getBuffer(type: bpm.platform.RenderType): com.mojang.blaze3d.vertex.VertexConsumer = consumer
+}
+
+/**
+ * Flat, textured, depth-tested quads.
+ *
+ * Depth matters here where it does not for ImGui: a block model is a solid, and without a depth test its
+ * back faces paint over its front ones. The offscreen target carries a depth buffer for this.
+ */
+internal val previewPipeline: com.mojang.blaze3d.pipeline.RenderPipeline by lazy {
+    imguiPipelineBuilder()
+        .withLocation("pipeline/bpm_item_preview")
+        .withVertexFormat(
+            com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX_COLOR,
+            com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS,
+        )
+        .withBlend(com.mojang.blaze3d.pipeline.BlendFunction.TRANSLUCENT)
+        .withCull(true)
+        .withDepthWrite(true)
+        .withDepthTestFunction(com.mojang.blaze3d.platform.DepthTestFunction.LESS_DEPTH_TEST)
+        .build()
+}
+
+/**
+ * Draw [stack] into [target] as a thumbnail, in a 16-unit space looked at the way the GUI looks at an
+ * item.
+ *
+ * False when the atlas is not ready, which is normal for the first frames after a resource reload; the
+ * slot simply stays unrendered and is asked for again.
+ */
+fun renderItemPreview(
+    mc: net.minecraft.client.Minecraft,
+    target: com.mojang.blaze3d.pipeline.RenderTarget,
+    buffers: net.minecraft.client.renderer.MultiBufferSource.BufferSource,
+    stack: net.minecraft.world.item.ItemStack,
+): Boolean {
+    val colour = target.colorTexture ?: return false
+    val depth = target.depthTexture
+    val atlas = blockAtlasTexture(mc) ?: return false
+
+    val allocator = com.mojang.blaze3d.vertex.ByteBufferBuilder(4096)
+    try {
+        val builder = com.mojang.blaze3d.vertex.BufferBuilder(
+            allocator,
+            com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS,
+            com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX_COLOR,
+        )
+
+        // The transform vanilla's GuiGraphics.renderItem applies: centre the item in its 16-unit cell and
+        // scale it up, with Y flipped because the model is built Y-up and a GUI counts downwards.
+        val pose = com.mojang.blaze3d.vertex.PoseStack()
+        pose.translate(8.0, 8.0, 0.0)
+        pose.scale(16f, -16f, 16f)
+        emitItemQuads(mc, stack, pose, OneBuffer(FlatConsumer(builder)))
+
+        val mesh = builder.build() ?: return false
+        mesh.use { drawPreviewMesh(it, colour, depth, atlas, target.width, target.height) }
+    } finally {
+        allocator.close()
+    }
+    return true
+}
+*///?}
