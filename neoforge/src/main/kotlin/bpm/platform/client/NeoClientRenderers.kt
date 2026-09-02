@@ -22,7 +22,10 @@ object NeoFluidAppearance : FluidAppearance {
         val model = net.minecraft.client.Minecraft.getInstance().modelManager.getFluidStateModelSet().get(state)
         val still = model.stillMaterial().sprite().contents().name()
         val flowing = model.flowingMaterial().sprite().contents().name()
-        return FluidLook(still, flowing, model.tintSource().color(state.createLegacyBlock()))
+        // Optional: a fluid without a tint source is drawn at its texture's own colours, which is
+        // what -1 means to every caller of this.
+        val tint = model.tintSource()?.color(state.createLegacyBlock()) ?: -1
+        return FluidLook(still, flowing, tint)
     }
     *///?} else {
     override fun of(fluid: net.minecraft.world.level.material.Fluid): FluidLook {

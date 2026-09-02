@@ -3,7 +3,9 @@ package bpm.platform.client
 import bpm.client.render.BoltStyle
 import bpm.client.render.drawBolt
 import com.mojang.blaze3d.vertex.PoseStack
+//? if <26.1 {
 import net.minecraft.client.renderer.MultiBufferSource
+//?}
 import net.minecraft.client.renderer.entity.EntityRenderer
 import net.minecraft.client.renderer.entity.EntityRendererProvider
 import net.minecraft.world.entity.Entity
@@ -92,7 +94,7 @@ open class BoltRendererBase<T : Entity>(
         state: BoltRenderState,
         pose: PoseStack,
         collector: net.minecraft.client.renderer.SubmitNodeCollector,
-        cameraState: net.minecraft.client.renderer.state.CameraRenderState,
+        cameraState: CameraRenderState,
     ) {
         state.style?.let { drawBolt(pose, CollectorDraw(collector), state.motion, it) }
         super.submit(state, pose, collector, cameraState)

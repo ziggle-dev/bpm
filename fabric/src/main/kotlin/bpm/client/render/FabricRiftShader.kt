@@ -3,6 +3,7 @@ package bpm.client.render
 //? if >=1.21.5 {
 /*import bpm.platform.client.withQuads
 import bpm.platform.client.withBlending
+import bpm.platform.client.withDepthWriting
 *///?}
 
 import bpm.Bpm
@@ -55,7 +56,7 @@ object FabricRiftShader : bpm.platform.client.RiftLook {
             .withQuads(FORMAT)
             .withBlending(com.mojang.blaze3d.pipeline.BlendFunction.LIGHTNING)
             .withCull(false)
-            .withDepthWrite(true)
+            .withDepthWriting(true)
             .build()
 
     private val CUBE_PIPELINE = pipeline("bpm_rift_cube", "core/rift_cube")
@@ -82,7 +83,7 @@ object FabricRiftShader : bpm.platform.client.RiftLook {
             .withQuads(FORMAT)
             .withBlending(com.mojang.blaze3d.pipeline.BlendFunction.LIGHTNING)
             .withCull(false)
-            .withDepthWrite(true)
+            .withDepthWriting(true)
             .build()
 
     private val CUBE_PIPELINE = pipeline("bpm_rift_cube", "core/rift_cube")

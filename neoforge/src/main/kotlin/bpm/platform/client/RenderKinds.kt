@@ -795,11 +795,12 @@ fun blockSprite(texture: ResourceLocation): net.minecraft.client.renderer.textur
  * the sense the rest of this file uses the word. The seam is the instruction rather than the value.
  */
 fun drawFluidTranslucent(fluid: net.minecraft.world.level.material.Fluid) {
-    //? if >=26.1 {
-    /*net.minecraft.client.renderer.block.dispatch.ItemBlockRenderTypes.setRenderLayer(fluid, net.minecraft.client.renderer.chunk.ChunkSectionLayer.TRANSLUCENT)
-    *///?} elif >=1.21.6 {
+    // From 26.1 there is nothing to say: a fluid's layer is part of its `FluidModel`, and
+    // `FluidModel.Unbaked.bake` derives it from the transparency of the sprites themselves. Deliberately
+    // empty there rather than renamed -- `ItemBlockRenderTypes` is gone from the game, not moved.
+    //? if >=1.21.6 <26.1 {
     /*net.minecraft.client.renderer.ItemBlockRenderTypes.setRenderLayer(fluid, net.minecraft.client.renderer.chunk.ChunkSectionLayer.TRANSLUCENT)
-    *///?} else {
+    *///?} elif <1.21.6 {
     net.minecraft.client.renderer.ItemBlockRenderTypes.setRenderLayer(fluid, net.minecraft.client.renderer.RenderType.translucent())
     //?}
 }

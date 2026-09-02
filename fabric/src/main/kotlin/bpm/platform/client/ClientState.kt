@@ -77,3 +77,16 @@ fun hudHidden(): Boolean {
     return mc.options.hideGui
     //?}
 }
+
+/**
+ * The camera as a render pass sees it, which moved to `renderer.state.level` at 26.1.
+ *
+ * Aliased rather than spelled out because it appears only in `submit` signatures -- nothing in this mod
+ * reads it, it is passed straight back to `super` -- so the package it lives in is not something the
+ * renderers are entitled to know.
+ */
+//? if >=26.1 {
+/*typealias CameraRenderState = net.minecraft.client.renderer.state.level.CameraRenderState
+*///?} elif >=1.21.9 {
+/*typealias CameraRenderState = net.minecraft.client.renderer.state.CameraRenderState
+*///?}

@@ -54,10 +54,23 @@ object NeoEventBridge {
             (e.entity as? ServerPlayer)?.let(BpmEvents.playerDeath::fire)
         })
 
+        /*
+         * `BlockEvent.BreakEvent` became a top-level `BreakBlockEvent` in `event.level.block` at 26.1.
+         * Everything it carries is unchanged -- level, pos and state off the `BlockEvent` base, the
+         * player on the subclass, cancellation through `ICancellableEvent` -- so only the name it is
+         * listened for differs, and the two bodies below are identical apart from that name.
+         */
+        //? if >=26.1 {
+        /*bus.addListener(net.neoforged.neoforge.event.level.block.BreakBlockEvent::class.java, Consumer { e ->
+            val level = e.level as? ServerLevel ?: return@Consumer
+            if (!BpmEvents.blockBreak.fire(BlockBreak(level, e.pos, e.state, e.player))) e.isCanceled = true
+        })
+        *///?} else {
         bus.addListener(BlockEvent.BreakEvent::class.java, Consumer { e ->
             val level = e.level as? ServerLevel ?: return@Consumer
             if (!BpmEvents.blockBreak.fire(BlockBreak(level, e.pos, e.state, e.player))) e.isCanceled = true
         })
+        //?}
 
         bus.addListener(net.neoforged.neoforge.event.RegisterCommandsEvent::class.java, Consumer { e ->
             BpmEvents.registerCommands.fire(CommandRegistration(e.dispatcher, e.buildContext))

@@ -132,6 +132,17 @@ class BpmBlockRenderState :
     net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState(),
     bpm.platform.GeoRenderState {
 
+    /*
+     * The block state, which `BlockEntityRenderState` stopped handing out at 26.1 -- the field went
+     * private with no accessor beside it. Carried here instead, which is what a render state is for: it
+     * exists so the draw pass never touches the world, and a renderer of THIS mod's blocks may as well
+     * extract the one property it needs alongside everything else it already extracts.
+     *
+     * Declared on every band and read through [blockStateOf], so the renderers below say the same thing
+     * everywhere and only this file knows which side it comes from.
+     */
+    var extractedBlockState: net.minecraft.world.level.block.state.BlockState? = null
+
     private val data = HashMap<bpm.platform.DataTicket<*>, Any>()
 
     override fun getDataMap(): MutableMap<bpm.platform.DataTicket<*>, Any> = data
@@ -247,11 +258,61 @@ internal class CollectorDraw(private val collector: net.minecraft.client.rendere
     }
 }
 
-abstract class GeoBlockRendererBase<T>(model: GeoModel<T>) :
-    bpm.platform.GeoBlockRendererOf<T, BpmBlockRenderState>(model)
+/**
+ * Which way a block faces, as a data ticket.
+ *
+ * GeckoLib had `DataTickets.BLOCK_FACING` until 5.5, which dropped it -- of that family only `BLOCKPOS`
+ * survives. A ticket is only a typed key, so declaring this mod's own costs nothing and keeps the
+ * rotation working rather than quietly leaving every device model facing north.
+ */
+// The 26.1 arm names GeckoLib's package in full rather than going through the alias: a typealias to a
+// Java class does not reliably carry that class's statics, and an arm already knows which band it is on.
+internal val blockFacingTicket: bpm.platform.DataTicket<net.minecraft.core.Direction> =
+    //? if >=26.1 {
+    /*com.geckolib.constant.dataticket.DataTicket.create("bpm:block_facing", net.minecraft.core.Direction::class.java)
+    *///?} elif >=1.21.9 {
+    /*bpm.platform.DataTickets.BLOCK_FACING
+    *///?}
+
+/** The block state behind a render state, from wherever this band keeps it. */
+internal fun blockStateOf(state: BpmBlockRenderState): net.minecraft.world.level.block.state.BlockState =
+    //? if >=26.1 {
+    /*state.extractedBlockState ?: net.minecraft.world.level.block.Blocks.AIR.defaultBlockState()
+    *///?} elif >=1.21.9 {
+    /*state.blockState
+    *///?}
+
+/*
+ * The context, which GeckoLib's block renderer started asking for at 5.5.
+ *
+ * GeckoLib 5.5 dropped the one-argument constructor. The difference is carried by
+ * [GeoBlockRendererCtor], in a file of its own, so this base and its hundred lines stay single.
+ */
+abstract class GeoBlockRendererBase<T>(
+    context: net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider.Context,
+    model: GeoModel<T>,
+) : GeoBlockRendererCtor<T>(context, model)
     where T : net.minecraft.world.level.block.entity.BlockEntity, T : GeoAnimatable {
 
     override fun createRenderState(): BpmBlockRenderState = BpmBlockRenderState()
+
+    /**
+     * Take the block state off the block entity while the world is still reachable.
+     *
+     * From 26.1 the render state's own `blockState` is private, so this mod's render state carries its
+     * own -- see [BpmBlockRenderState]. Extracted here because this is the one moment that has both the
+     * block entity and the render state in hand.
+     */
+    override fun extractRenderState(
+        blockEntity: T,
+        state: BpmBlockRenderState,
+        partialTick: Float,
+        cameraPos: net.minecraft.world.phys.Vec3,
+        crumbling: net.minecraft.client.renderer.feature.ModelFeatureRenderer.CrumblingOverlay?,
+    ) {
+        super.extractRenderState(blockEntity, state, partialTick, cameraPos, crumbling)
+        state.extractedBlockState = blockEntity.blockState
+    }
 
     /**
      * Declare the bones this renderer watches or hides, for the block at [pos] in [state].
@@ -265,7 +326,7 @@ abstract class GeoBlockRendererBase<T>(model: GeoModel<T>) :
         pass: bpm.platform.RenderPassInfo<BpmBlockRenderState>,
         collector: net.minecraft.client.renderer.SubmitNodeCollector,
     ) {
-        onBones(PassBones(pass), pass.renderState().blockPos, pass.renderState().blockState)
+        onBones(PassBones(pass), pass.renderState().blockPos, blockStateOf(pass.renderState()))
         super.preRenderPass(pass, collector)
     }
 
@@ -307,7 +368,7 @@ abstract class GeoBlockRendererBase<T>(model: GeoModel<T>) :
         poseStack: com.mojang.blaze3d.vertex.PoseStack,
     ) {
         val facing = pass.renderState()
-            .getOrDefaultGeckolibData(bpm.platform.DataTickets.BLOCK_FACING, net.minecraft.core.Direction.NORTH)
+            .getOrDefaultGeckolibData(blockFacingTicket, net.minecraft.core.Direction.NORTH)
         if (facing != null && rotateFor(facing, poseStack)) return
         super.tryRotateByBlockstate(pass, poseStack)
     }
@@ -325,7 +386,7 @@ abstract class GeoBlockRendererBase<T>(model: GeoModel<T>) :
         state: BpmBlockRenderState,
         poseStack: com.mojang.blaze3d.vertex.PoseStack,
         collector: net.minecraft.client.renderer.SubmitNodeCollector,
-        cameraState: net.minecraft.client.renderer.state.CameraRenderState,
+        cameraState: CameraRenderState,
     ) {
         super.submit(state, poseStack, collector, cameraState)
         @Suppress("UNCHECKED_CAST")
@@ -538,8 +599,14 @@ class BpmEntityRenderState :
         data.containsKey(ticket)
 }
 
-abstract class GeoBlockRendererBase<T>(model: GeoModel<T>) :
-    OffScreenAwareBlockRenderer<T>(model)
+/*
+ * The context is taken and dropped on this band: GeckoLib only started asking for it at 5.5, but
+ * every construction site passes one so that the shared tree has a single constructor to call.
+ */
+abstract class GeoBlockRendererBase<T>(
+    @Suppress("UNUSED_PARAMETER") context: net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider.Context,
+    model: GeoModel<T>,
+) : OffScreenAwareBlockRenderer<T>(model)
     where T : net.minecraft.world.level.block.entity.BlockEntity, T : GeoAnimatable {
 
     private val bones = RecursionBones()
@@ -816,8 +883,14 @@ internal class BufferedDraw(private val bufferSource: net.minecraft.client.rende
     }
 }
 
-abstract class GeoBlockRendererBase<T>(model: GeoModel<T>) :
-    software.bernie.geckolib.renderer.GeoBlockRenderer<T>(model)
+/*
+ * The context is taken and dropped on this band: GeckoLib only started asking for it at 5.5, but
+ * every construction site passes one so that the shared tree has a single constructor to call.
+ */
+abstract class GeoBlockRendererBase<T>(
+    @Suppress("UNUSED_PARAMETER") context: net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider.Context,
+    model: GeoModel<T>,
+) : software.bernie.geckolib.renderer.GeoBlockRenderer<T>(model)
     where T : net.minecraft.world.level.block.entity.BlockEntity, T : GeoAnimatable {
 
     private val bones = RecursionBones()

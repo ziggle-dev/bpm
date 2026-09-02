@@ -26,7 +26,7 @@ import kotlin.math.sin
  * `coherence`, so a job in trouble looks like a job in trouble long before it fails: the beams thin out and
  * go from teal to orchid, and the forming item shakes.
  */
-class AssemblerRenderer : DeviceRenderer<AssemblerBlockEntity>("quantum_assembler", { be ->
+class AssemblerRenderer(ctx: net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider.Context) : DeviceRenderer<AssemblerBlockEntity>(ctx, "quantum_assembler", { be ->
     AABB(be.blockPos).inflate(AssemblerBlockEntity.REACH.toDouble())
 }) {
 
@@ -334,7 +334,7 @@ class AssemblerRenderer : DeviceRenderer<AssemblerBlockEntity>("quantum_assemble
  * The model is a bare plinth, so without this an assembler's ingredients would be invisible and laying out
  * a recipe would be guesswork.
  */
-class PedestalRenderer : DeviceRenderer<PedestalBlockEntity>("core_pedestal", { be ->
+class PedestalRenderer(ctx: net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider.Context) : DeviceRenderer<PedestalBlockEntity>(ctx, "core_pedestal", { be ->
     AABB(be.blockPos).inflate(0.3, 0.0, 0.3).expandTowards(0.0, 1.2, 0.0)
 }) {
 

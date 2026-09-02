@@ -56,7 +56,8 @@ class TetherModel : PathGeoModel<bpm.world.items.QuantumTetherItem>(
 )
 
 /** The controller block. Beams carry alpha, so the whole model draws translucent; the glow mask rides on top. */
-class ControllerRenderer : bpm.platform.client.GeoBlockRendererBase<ControllerBlockEntity>(ControllerModel()) {
+class ControllerRenderer(ctx: net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider.Context) :
+    bpm.platform.client.GeoBlockRendererBase<ControllerBlockEntity>(ctx, ControllerModel()) {
     init {
         addGlow()
     }
@@ -163,7 +164,7 @@ fun geoItemRenderer(item: net.minecraft.world.item.Item, consumer: java.util.fun
  */
 object GeoRenderers {
     fun registerRenderers() = ClientRenderers.renderers { sink ->
-        sink.blockEntity(ModBlockEntities.CONTROLLER.get()) { ControllerRenderer() }
+        sink.blockEntity(ModBlockEntities.CONTROLLER.get()) { ControllerRenderer(it) }
         DeviceRenderers.register(sink)
         sink.entity(bpm.world.entity.ModEntities.WARDEN.get()) { WardenRenderer(it) }
         sink.entity(bpm.world.entity.ModEntities.BOLT.get()) { WardenBoltRenderer(it) }

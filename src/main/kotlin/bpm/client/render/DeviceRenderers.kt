@@ -30,7 +30,11 @@ class DeviceModel<T : GeoAnimatable>(name: String) : PathGeoModel<T>(
 )
 
 /** A device block: translucent (columns, halos and bolts carry alpha), glow mask on top, its own render box. */
-open class DeviceRenderer<T : DeviceBlockEntity>(name: String, private val box: (T) -> AABB) : bpm.platform.client.GeoBlockRendererBase<T>(DeviceModel(name)) {
+open class DeviceRenderer<T : DeviceBlockEntity>(
+    ctx: net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider.Context,
+    name: String,
+    private val box: (T) -> AABB,
+) : bpm.platform.client.GeoBlockRendererBase<T>(ctx, DeviceModel(name)) {
     init {
         addGlow()
     }
@@ -51,7 +55,7 @@ open class DeviceRenderer<T : DeviceBlockEntity>(name: String, private val box: 
 }
 
 /** The gate's plane follows its axis: the model's ring lies in XY, so a Z-axis gate is the model turned a quarter. */
-class GateRenderer : DeviceRenderer<GateBlockEntity>("quantum_gate", { be ->
+class GateRenderer(ctx: net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider.Context) : DeviceRenderer<GateBlockEntity>(ctx, "quantum_gate", { be ->
     val b = AABB(be.blockPos)
     if (be.axis == Direction.Axis.X) b.inflate(1.6, 0.0, 0.7).expandTowards(0.0, -3.1, 0.0) else b.inflate(0.7, 0.0, 1.6).expandTowards(0.0, -3.1, 0.0)
 }) {
@@ -63,7 +67,8 @@ class GateRenderer : DeviceRenderer<GateBlockEntity>("quantum_gate", { be ->
  * While it tracks, the eye's `yaw` and `pitch` bones are pointed here, from the aim the server sends, eased
  * a little each frame — the animation's own sweep runs when it is not.
  */
-class TurretRenderer : DeviceRenderer<TurretBlockEntity>("observer_turret", { be -> AABB(be.blockPos).inflate(0.5) }) {
+class TurretRenderer(ctx: net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider.Context) :
+    DeviceRenderer<TurretBlockEntity>(ctx, "observer_turret", { be -> AABB(be.blockPos).inflate(0.5) }) {
     override fun facingOf(blockEntity: TurretBlockEntity): Direction =
         blockEntity.blockState.takeIf { it.hasProperty(TurretBlock.FACING) }?.getValue(TurretBlock.FACING) ?: Direction.UP
 
@@ -158,7 +163,8 @@ class MonitorModel : PathGeoModel<bpm.world.devices.MonitorBlockEntity>(
  * that side is outer, its end pieces where the neighbouring side is NOT outer (the strip runs on to the
  * tile boundary and the next tile's bezel), a corner where both are.
  */
-class MonitorRenderer : bpm.platform.client.GeoBlockRendererBase<bpm.world.devices.MonitorBlockEntity>(MonitorModel()) {
+class MonitorRenderer(ctx: net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider.Context) :
+    bpm.platform.client.GeoBlockRendererBase<bpm.world.devices.MonitorBlockEntity>(ctx, MonitorModel()) {
     init {
         addGlow()
     }
@@ -244,13 +250,13 @@ object DeviceItemExtensions {
 
 object DeviceRenderers {
     fun register(sink: bpm.platform.client.RendererSink) {
-        sink.blockEntity(DeviceBlockEntities.GATE.get()) { GateRenderer() }
-        sink.blockEntity(DeviceBlockEntities.PEDESTAL.get()) { PedestalRenderer() }
-        sink.blockEntity(DeviceBlockEntities.ASSEMBLER.get()) { AssemblerRenderer() }
-        sink.blockEntity(DeviceBlockEntities.SPIKE.get()) { DeviceRenderer<SpikeBlockEntity>("phase_spike") { be -> AABB(be.blockPos).expandTowards(0.0, 1.2, 0.0) } }
-        sink.blockEntity(DeviceBlockEntities.VENT.get()) { DeviceRenderer<VentBlockEntity>("decoherence_vent") { be -> AABB(be.blockPos).expandTowards(0.0, 1.7, 0.0) } }
-        sink.blockEntity(DeviceBlockEntities.TURRET.get()) { TurretRenderer() }
-        sink.blockEntity(DeviceBlockEntities.PHASE.get()) { DeviceRenderer<PhaseBlockEntity>("phase_block") { be -> AABB(be.blockPos) } }
-        sink.blockEntity(DeviceBlockEntities.MONITOR.get()) { MonitorRenderer() }
+        sink.blockEntity(DeviceBlockEntities.GATE.get()) { GateRenderer(it) }
+        sink.blockEntity(DeviceBlockEntities.PEDESTAL.get()) { PedestalRenderer(it) }
+        sink.blockEntity(DeviceBlockEntities.ASSEMBLER.get()) { AssemblerRenderer(it) }
+        sink.blockEntity(DeviceBlockEntities.SPIKE.get()) { DeviceRenderer<SpikeBlockEntity>(it, "phase_spike") { be -> AABB(be.blockPos).expandTowards(0.0, 1.2, 0.0) } }
+        sink.blockEntity(DeviceBlockEntities.VENT.get()) { DeviceRenderer<VentBlockEntity>(it, "decoherence_vent") { be -> AABB(be.blockPos).expandTowards(0.0, 1.7, 0.0) } }
+        sink.blockEntity(DeviceBlockEntities.TURRET.get()) { TurretRenderer(it) }
+        sink.blockEntity(DeviceBlockEntities.PHASE.get()) { DeviceRenderer<PhaseBlockEntity>(it, "phase_block") { be -> AABB(be.blockPos) } }
+        sink.blockEntity(DeviceBlockEntities.MONITOR.get()) { MonitorRenderer(it) }
     }
 }
