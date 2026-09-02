@@ -82,31 +82,31 @@ object ModComponents {
     val REG: ComponentRegistrar = Registrars.components(Bpm.ID)
 
     /** The controller a linker is working for. */
-    val SELECTED_CONTROLLER = REG.registerComponentType("selected_controller") { b -> b.persistent(GlobalPos.CODEC).networkSynchronized(GlobalPos.STREAM_CODEC) }
+    val SELECTED_CONTROLLER = REG.registerComponentType("selected_controller") { b -> b.persistent(GlobalPos.CODEC).networkSynchronized(bpm.platform.registry.Wire.globalPos) }
 
     /** The core tier a controller was built around — see [CoreTier]. */
-    val CORE_TIER = REG.registerComponentType("core_tier") { b -> b.persistent(com.mojang.serialization.Codec.STRING).networkSynchronized(net.minecraft.network.codec.ByteBufCodecs.STRING_UTF8) }
+    val CORE_TIER = REG.registerComponentType("core_tier") { b -> b.persistent(com.mojang.serialization.Codec.STRING).networkSynchronized(bpm.platform.registry.Wire.string) }
 
     /** Blinks since the Phase Gauntlet last ate a shard. */
-    val BLINKS = REG.registerComponentType("blinks") { b -> b.persistent(com.mojang.serialization.Codec.INT).networkSynchronized(net.minecraft.network.codec.ByteBufCodecs.VAR_INT) }
+    val BLINKS = REG.registerComponentType("blinks") { b -> b.persistent(com.mojang.serialization.Codec.INT).networkSynchronized(bpm.platform.registry.Wire.varInt) }
 
     /** True while the linker's holder is inside a chamber: the glint, and the pulse. */
-    val CHARGED = REG.registerComponentType("charged") { b -> b.persistent(com.mojang.serialization.Codec.BOOL).networkSynchronized(net.minecraft.network.codec.ByteBufCodecs.BOOL) }
+    val CHARGED = REG.registerComponentType("charged") { b -> b.persistent(com.mojang.serialization.Codec.BOOL).networkSynchronized(bpm.platform.registry.Wire.bool) }
 
     /** Pulses left in the linker before the pedestal must recharge it. */
-    val CHARGES = REG.registerComponentType("charges") { b -> b.persistent(com.mojang.serialization.Codec.INT).networkSynchronized(net.minecraft.network.codec.ByteBufCodecs.VAR_INT) }
+    val CHARGES = REG.registerComponentType("charges") { b -> b.persistent(com.mojang.serialization.Codec.INT).networkSynchronized(bpm.platform.registry.Wire.varInt) }
 
     /** Game time at which the linker's tracking pulse is ready again. */
-    val TRACK_READY_AT = REG.registerComponentType("track_ready_at") { b -> b.persistent(com.mojang.serialization.Codec.LONG).networkSynchronized(net.minecraft.network.codec.ByteBufCodecs.VAR_LONG) }
+    val TRACK_READY_AT = REG.registerComponentType("track_ready_at") { b -> b.persistent(com.mojang.serialization.Codec.LONG).networkSynchronized(bpm.platform.registry.Wire.varLong) }
 
     /** The controller a tether's bearer has let reach them — see `docs/DESIGN_PLAYER_LINK.md`. */
-    val TETHER_CONTROLLER = REG.registerComponentType("tether_controller") { b -> b.persistent(GlobalPos.CODEC).networkSynchronized(GlobalPos.STREAM_CODEC) }
+    val TETHER_CONTROLLER = REG.registerComponentType("tether_controller") { b -> b.persistent(GlobalPos.CODEC).networkSynchronized(bpm.platform.registry.Wire.globalPos) }
 
     /** What that controller may do to them: [bpm.world.Grants], comma-joined so it reads in F3+H. */
-    val TETHER_GRANTS = REG.registerComponentType("tether_grants") { b -> b.persistent(com.mojang.serialization.Codec.STRING).networkSynchronized(net.minecraft.network.codec.ByteBufCodecs.STRING_UTF8) }
+    val TETHER_GRANTS = REG.registerComponentType("tether_grants") { b -> b.persistent(com.mojang.serialization.Codec.STRING).networkSynchronized(bpm.platform.registry.Wire.string) }
 
     /** What the Entangled Compass seeks. */
-    val COMPASS_MODE = REG.registerComponentType("compass_mode") { b -> b.persistent(com.mojang.serialization.Codec.STRING).networkSynchronized(net.minecraft.network.codec.ByteBufCodecs.STRING_UTF8) }
+    val COMPASS_MODE = REG.registerComponentType("compass_mode") { b -> b.persistent(com.mojang.serialization.Codec.STRING).networkSynchronized(bpm.platform.registry.Wire.string) }
 }
 
 object ModCreativeTab {

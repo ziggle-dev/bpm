@@ -159,18 +159,35 @@ private class FabricItemRegistrar(namespace: String, defer: (() -> Unit) -> Unit
 private class FabricComponentRegistrar(private val namespace: String, private val defer: (() -> Unit) -> Unit) :
     ComponentRegistrar {
 
+    //? if >=1.20.5 {
     @Suppress("UNCHECKED_CAST")
     override fun <T : Any> registerComponentType(
         name: String,
-        configure: (DataComponentType.Builder<T>) -> DataComponentType.Builder<T>,
-    ): RegistryRef<DataComponentType<T>> {
+        configure: (ComponentBuilder<T>) -> ComponentBuilder<T>,
+    ): RegistryRef<ComponentKey<T>> {
         val id = idOf(namespace, name)
-        val ref = FabricRef<DataComponentType<T>>(id)
+        val ref = FabricRef<ComponentKey<T>>(id)
         defer {
             val type = configure(DataComponentType.builder()).build()
             ref.reference = Registry.registerForHolder(BuiltInRegistries.DATA_COMPONENT_TYPE, id, type)
-                as Holder.Reference<DataComponentType<T>>
+                as Holder.Reference<ComponentKey<T>>
         }
         return ref
     }
+    //?} else {
+    /*/**
+     * Below 1.20.5 there is no registry to register with: a component is a key in the stack's tag, so
+     * the "registration" is simply building the key. Nothing is deferred, because nothing depends on
+     * registry order -- the key is a name and a codec and is complete the moment it is asked for.
+     */
+    override fun <T : Any> registerComponentType(
+        name: String,
+        configure: (ComponentBuilder<T>) -> ComponentBuilder<T>,
+    ): RegistryRef<ComponentKey<T>> {
+        val id = idOf(namespace, name)
+        val built = configure(ComponentBuilder())
+        val codec = built.codec ?: error("component $id was registered without a persistent codec")
+        return bpm.platform.registry.ReadyRef(ComponentKey(id.toString(), codec))
+    }
+    *///?}
 }

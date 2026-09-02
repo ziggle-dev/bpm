@@ -101,8 +101,20 @@ private class NeoItemRegistrar(private val items: DeferredRegister.Items) : NeoR
 }
 
 private class NeoComponentRegistrar(private val components: DeferredRegister.DataComponents) : ComponentRegistrar {
+    //? if >=1.20.5 {
     override fun <T : Any> registerComponentType(
         name: String,
-        configure: (DataComponentType.Builder<T>) -> DataComponentType.Builder<T>,
-    ): RegistryRef<DataComponentType<T>> = NeoRef(components.registerComponentType(name) { b -> configure(b) })
+        configure: (ComponentBuilder<T>) -> ComponentBuilder<T>,
+    ): RegistryRef<ComponentKey<T>> = NeoRef(components.registerComponentType(name) { b -> configure(b) })
+    //?} else {
+    /*/** See the note on the Fabric registrar: below 1.20.5 the key IS the registration. */
+    override fun <T : Any> registerComponentType(
+        name: String,
+        configure: (ComponentBuilder<T>) -> ComponentBuilder<T>,
+    ): RegistryRef<ComponentKey<T>> {
+        val built = configure(ComponentBuilder())
+        val codec = built.codec ?: error("component $name was registered without a persistent codec")
+        return bpm.platform.registry.ReadyRef(ComponentKey(namespace + ":" + name, codec))
+    }
+    *///?}
 }

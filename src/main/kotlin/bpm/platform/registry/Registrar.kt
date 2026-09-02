@@ -2,7 +2,6 @@ package bpm.platform.registry
 
 import net.minecraft.core.Holder
 import net.minecraft.core.Registry
-import net.minecraft.core.component.DataComponentType
 import net.minecraft.resources.ResourceKey
 import bpm.platform.ResourceLocation
 import net.minecraft.world.item.BlockItem
@@ -58,8 +57,8 @@ interface ComponentRegistrar {
      */
     fun <T : Any> registerComponentType(
         name: String,
-        configure: (DataComponentType.Builder<T>) -> DataComponentType.Builder<T>,
-    ): RegistryRef<DataComponentType<T>>
+        configure: (ComponentBuilder<T>) -> ComponentBuilder<T>,
+    ): RegistryRef<ComponentKey<T>>
 }
 
 interface PlatformRegistries {
