@@ -24,7 +24,7 @@ interface ImGuiBackend {
     fun render(data: ImDrawData)
 }
 
-//? if >=1.21.6 {
+//? if >=1.21.5 {
 /*/**
  * ImGui through Blaze3D.
  *
@@ -49,23 +49,7 @@ interface ImGuiBackend {
  */
 private class GpuImGuiBackend : ImGuiBackend {
 
-    private val pipeline: com.mojang.blaze3d.pipeline.RenderPipeline =
-        com.mojang.blaze3d.pipeline.RenderPipeline.builder(net.minecraft.client.renderer.RenderPipelines.MATRICES_PROJECTION_SNIPPET)
-            .withLocation("pipeline/bpm_imgui")
-            .withVertexShader("core/position_tex_color")
-            .withFragmentShader("core/position_tex_color")
-            .withSampler("Sampler0")
-            .withVertexFormat(
-                com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX_COLOR,
-                com.mojang.blaze3d.vertex.VertexFormat.Mode.TRIANGLES,
-            )
-            .withBlend(com.mojang.blaze3d.pipeline.BlendFunction.TRANSLUCENT)
-            .withCull(false)
-            .withDepthWrite(false)
-            .withDepthTestFunction(com.mojang.blaze3d.platform.DepthTestFunction.NO_DEPTH_TEST)
-            .build()
-
-    private val projection = net.minecraft.client.renderer.CachedOrthoProjectionMatrixBuffer("bpm_imgui", -1000f, 1000f, true)
+    private val pipeline: com.mojang.blaze3d.pipeline.RenderPipeline = imguiPipeline()
 
     private var font: ImGuiFont? = null
 
@@ -135,9 +119,18 @@ private class GpuImGuiBackend : ImGuiBackend {
                 }
                 vertexCount += listVertices
 
+                /*
+                 * The list's vertex offset is folded into its index VALUES, rather than passed to the
+                 * draw call as a base vertex. 1.21.5 has no base-vertex parameter -- `drawIndexed` takes
+                 * a first index and a count and nothing else -- and doing it here is arithmetically the
+                 * same thing on every band, so all of them share one path.
+                 */
                 val srcIndices = data.getCmdListIdxBufferData(list)
                 val listIndices = data.getCmdListIdxBufferSize(list)
-                for (i in 0 until listIndices) indices.putShort(srcIndices.getShort(i * 2))
+                val base = vertexCount - listVertices
+                for (i in 0 until listIndices) {
+                    indices.putShort(((srcIndices.getShort(i * 2).toInt() and 0xFFFF) + base).toShort())
+                }
                 indexCount += listIndices
             }
             vertices.flip()
@@ -145,8 +138,8 @@ private class GpuImGuiBackend : ImGuiBackend {
 
             vertexBuffer?.close()
             indexBuffer?.close()
-            vertexBuffer = device.createBuffer({ "bpm_imgui_vertices" }, com.mojang.blaze3d.buffers.GpuBuffer.USAGE_VERTEX, vertices)
-            indexBuffer = device.createBuffer({ "bpm_imgui_indices" }, com.mojang.blaze3d.buffers.GpuBuffer.USAGE_INDEX, indices)
+            vertexBuffer = createImGuiVertexBuffer(device, vertices)
+            indexBuffer = createImGuiIndexBuffer(device, indices)
         } finally {
             org.lwjgl.system.MemoryUtil.memFree(vertices)
             org.lwjgl.system.MemoryUtil.memFree(indices)
@@ -158,9 +151,6 @@ private class GpuImGuiBackend : ImGuiBackend {
         // ---- one pass, one draw per command ------------------------------------------------------------
         val minecraft = net.minecraft.client.Minecraft.getInstance()
         val window = minecraft.window
-        val target = minecraft.mainRenderTarget
-        // Null until the target has buffers; nothing to draw into before then.
-        val colour = target.colorTextureView ?: return
 
         /*
          * The projection comes from ImGui's OWN display size, not from the window.
@@ -178,21 +168,9 @@ private class GpuImGuiBackend : ImGuiBackend {
         val displayHeight = data.displaySizeY
         if (displayWidth <= 0f || displayHeight <= 0f) return
 
-        com.mojang.blaze3d.systems.RenderSystem.backupProjectionMatrix()
-        com.mojang.blaze3d.systems.RenderSystem.setProjectionMatrix(
-            projection.getBuffer(displayWidth, displayHeight),
-            com.mojang.blaze3d.ProjectionType.ORTHOGRAPHIC,
-        )
-        val transforms = imguiTransforms()
-        try {
-            device.createCommandEncoder().createRenderPass(
-                { "bpm imgui" },
-                colour,
-                java.util.OptionalInt.empty(),
-            ).use { pass ->
-                com.mojang.blaze3d.systems.RenderSystem.bindDefaultUniforms(pass)
-                pass.setUniform("DynamicTransforms", transforms)
-                pass.setPipeline(pipeline)
+        // Opening the pass, the projection and the uniforms all differ by band; see ImGuiGpuCompat.
+        imguiRenderPass(pipeline, displayWidth, displayHeight) { pass ->
+            run {
                 pass.setVertexBuffer(0, vbo)
                 pass.setIndexBuffer(ibo, com.mojang.blaze3d.vertex.VertexFormat.IndexType.SHORT)
                 bindImGuiFont(pass, atlasFont)
@@ -204,18 +182,16 @@ private class GpuImGuiBackend : ImGuiBackend {
                         val clip = data.getCmdListCmdBufferClipRect(list, command)
                         if (clip.z <= clip.x || clip.w <= clip.y) continue
                         scissor(pass, data, window.height, clip.x, clip.y, clip.z, clip.w)
-                        pass.drawIndexed(
-                            baseVertexOf[list] + data.getCmdListCmdBufferVtxOffset(list, command),
+                        // The vertex offset is already in the index values -- see the upload above.
+                        imguiDrawIndexed(
+                            pass,
                             baseIndexOf[list] + data.getCmdListCmdBufferIdxOffset(list, command),
                             elements,
-                            1,
                         )
                     }
                 }
                 pass.disableScissor()
             }
-        } finally {
-            com.mojang.blaze3d.systems.RenderSystem.restoreProjectionMatrix()
         }
     }
 
@@ -293,7 +269,7 @@ private class Gl3ImGuiBackend : ImGuiBackend {
 
 /** The backend for this band, made once. */
 private val backend: ImGuiBackend by lazy {
-    //? if >=1.21.6 {
+    //? if >=1.21.5 {
     /*GpuImGuiBackend()
     *///?} else {
     Gl3ImGuiBackend()
