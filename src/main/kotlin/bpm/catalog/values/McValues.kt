@@ -8,7 +8,7 @@ import net.minecraft.core.component.DataComponentPatch
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
-import net.minecraft.resources.ResourceLocation
+import bpm.platform.ResourceLocation
 import net.minecraft.tags.TagKey
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.item.Item
@@ -65,17 +65,11 @@ object BlockPosValue {
 
 /** Registry ids as the language sees them: `"minecraft:coal"`. */
 object RegistryIds {
-    fun item(id: String): Item? = ResourceLocation.tryParse(id.trim())?.let { rl ->
-        if (BuiltInRegistries.ITEM.containsKey(rl)) BuiltInRegistries.ITEM.get(rl) else null
-    }
+    fun item(id: String): Item? = ResourceLocation.tryParse(id.trim())?.let { bpm.platform.valueOf(BuiltInRegistries.ITEM, it) }
 
-    fun block(id: String): Block? = ResourceLocation.tryParse(id.trim())?.let { rl ->
-        if (BuiltInRegistries.BLOCK.containsKey(rl)) BuiltInRegistries.BLOCK.get(rl) else null
-    }
+    fun block(id: String): Block? = ResourceLocation.tryParse(id.trim())?.let { bpm.platform.valueOf(BuiltInRegistries.BLOCK, it) }
 
-    fun fluid(id: String): Fluid? = ResourceLocation.tryParse(id.trim())?.let { rl ->
-        if (BuiltInRegistries.FLUID.containsKey(rl)) BuiltInRegistries.FLUID.get(rl) else null
-    }
+    fun fluid(id: String): Fluid? = ResourceLocation.tryParse(id.trim())?.let { bpm.platform.valueOf(BuiltInRegistries.FLUID, it) }
 
     fun of(item: Item): String = BuiltInRegistries.ITEM.getKey(item).toString()
     fun of(block: Block): String = BuiltInRegistries.BLOCK.getKey(block).toString()

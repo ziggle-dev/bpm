@@ -3,7 +3,7 @@ package bpm.world
 import bpm.Bpm
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
-import net.minecraft.resources.ResourceLocation
+import bpm.platform.ResourceLocation
 import net.minecraft.world.damagesource.DamageSource
 import net.minecraft.world.damagesource.DamageType
 import net.minecraft.world.entity.Entity
@@ -21,7 +21,7 @@ object BpmDamage {
     private fun key(name: String) = ResourceKey.create(Registries.DAMAGE_TYPE, ResourceLocation.fromNamespaceAndPath(Bpm.ID, name))
 
     fun source(level: Level, type: ResourceKey<DamageType>, attacker: Entity? = null): DamageSource {
-        val holder = level.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE).getHolderOrThrow(type)
+        val holder = bpm.platform.holderOrThrow(level.registryAccess(), Registries.DAMAGE_TYPE, type)
         return if (attacker == null) DamageSource(holder) else DamageSource(holder, attacker)
     }
 }

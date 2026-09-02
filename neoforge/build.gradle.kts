@@ -38,7 +38,7 @@ val neoVersion = property("neo_version_" + minecraftVersion.replace('.', '_')) a
  */
 val hasDevMods = minecraftVersion == "1.21.1"
 val geckolibVersion = property("geckolib_version_" + minecraftVersion.replace('.', '_')) as String
-val kffVersion = property("kff_version") as String
+val kffVersion = property("kff_version_" + minecraftVersion.replace('.', '_')) as String
 val kotlinRuntimeVersion = property("kotlin_runtime_version") as String
 val vscriptVersion = property("vscript_version") as String
 val imguiVersion = property("imgui_version") as String
@@ -54,12 +54,22 @@ version = modVersion
 group = "bpm"
 base { archivesName = modId }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+/*
+ * 26.1 moves the game to JDK 25, so the TOOLCHAIN follows it there -- Minecraft's own classes are
+ * compiled for 25 and cannot be read by a 21 compiler. The bytecode this mod emits stays at 21 (see
+ * `jvmTarget` below): a 25 toolchain is perfectly happy to target 21, and a jar that runs on both is
+ * worth more than one that does not.
+ */
+val toolchainVersion = if (stonecutter.eval(minecraftVersion, ">=26.1")) 25 else 21
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(toolchainVersion)
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(toolchainVersion)
     compilerOptions {
-        jvmTarget = JvmTarget.JVM_21
+        // 26.x requires Java 25 in a player's game, so this band emits 25 bytecode rather than
+        // contorting to stay at 21 for a version that could not run it anyway.
+        jvmTarget = if (toolchainVersion == 25) JvmTarget.JVM_25 else JvmTarget.JVM_21
         // The mod may not reach for stdlib API newer than the compiler that built vscript (2.3.x): KFF's
         // runtime is the only stdlib present in a player's game and it must satisfy both.
         apiVersion = KotlinVersion.KOTLIN_2_3
@@ -171,16 +181,106 @@ dev.runtimeClasspath += sourceSets.main.get().output + sourceSets.main.get().run
  * `src/dev` is here rather than shared because all ten of its files are NeoForge: the game tests are
  * written against NeoForge's GameTest API. Fabric will need its own.
  */
+/*
+ * **srcDir, not setSrcDirs, and the difference is the whole version axis.**
+ *
+ * Stonecutter configures every source set as it is created — `project.sourceSets.all { configureSource }`
+ * — and what that does is ADD two directories to each one: `<branch>/src/...`, which it processes for
+ * `//? if` directives, and a generated directory holding the processed output. It works out which
+ * directories to add by taking the source set's dirs relative to `<node>/src` and discarding anything
+ * that escapes upwards, so it only ever sees the node-relative defaults.
+ *
+ * Replacing the list afterwards, which is what this used to do, threw both of those away. Nothing failed;
+ * the directives simply stayed in whatever state they were authored in, on every node. Adding leaves them
+ * in place.
+ *
+ * So each source set ends up reading from four places:
+ *   <node>/src/<name>/kotlin      version-specific overrides for this one version (usually empty)
+ *   <branch>/src/<name>/kotlin    PROCESSED — this is where `//? if` directives belong
+ *   build/generated/stonecutter   where the processed copy lands for a non-active node
+ *   <root>/src/<name>/kotlin      the tree shared with the other loader, added below, not processed
+ */
 for (name in listOf("main", "test", "core", "dev")) {
     kotlin.sourceSets.named(name) {
-        kotlin.setSrcDirs(listOf(rootProject.file("src/$name/kotlin")))
+        kotlin.srcDir(rootProject.file("src/$name/kotlin"))
     }
+/*
+     * **A resource whose SCHEMA changed lives in a per-version tree, shared by both loaders.**
+     *
+     * Almost every one of the 386 resource files is version-neutral and lives in `src/<set>/resources`. A
+     * handful are not, because the file FORMAT changed rather than its content: 1.21.4's client-item files,
+     * its recipes in the new string-ingredient form, the base models that lost `builtin/entity`, the rift
+     * shader configs whose `vertex` field became a real resource location. A JSON cannot carry a `//? if`
+     * directive, so those cannot be expressed in the shared tree.
+     *
+     * They are version-shaped, NOT loader-shaped -- a 1.21.4 recipe is the same file on either loader -- so
+     * they belong in one place that both branches read, which is what this is. The genuinely loader-specific
+     * exceptions (NeoForge composites its bucket from a fluid container; Fabric uses a plain model) stay in
+     * their own node's `src/main/resources`, which is searched first.
+     *
+     * Added BEFORE the shared tree so that, with `processResources` set to EXCLUDE duplicates, the
+     * version's answer wins over the version-neutral one it is replacing.
+     */
     sourceSets.named(name) {
-        resources.setSrcDirs(listOf(rootProject.file("src/$name/resources")))
+        resources.srcDir(rootProject.file("src/$name/resources-$minecraftVersion"))
+        /*
+         * A BAND directory, not a version one.
+         *
+         * The client-item JSONs, the item models that go with them and the recipes all changed shape once,
+         * at 1.21.2, and have not changed since -- an item is declared under `assets/<ns>/items` and a
+         * recipe ingredient is a bare id string rather than `{"item": ...}`. Filing them under
+         * `resources-1.21.4` made them invisible to every later node, which is how the 1.21.11 client came
+         * up with forty-seven missing models and five unparseable recipes while 1.21.4 was fine.
+         *
+         * Named for the rule rather than for a version, so the next node in the band inherits it by
+         * existing. Added AFTER the exact-version directory and before the shared one, so specificity
+         * still decreases down the list and `processResources`' EXCLUDE keeps the first answer.
+         */
+        if (stonecutter.eval(minecraftVersion, ">=1.21.6")) {
+            resources.srcDir(rootProject.file("src/$name/resources-since-1.21.6"))
+        }
+        if (stonecutter.eval(minecraftVersion, ">=1.21.5")) {
+            resources.srcDir(rootProject.file("src/$name/resources-since-1.21.5"))
+        }
+        if (stonecutter.eval(minecraftVersion, ">=1.21.2")) {
+            resources.srcDir(rootProject.file("src/$name/resources-since-1.21.2"))
+        }
+        resources.srcDir(rootProject.file("src/$name/resources"))
     }
 }
+
+/*
+ * GeckoLib's assets move house at 1.21.9.
+ *
+ * It used to open whatever path a `GeoModel` handed it. From 1.21.9 it scans two fixed folders --
+ * `assets/<ns>/geckolib/models` and `assets/<ns>/geckolib/animations` -- and anything outside them is
+ * invisible, however it is asked for.
+ *
+ * COPIED at build time rather than moved in the tree, because the files are identical on both sides of
+ * that line and a second copy under version control is a second copy to keep in step. `bpm.platform
+ * .client.geckoAsset` does the matching half, turning the path the mod files an asset under into the id
+ * the band's cache is keyed by.
+ */
+if (stonecutter.eval(minecraftVersion, ">=1.21.5")) {
+    for (task in listOf("processResources", "processDevResources")) {
+        tasks.named<ProcessResources>(task) {
+            from(rootProject.file("src/main/resources/assets/bpm/geo")) { into("assets/bpm/geckolib/models") }
+            from(rootProject.file("src/main/resources/assets/bpm/animations")) { into("assets/bpm/geckolib/animations") }
+        }
+    }
+}
+/*
+ * **Two source trees, and the difference between them is whether Stonecutter processes it.**
+ *
+ * `<root>/src/main/kotlin`  the tree BOTH loaders compile. Not processed: it is shared with a branch that
+ *                           would want the other answer, so it must not contain version directives.
+ * `<branch>/src/main/...`   this loader's own code, and PROCESSED — `//? if` directives work here.
+ *
+ * The loader-specific code used to live at `<root>/src/neoforge/kotlin`, which compiled fine and could
+ * never carry a directive. Since almost all of it is render and registry code — exactly what changes
+ * between Minecraft versions — it belongs on the processed side.
+ */
 kotlin.sourceSets.named("main") {
-    kotlin.srcDir(rootProject.file("src/neoforge/kotlin"))
     /*
      * The optional integrations compile only where the mod they integrate with exists.
      *
@@ -197,14 +297,78 @@ kotlin.sourceSets.named("main") {
         kotlin.exclude("bpm/compat/jei/**", "bpm/client/ponder/**")
     }
 }
+
 /*
- * ...and this loader's own resources. Currently one file: the experience bucket's model, which NeoForge
- * composites at runtime from an empty bucket and a tinted fluid overlay. Fabric has no equivalent model
- * loader and carries a static model of its own.
+ * The game tests run on one Minecraft version, not on all of them.
+ *
+ * 1.21.5 replaced the annotation-driven GameTest framework with a data-driven one: a test is a registered
+ * `TestInstance` described by JSON, and `@GameTest`, NeoForge's `@GameTestHolder` and
+ * `@PrefixGameTestTemplate` are all gone -- four versions earlier than this note first assumed, which is
+ * why the threshold moved when 1.21.5 was added. Porting sixty-five tests to that shape would be a rewrite of the
+ * safety net rather than a use of it, and the plan already says as much -- "given the vanilla GameTest API
+ * churn across 1.21.x/26.x, consider running GameTest on ONE MC version per loader".
+ *
+ * 1.21.1 is that version. The tests exercise server logic -- transfers, chamber state, trap damage, core
+ * tiers -- which is exactly the part of the mod that does NOT change between bands, so running them on one
+ * node loses very little. The `dev` source set's other members (the commands and the Lua console) are not
+ * excluded: `runClient` depends on them, and a launchable client on every band is the point.
  */
-sourceSets.named("main") {
-    resources.srcDir(rootProject.file("src/neoforge/resources"))
+val gameTestsCompile = stonecutter.eval(stonecutter.current.version, "<1.21.5")
+kotlin.sourceSets.named("dev") {
+    if (!gameTestsCompile) {
+        kotlin.exclude("bpm/dev/gametest/**")
+    }
 }
+
+/*
+ * Four unit tests that are about NeoForge's transfer API rather than about this mod.
+ *
+ * 1.21.11 replaced that API wholesale -- `IItemHandler`/`ItemStackHandler`/`FluidTank` became
+ * `ResourceHandler<ItemResource>`/`ItemStacksResourceHandler`/`FluidStacksResourceHandler`, and filling a
+ * tank went from `fill(stack, FluidAction)` to an insert inside a transaction. These four construct those
+ * types directly, because what they check IS the adapter from a real loader handler to this mod's ports.
+ * Rewriting them against a hand-built test double would test the double instead, so they are excluded on
+ * this band rather than faked.
+ *
+ * The remaining ~94 still compile and run here, including everything about droplets, filters and link
+ * naming; and the four themselves still run on 1.21.1 and 1.21.4, which is where the API they exercise
+ * actually lives. Every band this ladder adds next -- 1.21.5, 1.21.8 -- is on the OLD transfer API, so
+ * this costs nothing there either.
+ *
+ * TODO: port these to the 1.21.11 handlers so the adapter on this band has coverage too. It is the one
+ * piece of the safety net that does not reach the newest node.
+ */
+val portTestsCompile = stonecutter.eval(stonecutter.current.version, "<1.21.9")
+
+/*
+ * From 26.1 an item's default data components are DATA, not code.
+ *
+ * `DataComponentInitializers` builds them from a `HolderLookup.Provider` and binds them onto each
+ * item's holder afterwards, so `ItemStack(Items.DIAMOND)` throws "Components not bound yet" until a
+ * registry access has been loaded. The unit-test harness boots FML and the registries but does not go
+ * that far, and making it would be testing the harness rather than the mod.
+ *
+ * Only this one test constructs a stack from a bare item; everything else it covers -- building a
+ * filter from a script and narrowing a move with it -- is exercised on every other band. Excluded here
+ * rather than weakened everywhere.
+ */
+val stacksNeedLoadedComponents = stonecutter.eval(stonecutter.current.version, ">=26.1")
+
+kotlin.sourceSets.named("test") {
+    if (!portTestsCompile) {
+        kotlin.exclude(
+            "bpm/platform/PortsTest.kt",
+            "bpm/catalog/FilterValueTest.kt",
+            "bpm/catalog/FindSlotTest.kt",
+            "bpm/world/TetherTest.kt",
+        )
+    }
+    if (stacksNeedLoadedComponents) {
+        kotlin.exclude("bpm/catalog/FilterConstructTest.kt")
+    }
+}
+
+
 
 /*
  * `gameLibraries` is the bundled list as a resolvable set (used by tooling); `devLibraries` holds the dev-only
@@ -224,6 +388,14 @@ configurations["devImplementation"].extendsFrom(devLibraries)
 
 neoForge {
     version = neoVersion
+
+    /*
+     * The counterpart of the Fabric branch's access widener, scoped identically: 1.21.5-1.21.8 only.
+     * Below that the field does not exist, above it `AbstractTexture.getTexture()` is public.
+     */
+    if (stonecutter.eval(minecraftVersion, ">=1.21.5 <1.21.9")) {
+        accessTransformers.from(rootProject.file("neoforge/accesstransformer/bpm.cfg"))
+    }
 
     runs {
         create("client") {
@@ -316,7 +488,12 @@ dependencies {
     implementation("thedarkcolour:kotlinforforge-neoforge:$kffVersion")
     // GeckoLib is NOT optional — the models are the mod. Its coordinate names the Minecraft version,
     // so a node whose version GeckoLib has not published for will fail here, loudly, which is right.
-    implementation("software.bernie.geckolib:geckolib-neoforge-$minecraftVersion:$geckolibVersion")
+    // GeckoLib is not on the Cloudsmith maven for 26.x; see the note beside `geckolib_version_26_2`.
+    if (stonecutter.eval(minecraftVersion, ">=26.1")) {
+        implementation("maven.modrinth:geckolib:$geckolibVersion")
+    } else {
+        implementation("software.bernie.geckolib:geckolib-neoforge-$minecraftVersion:$geckolibVersion")
+    }
 
     // Dev runs only: Mekanism (core + generators) to test the energy and fluid verbs against real machines,
     // cables and pipes. Runtime only — nothing compiles against it, and it is never bundled.
@@ -398,6 +575,24 @@ dependencies {
  * shipped jar. `jarJar` generates that directory for the jar; copying it into the dev source set's resources
  * puts the nested jars into the GAME layer beside the stdlib, which is where they are in production too.
  */
+/*
+ * **A node may override a shared resource, and the node's copy wins.**
+ *
+ * Almost every one of the 386 resource files is version-neutral, so they live in `<root>/src/main/resources`
+ * and every node ships the same bytes. The exceptions are files whose SCHEMA changed: the two rift shader
+ * configs, whose `vertex`/`fragment` fields became resource locations resolved under `shaders/` at 1.21.2
+ * where they had been bare names resolved under `shaders/core/`. No single spelling loads on both, and a
+ * JSON cannot carry a `//? if` directive.
+ *
+ * So a node may put its own copy at `<node>/src/main/resources/...` and it takes precedence. The order is
+ * what makes that work rather than a coin toss: Gradle's java plugin registers the node's own directory
+ * first, Stonecutter appends the branch's, and the shared root is added last, so EXCLUDE keeps the most
+ * specific one. Ordinary duplicates cannot arise -- nothing else is declared twice.
+ */
+tasks.named<ProcessResources>("processResources") {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
 tasks.named<ProcessResources>("processDevResources") {
     from(tasks.named("jarJar"))
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE

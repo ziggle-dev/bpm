@@ -13,8 +13,9 @@ import net.minecraft.core.BlockPos
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.codec.StreamCodec
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
-import net.minecraft.resources.ResourceLocation
+import bpm.platform.ResourceLocation
 import java.util.UUID
+import bpm.platform.listOr
 
 /*
  * Every packet of the mod. Codecs are hand-written over `FriendlyByteBuf` so one shape serves the play and
@@ -428,7 +429,7 @@ class HudPanelPayload(
                 val pos = b.readBlockPos(); val anchor = b.readUtf(16)
                 val ox = b.readVarInt(); val oy = b.readVarInt(); val w = b.readVarInt(); val sc = b.readFloat()
                 val tag = b.readNbt()
-                HudPanelPayload(pos, anchor, ox, oy, w, sc, tag?.getList("w", 10) ?: ListTag())
+                HudPanelPayload(pos, anchor, ox, oy, w, sc, tag?.listOr("w") ?: ListTag())
             },
         )
     }

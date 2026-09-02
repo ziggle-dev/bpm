@@ -1,5 +1,6 @@
 package bpm.chamber
 
+import bpm.platform.compoundAt
 import bpm.platform.store.PlayerStore
 import bpm.Bpm
 import bpm.world.ModAttachments
@@ -13,7 +14,7 @@ import net.minecraft.nbt.ListTag
 import net.minecraft.nbt.Tag
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceKey
-import net.minecraft.resources.ResourceLocation
+import bpm.platform.ResourceLocation
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
@@ -30,6 +31,16 @@ import net.minecraft.world.level.saveddata.SavedData
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import java.util.UUID
+import bpm.platform.intOr
+import bpm.platform.longOr
+import bpm.platform.floatOr
+import bpm.platform.doubleOr
+import bpm.platform.stringOr
+import bpm.platform.boolOr
+import bpm.platform.compoundOr
+import bpm.platform.listOr
+import bpm.platform.keyId
+import bpm.platform.showMessage
 
 /** The Decoherence Chamber's dimension — `bpm:decoherence`, a void with one room per player stamped into it. */
 object ChamberDimension {
@@ -88,7 +99,7 @@ class ChamberSlot(val owner: UUID, val index: Int) {
     val returnGate: BlockPos get() = origin.offset(20, 4, 0)
 
     fun save(): CompoundTag = CompoundTag().also { t ->
-        t.putUUID("owner", owner)
+        bpm.platform.putUuid(t, "owner", owner)
         t.putInt("index", index)
         t.putBoolean("built", built)
         t.putString("state", state.name)
@@ -100,28 +111,28 @@ class ChamberSlot(val owner: UUID, val index: Int) {
         t.putInt("resetCount", resetCount)
         t.putInt("crystalsBroken", crystalsBroken)
         t.putBoolean("occupied", occupied)
-        gateDim?.let { t.putString("gateDim", it.location().toString()) }
+        gateDim?.let { t.putString("gateDim", it.keyId().toString()) }
         gatePos?.let { t.putLong("gatePos", it.asLong()) }
         layout?.let { t.put("layout", it.save()) }
     }
 
     companion object {
         fun load(t: CompoundTag): ChamberSlot? {
-            if (!t.hasUUID("owner")) return null
-            return ChamberSlot(t.getUUID("owner"), t.getInt("index")).also { s ->
-                s.built = t.getBoolean("built")
-                s.state = runCatching { SlotState.valueOf(t.getString("state")) }.getOrDefault(SlotState.DORMANT)
-                s.lastVisit = t.getLong("lastVisit")
-                s.claimedAt = t.getLong("claimedAt")
-                s.stage3StartedAt = t.getLong("stage3StartedAt")
-                s.killedAt = t.getLong("killedAt")
-                s.lastKillByPlayer = t.getBoolean("lastKillByPlayer")
-                s.resetCount = t.getInt("resetCount")
-                s.crystalsBroken = t.getInt("crystalsBroken")
-                s.occupied = t.getBoolean("occupied")
-                s.gateDim = if (t.contains("gateDim")) ResourceLocation.tryParse(t.getString("gateDim"))?.let { ResourceKey.create(Registries.DIMENSION, it) } else null
-                s.gatePos = if (t.contains("gatePos")) BlockPos.of(t.getLong("gatePos")) else null
-                s.layout = if (t.contains("layout")) RoomLayout.load(t.getCompound("layout")) else null
+            val owner = bpm.platform.uuidOrNull(t, "owner") ?: return null
+            return ChamberSlot(owner, t.intOr("index", 0)).also { s ->
+                s.built = t.boolOr("built", false)
+                s.state = runCatching { SlotState.valueOf(t.stringOr("state", "")) }.getOrDefault(SlotState.DORMANT)
+                s.lastVisit = t.longOr("lastVisit", 0L)
+                s.claimedAt = t.longOr("claimedAt", 0L)
+                s.stage3StartedAt = t.longOr("stage3StartedAt", 0L)
+                s.killedAt = t.longOr("killedAt", 0L)
+                s.lastKillByPlayer = t.boolOr("lastKillByPlayer", false)
+                s.resetCount = t.intOr("resetCount", 0)
+                s.crystalsBroken = t.intOr("crystalsBroken", 0)
+                s.occupied = t.boolOr("occupied", false)
+                s.gateDim = if (t.contains("gateDim")) ResourceLocation.tryParse(t.stringOr("gateDim", ""))?.let { ResourceKey.create(Registries.DIMENSION, it) } else null
+                s.gatePos = if (t.contains("gatePos")) BlockPos.of(t.longOr("gatePos", 0L)) else null
+                s.layout = if (t.contains("layout")) RoomLayout.load(t.compoundOr("layout")) else null
             }
         }
     }
@@ -135,7 +146,7 @@ class ChamberSlot(val owner: UUID, val index: Int) {
  * [ChamberBuilder]; this keeps the bookkeeping: who owns which plot, whether it is built, how the fight in
  * it stands. Saved with the overworld so it exists before the chamber level is ever loaded.
  */
-class Chambers : SavedData() {
+class Chambers : bpm.platform.TagStore() {
     val slots = LinkedHashMap<UUID, ChamberSlot>()
     private var nextIndex = 0
 
@@ -146,10 +157,9 @@ class Chambers : SavedData() {
 
     fun slotAt(pos: BlockPos): ChamberSlot? = slots.values.firstOrNull { it.contains(pos) }
 
-    override fun save(tag: CompoundTag, registries: HolderLookup.Provider): CompoundTag {
+    override fun writeTo(tag: CompoundTag) {
         tag.putInt("next", nextIndex)
         tag.put("slots", ListTag().also { list -> slots.values.forEach { list.add(it.save()) } })
-        return tag
     }
 
     companion object {
@@ -158,17 +168,17 @@ class Chambers : SavedData() {
         const val FLOOR_Y = 64
         const val ARRIVAL_COOLDOWN = 60
 
-        private val FACTORY = Factory(::Chambers, ::load, null)
+        private val TYPE = bpm.platform.StoreType(NAME, ::Chambers, ::load)
 
-        fun get(server: MinecraftServer): Chambers = server.overworld().dataStorage.computeIfAbsent(FACTORY, NAME)
+        fun get(server: MinecraftServer): Chambers = bpm.platform.storeOf(server, TYPE)
 
-        private fun load(tag: CompoundTag, registries: HolderLookup.Provider): Chambers = Chambers().also { c ->
-            c.nextIndex = tag.getInt("next")
-            val list = tag.getList("slots", Tag.TAG_COMPOUND.toInt())
-            for (i in 0 until list.size) ChamberSlot.load(list.getCompound(i))?.let { c.slots[it.owner] = it }
+        private fun load(tag: CompoundTag): Chambers = Chambers().also { c ->
+            c.nextIndex = tag.intOr("next", 0)
+            val list = tag.listOr("slots")
+            for (i in 0 until list.size) ChamberSlot.load(list.compoundAt(i))?.let { c.slots[it.owner] = it }
         }
 
-        private fun say(player: Player, text: String) = player.displayClientMessage(Component.literal("[bpm] $text"), true)
+        private fun say(player: Player, text: String) = player.showMessage(Component.literal("[bpm] $text"), true)
 
         /** Builds the slot's room if it is not there yet. False when the dimension is missing. */
         fun ensureBuilt(server: MinecraftServer, slot: ChamberSlot): Boolean {
@@ -219,10 +229,10 @@ class Chambers : SavedData() {
         /** Where [player] goes when they leave: the spot outside the gate they came through, or the world spawn if that is lost. */
         fun returnPoint(server: MinecraftServer, player: ServerPlayer): Pair<ServerLevel, Vec3> {
             val tag = PlayerStore.get(player, ModAttachments.CHAMBER_RETURN)
-            val key = ResourceLocation.tryParse(tag.getString("dim"))?.let { ResourceKey.create(Registries.DIMENSION, it) }
+            val key = ResourceLocation.tryParse(tag.stringOr("dim", ""))?.let { ResourceKey.create(Registries.DIMENSION, it) }
             val target = key?.let { server.getLevel(it) } ?: server.overworld()
-            if (tag.contains("x")) return target to Vec3(tag.getDouble("x"), tag.getDouble("y"), tag.getDouble("z"))
-            val spawn = target.sharedSpawnPos
+            if (tag.contains("x")) return target to Vec3(tag.doubleOr("x", 0.0), tag.doubleOr("y", 0.0), tag.doubleOr("z", 0.0))
+            val spawn = bpm.platform.spawnPosOf(target)
             return target to Vec3(spawn.x + 0.5, spawn.y.toDouble(), spawn.z + 0.5)
         }
 
@@ -248,7 +258,7 @@ class Chambers : SavedData() {
                 val floored = cells.firstOrNull { c -> level.getBlockState(c).canBeReplaced() && level.getBlockState(c.below()).isFaceSturdy(level, c.below(), Direction.UP) }
                 val cell = floored ?: cells.firstOrNull { level.getBlockState(it).canBeReplaced() }
                 if (cell != null) {
-                    val facing = Direction.getNearest((at.x - cell.x).toDouble(), 0.0, (at.z - cell.z).toDouble())
+                    val facing = bpm.platform.nearestDirection((at.x - cell.x).toDouble(), 0.0, (at.z - cell.z).toDouble())
                     val state = Blocks.CHEST.defaultBlockState().setValue(ChestBlock.FACING, facing).setValue(ChestBlock.WATERLOGGED, level.getFluidState(cell).`is`(Fluids.WATER))
                     level.setBlock(cell, state, 3)
                     chest = level.getBlockEntity(cell) as? ChestBlockEntity
@@ -270,7 +280,7 @@ class Chambers : SavedData() {
 
         /** Sends [player] into their room through [from] (or from wherever they stand, for the command). */
         fun enter(player: ServerPlayer, from: GateBlockEntity?) {
-            val server = player.server
+            val server = bpm.platform.serverOf(player)
             val chamber = ChamberDimension.level(server)
             if (chamber == null) {
                 say(player, "the Decoherence Chamber is not part of this world")
@@ -289,7 +299,7 @@ class Chambers : SavedData() {
                 player,
                 ModAttachments.CHAMBER_RETURN,
                 CompoundTag().also { t ->
-                    t.putString("dim", player.level().dimension().location().toString())
+                    t.putString("dim", player.level().dimension().keyId().toString())
                     t.putDouble("x", back.x)
                     t.putDouble("y", back.y)
                     t.putDouble("z", back.z)
@@ -297,7 +307,7 @@ class Chambers : SavedData() {
                 },
             )
             val at = slot.arrival()
-            player.teleportTo(chamber, at.x, at.y, at.z, 0f, 0f)
+            bpm.platform.teleport(player, chamber, at.x, at.y, at.z, 0f, 0f)
             player.setPortalCooldown(ARRIVAL_COOLDOWN)
             slot.lastVisit = server.overworld().gameTime
             data.setDirty()
@@ -306,9 +316,9 @@ class Chambers : SavedData() {
 
         /** Sends [player] back to where they came in — or to the world spawn if that is lost. */
         fun leave(player: ServerPlayer) {
-            val (target, at) = returnPoint(player.server, player)
-            val yaw = PlayerStore.get(player, ModAttachments.CHAMBER_RETURN).getFloat("yaw")
-            player.teleportTo(target, at.x, at.y, at.z, yaw, 0f)
+            val (target, at) = returnPoint(bpm.platform.serverOf(player), player)
+            val yaw = PlayerStore.get(player, ModAttachments.CHAMBER_RETURN).floatOr("yaw", 0f)
+            bpm.platform.teleport(player, target, at.x, at.y, at.z, yaw, 0f)
             player.setPortalCooldown(ARRIVAL_COOLDOWN)
         }
     }

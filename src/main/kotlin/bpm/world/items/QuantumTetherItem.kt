@@ -16,22 +16,22 @@ import net.minecraft.sounds.SoundEvents
 import net.minecraft.sounds.SoundSource
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
-import net.minecraft.world.InteractionResultHolder
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.TooltipFlag
 import net.minecraft.world.item.context.UseOnContext
 import net.minecraft.world.level.Level
-import software.bernie.geckolib.animatable.GeoItem
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
-import software.bernie.geckolib.animation.AnimatableManager
-import software.bernie.geckolib.animation.AnimationController
-import software.bernie.geckolib.animation.PlayState
-import software.bernie.geckolib.animation.RawAnimation
-import software.bernie.geckolib.util.GeckoLibUtil
+import bpm.platform.GeoItem
+import bpm.platform.AnimatableInstanceCache
+import bpm.platform.AnimatableManager
+import bpm.platform.AnimationController
+import bpm.platform.PlayState
+import bpm.platform.RawAnimation
+import bpm.platform.GeckoLibUtil
 import java.util.UUID
 import java.util.function.Consumer
+import bpm.platform.showMessage
 
 /**
  * The Quantum Tether: carry it, and a controller may reach *you*.
@@ -93,28 +93,28 @@ class QuantumTetherItem(properties: Properties) : TooltipItem(properties), GeoIt
 
     // ---- grants, and letting go -------------------------------------------------------------------------
 
-    override fun use(level: Level, player: Player, hand: InteractionHand): InteractionResultHolder<ItemStack> {
+    override fun use(level: Level, player: Player, hand: InteractionHand): bpm.platform.UseResult {
         val stack = player.getItemInHand(hand)
-        if (!player.isShiftKeyDown) return InteractionResultHolder.pass(stack)
-        if (level.isClientSide) return InteractionResultHolder.success(stack)
+        if (!player.isShiftKeyDown) return bpm.platform.Use.pass(stack)
+        if (level.isClientSide) return bpm.platform.Use.success(stack)
 
         val bound = stack.get(ModComponents.TETHER_CONTROLLER.get()) ?: run {
             say(player, "sneak-use a controller to tether yourself to it")
-            return InteractionResultHolder.fail(stack)
+            return bpm.platform.Use.fail(stack)
         }
 
         val now = level.gameTime
         if (lastCycle[player.uuid]?.let { now - it <= UNBIND_TICKS } == true) {
             lastCycle.remove(player.uuid)
             release(level, player, stack, bound)
-            return InteractionResultHolder.consume(stack)
+            return bpm.platform.Use.consume(stack)
         }
         lastCycle[player.uuid] = now
 
         val grants = Grants.next(grantsOf(stack))
         Tethers.bind(stack, bound, grants)
         say(player, "${Grants.label(grants)} · ${Grants.format(grants)}${if (Grant.TAKE in grants) " — it may take from you" else ""}")
-        return InteractionResultHolder.consume(stack)
+        return bpm.platform.Use.consume(stack)
     }
 
     private fun release(level: Level, player: Player, stack: ItemStack, bound: GlobalPos) {
@@ -132,8 +132,8 @@ class QuantumTetherItem(properties: Properties) : TooltipItem(properties), GeoIt
      * says something useful. Every five seconds, and only for a bound tether: a player's *live* position comes
      * from the player, so this is only the last-seen fallback.
      */
-    override fun inventoryTick(stack: ItemStack, level: Level, entity: Entity, slot: Int, selected: Boolean) {
-        if (level.isClientSide || level.gameTime % SEEN_EVERY != 0L) return
+    override fun carriedTick(stack: ItemStack, level: net.minecraft.server.level.ServerLevel, entity: Entity, inHand: Boolean) {
+        if (level.gameTime % SEEN_EVERY != 0L) return
         val player = entity as? Player ?: return
         val bound = stack.get(ModComponents.TETHER_CONTROLLER.get()) ?: return
         if (bound.dimension() != level.dimension() || !level.isLoaded(bound.pos())) return
@@ -143,17 +143,17 @@ class QuantumTetherItem(properties: Properties) : TooltipItem(properties), GeoIt
 
     // ---- what it says -----------------------------------------------------------------------------------
 
-    override fun appendHoverText(stack: ItemStack, context: TooltipContext, tooltip: MutableList<Component>, flag: TooltipFlag) {
-        super.appendHoverText(stack, context, tooltip, flag)
+    override fun lore(stack: ItemStack, add: (Component) -> Unit) {
+        super.lore(stack, add)
         val bound = stack.get(ModComponents.TETHER_CONTROLLER.get())
         if (bound == null) {
-            tooltip.add(Component.translatable("item.bpm.quantum_tether.unbound").withStyle(ChatFormatting.GRAY))
+            add(Component.translatable("item.bpm.quantum_tether.unbound").withStyle(ChatFormatting.GRAY))
             return
         }
         val grants = grantsOf(stack)
-        tooltip.add(Component.translatable("item.bpm.quantum_tether.bound", bound.pos().toShortString()).withStyle(ChatFormatting.AQUA))
-        tooltip.add(Component.literal("${Grants.label(grants)}: ${Grants.format(grants)}").withStyle(ChatFormatting.GRAY))
-        if (Grant.TAKE in grants) tooltip.add(Component.translatable("item.bpm.quantum_tether.take").withStyle(ChatFormatting.RED))
+        add(Component.translatable("item.bpm.quantum_tether.bound", bound.pos().toShortString()).withStyle(ChatFormatting.AQUA))
+        add(Component.literal("${Grants.label(grants)}: ${Grants.format(grants)}").withStyle(ChatFormatting.GRAY))
+        if (Grant.TAKE in grants) add(Component.translatable("item.bpm.quantum_tether.take").withStyle(ChatFormatting.RED))
     }
 
     /** A bound tether glints, so it is obvious at a glance that something can reach you. */
@@ -161,7 +161,7 @@ class QuantumTetherItem(properties: Properties) : TooltipItem(properties), GeoIt
 
     private fun grantsOf(stack: ItemStack): Set<Grant> = Grants.parse(stack.get(ModComponents.TETHER_GRANTS.get()))
 
-    private fun say(player: Player, text: String) = player.displayClientMessage(Component.literal("[bpm] $text"), true)
+    private fun say(player: Player, text: String) = player.showMessage(Component.literal("[bpm] $text"), true)
 
     /** The presence table changed: saved, and pushed to whoever is watching this controller in the editor. */
     private fun changed(level: Level, controller: ControllerBlockEntity) {
@@ -173,20 +173,24 @@ class QuantumTetherItem(properties: Properties) : TooltipItem(properties), GeoIt
     /** One of the pendant's one-shot animations, for everyone who can see the hand. */
     private fun animate(level: Level, player: Player, stack: ItemStack, anim: String) {
         val server = level as? ServerLevel ?: return
-        triggerAnim<Any>(player, GeoItem.getOrAssignId(stack, server), "overlay", anim)
+        bpm.platform.triggerItemAnim(this, player, GeoItem.getOrAssignId(stack, server), "overlay", anim)
     }
 
     // ---- geckolib ---------------------------------------------------------------------------------------
 
-    override fun registerControllers(controllers: AnimatableManager.ControllerRegistrar) {
-        controllers.add(AnimationController(this, "idle", 0) { state -> state.setAndContinue(IDLE) })
+    override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
+        controllers.add(bpm.platform.animController(this, "idle", 0) { state -> state.setAndContinue(IDLE) })
         controllers.add(
-            AnimationController(this, "overlay", 0) { PlayState.STOP }
+            bpm.platform.animController(this, "overlay", 0) { PlayState.STOP }
                 .triggerableAnim("bind", BIND).triggerableAnim("release", RELEASE),
         )
     }
 
     override fun getAnimatableInstanceCache(): AnimatableInstanceCache = animCache
+
+    /** Drawn by the table in [bpm.client.render.BpmItemRenderers]; GeckoLib asks the item, so the item asks it. */
+    override fun createGeoRenderer(consumer: Consumer<bpm.platform.GeoRenderProvider>) =
+        bpm.client.render.geoItemRenderer(this, consumer)
 
 
     companion object {

@@ -4,7 +4,7 @@ import bpm.platform.registry.FluidPair
 import bpm.platform.registry.FluidSpec
 import bpm.platform.registry.FluidRegistry
 import bpm.platform.registry.RegistryRef
-import net.minecraft.resources.ResourceLocation
+import bpm.platform.ResourceLocation
 import net.minecraft.world.item.Rarity
 import net.minecraft.world.level.material.FlowingFluid
 

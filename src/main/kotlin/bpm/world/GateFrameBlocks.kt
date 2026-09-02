@@ -158,7 +158,7 @@ object GateFrames {
 }
 
 /** A straight frame piece: a full block until the ring forms, then a slab (sides, top) or a lit base block. */
-class GateFrameBlock(properties: Properties) : Block(properties) {
+class GateFrameBlock(properties: Properties) : bpm.platform.RemovalAwareBlock(properties) {
     init {
         registerDefaultState(
             stateDefinition.any().setValue(GateFrames.AXIS, Direction.Axis.X).setValue(GateFrames.ALONG, FrameRun.HORIZONTAL).setValue(GateFrames.FORMED, false).setValue(GateFrames.FLIP, false),
@@ -194,9 +194,8 @@ class GateFrameBlock(properties: Properties) : Block(properties) {
         }
     }
 
-    override fun onRemove(state: BlockState, level: Level, pos: BlockPos, newState: BlockState, moving: Boolean) {
-        if (!state.`is`(newState.block) && !level.isClientSide) GateFrames.pieceRemoved(level, pos)
-        super.onRemove(state, level, pos, newState, moving)
+    override fun onBlockRemoved(state: BlockState, level: net.minecraft.server.level.ServerLevel, pos: BlockPos, movedByPiston: Boolean) {
+        GateFrames.pieceRemoved(level, pos)
     }
 
     override fun rotate(state: BlockState, rotation: Rotation): BlockState = when (rotation) {
@@ -206,7 +205,7 @@ class GateFrameBlock(properties: Properties) : Block(properties) {
 }
 
 /** A frame corner: a full block until the ring forms, then a slab at the top or a lit full block at the bottom. */
-class GateFrameCornerBlock(properties: Properties) : Block(properties) {
+class GateFrameCornerBlock(properties: Properties) : bpm.platform.RemovalAwareBlock(properties) {
     init {
         registerDefaultState(
             stateDefinition.any().setValue(GateFrames.AXIS, Direction.Axis.X).setValue(GateFrames.CORNER, FrameCorner.BOTTOM_LEFT).setValue(GateFrames.FORMED, false),
@@ -239,9 +238,8 @@ class GateFrameCornerBlock(properties: Properties) : Block(properties) {
     override fun getShape(state: BlockState, level: BlockGetter, pos: BlockPos, ctx: CollisionContext): VoxelShape =
         if (state.getValue(GateFrames.FORMED) && !state.getValue(GateFrames.CORNER).isBottom) GateFrames.slim(state.getValue(GateFrames.AXIS)) else Shapes.block()
 
-    override fun onRemove(state: BlockState, level: Level, pos: BlockPos, newState: BlockState, moving: Boolean) {
-        if (!state.`is`(newState.block) && !level.isClientSide) GateFrames.pieceRemoved(level, pos)
-        super.onRemove(state, level, pos, newState, moving)
+    override fun onBlockRemoved(state: BlockState, level: net.minecraft.server.level.ServerLevel, pos: BlockPos, movedByPiston: Boolean) {
+        GateFrames.pieceRemoved(level, pos)
     }
 
     override fun rotate(state: BlockState, rotation: Rotation): BlockState {

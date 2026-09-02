@@ -1,0 +1,6 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "bpm:item/chamber_wall_trim"
+  }
+}

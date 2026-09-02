@@ -151,7 +151,7 @@ object McTypes {
         "Item",
         listOf(
             HostField("id", STRING, "the registry id") { it?.toString().orEmpty() },
-            HostField("name", STRING, "the display name") { RegistryIds.item(it?.toString().orEmpty())?.description?.string.orEmpty() },
+            HostField("name", STRING, "the display name") { RegistryIds.item(it?.toString().orEmpty())?.let { i -> net.minecraft.network.chat.Component.translatable(i.descriptionId).string }.orEmpty() },
             HostField("maxStack", INT, "how many fit in one stack") { (RegistryIds.item(it?.toString().orEmpty())?.defaultMaxStackSize ?: 0).toLong() },
             HostField("isBlock", BOOL, "can it be placed") { RegistryIds.item(it?.toString().orEmpty()) is BlockItem },
         ),
@@ -305,9 +305,8 @@ object McTypes {
     fun propertiesOf(state: BlockState?): Map<String, String> {
         if (state == null) return emptyMap()
         val out = LinkedHashMap<String, String>()
-        for ((p, v) in state.values) {
-            val prop = p as Property<Comparable<Any>>
-            out[prop.name] = prop.getName(v as Comparable<Any>)
+        for ((name, value) in bpm.platform.blockStateProperties(state)) {
+            out[name] = value
         }
         return out
     }

@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "The composited bucket, same as the 1.21.4 node's. What moved at 1.21.11 is the MODEL LOADER of",
+    "that name -- `neoforge:fluid_container` is no longer one of those (only empty, obj and composite",
+    "are) -- but the ITEM model of the same name survives, which is what this is. The plain fallback in",
+    "models/item is what vanilla reaches for if this is ever absent."
+  ],
+  "model": {
+    "type": "neoforge:fluid_container",
+    "textures": {
+      "base": "minecraft:item/bucket",
+      "fluid": "neoforge:item/mask/bucket_fluid"
+    },
+    "fluid": "bpm:experience"
+  }
+}

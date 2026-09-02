@@ -70,7 +70,7 @@ class LinkRenameScreen private constructor(private val state: State) :
 
         /** Opens the box for [link] of the controller at [controllerPos]; [taken] are the names it cannot take. */
         fun open(controllerPos: BlockPos, link: Link, taken: Set<String>) {
-            Minecraft.getInstance().setScreen(LinkRenameScreen(State(controllerPos, link, taken)))
+            bpm.platform.client.openScreen(LinkRenameScreen(State(controllerPos, link, taken)))
         }
     }
 }

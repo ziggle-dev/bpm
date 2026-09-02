@@ -53,8 +53,8 @@ class BpmLibraryTest {
     fun `nbt round trip`() {
         val a = lib.create("alpha", doc("alpha"), java.util.UUID.randomUUID())
         lib.store(a.id, doc("alpha2"), hasErrors = true)
-        val tag = lib.save(net.minecraft.nbt.CompoundTag(), net.minecraft.core.RegistryAccess.EMPTY)
-        val back = BpmLibrary.load(tag, net.minecraft.core.RegistryAccess.EMPTY)
+        val tag = net.minecraft.nbt.CompoundTag().also(lib::writeTo)
+        val back = BpmLibrary.load(tag)
         val r = back[a.id]!!
         assertEquals("alpha", r.name)
         assertEquals(2, r.version)

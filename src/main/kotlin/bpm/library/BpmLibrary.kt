@@ -1,5 +1,7 @@
 package bpm.library
 
+import bpm.platform.bytesOr
+import bpm.platform.compoundAt
 import bpm.Bpm
 import com.google.gson.JsonParser
 import dev.ziggle.vscript.model.Graph
@@ -16,6 +18,11 @@ import java.security.MessageDigest
 import java.util.UUID
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
+import bpm.platform.intOr
+import bpm.platform.longOr
+import bpm.platform.stringOr
+import bpm.platform.boolOr
+import bpm.platform.listOr
 
 /** One graph document in the world's library. The bytes are the gzip of the `GraphDoc` JSON. */
 class DocumentRecord(
@@ -34,14 +41,14 @@ class DocumentRecord(
     var isLibrary: Boolean = false,
 ) : bpm.library.DocumentInfo {
     fun save(): CompoundTag = CompoundTag().also { t ->
-        t.putUUID("id", id)
+        bpm.platform.putUuid(t, "id", id)
         t.putString("name", name)
         t.putInt("version", version)
         t.putInt("format", format)
         t.putByteArray("gz", gz)
         t.putString("sha256", sha256)
         t.putInt("rawSize", rawSize)
-        owner?.let { t.putUUID("owner", it) }
+        owner?.let { bpm.platform.putUuid(t, "owner", it) }
         t.putLong("createdAt", createdAt)
         t.putLong("updatedAt", updatedAt)
         t.putBoolean("hasErrors", hasErrors)
@@ -50,20 +57,20 @@ class DocumentRecord(
 
     companion object {
         fun load(t: CompoundTag): DocumentRecord? {
-            if (!t.hasUUID("id")) return null
+            val docId = bpm.platform.uuidOrNull(t, "id") ?: return null
             return DocumentRecord(
-                id = t.getUUID("id"),
-                name = t.getString("name"),
-                version = t.getInt("version"),
-                format = t.getInt("format"),
-                gz = t.getByteArray("gz"),
-                sha256 = t.getString("sha256"),
-                rawSize = t.getInt("rawSize"),
-                owner = if (t.hasUUID("owner")) t.getUUID("owner") else null,
-                createdAt = t.getLong("createdAt"),
-                updatedAt = t.getLong("updatedAt"),
-                hasErrors = t.getBoolean("hasErrors"),
-                isLibrary = t.getBoolean("library"),
+                id = docId,
+                name = t.stringOr("name", ""),
+                version = t.intOr("version", 0),
+                format = t.intOr("format", 0),
+                gz = t.bytesOr("gz"),
+                sha256 = t.stringOr("sha256", ""),
+                rawSize = t.intOr("rawSize", 0),
+                owner = bpm.platform.uuidOrNull(t, "owner"),
+                createdAt = t.longOr("createdAt", 0L),
+                updatedAt = t.longOr("updatedAt", 0L),
+                hasErrors = t.boolOr("hasErrors", false),
+                isLibrary = t.boolOr("library", false),
             )
         }
     }
@@ -81,7 +88,7 @@ class DocumentRecord(
  * an older `GraphDoc` format is re-encoded the first time it is read ([graph]), bumping its version like any
  * other edit; a document from a *newer* format is left alone and reported unreadable.
  */
-class BpmLibrary : SavedData(), bpm.library.DocumentStore {
+class BpmLibrary : bpm.platform.TagStore(), bpm.library.DocumentStore {
     private val docs = LinkedHashMap<UUID, DocumentRecord>()
     private val graphs = HashMap<UUID, Pair<Int, Graph>>()
 
@@ -196,26 +203,25 @@ class BpmLibrary : SavedData(), bpm.library.DocumentStore {
         setDirty()
     }
 
-    override fun save(tag: CompoundTag, registries: HolderLookup.Provider): CompoundTag {
+    override fun writeTo(tag: CompoundTag) {
         tag.putInt("libraryVersion", libraryVersion)
         tag.put("docs", ListTag().also { list -> docs.values.forEach { list.add(it.save()) } })
-        return tag
     }
 
     companion object {
         const val NAME = "bpm_library"
 
-        fun load(tag: CompoundTag, @Suppress("UNUSED_PARAMETER") registries: HolderLookup.Provider): BpmLibrary {
+        fun load(tag: CompoundTag): BpmLibrary {
             val lib = BpmLibrary()
-            lib.libraryVersion = tag.getInt("libraryVersion")
-            val list = tag.getList("docs", Tag.TAG_COMPOUND.toInt())
-            for (i in 0 until list.size) DocumentRecord.load(list.getCompound(i))?.let { lib.docs[it.id] = it }
+            lib.libraryVersion = tag.intOr("libraryVersion", 0)
+            val list = tag.listOr("docs")
+            for (i in 0 until list.size) DocumentRecord.load(list.compoundAt(i))?.let { lib.docs[it.id] = it }
             return lib
         }
 
-        private val FACTORY = Factory(::BpmLibrary, ::load, null)
+        private val TYPE = bpm.platform.StoreType(NAME, ::BpmLibrary, ::load)
 
         /** The library of the server's world, created on first use. Server thread only. */
-        fun get(server: MinecraftServer): BpmLibrary = server.overworld().dataStorage.computeIfAbsent(FACTORY, NAME)
+        fun get(server: MinecraftServer): BpmLibrary = bpm.platform.storeOf(server, TYPE)
     }
 }

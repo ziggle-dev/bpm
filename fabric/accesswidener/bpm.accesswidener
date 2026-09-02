@@ -1,0 +1,13 @@
+accessWidener	v2	named
+
+# The GpuTexture behind a loaded texture.
+#
+# Needed to hand ImGui a handle for something the game already has on the GPU -- an item thumbnail's
+# atlas, a player's skin. `AbstractTexture` grew a public `getTexture()` at 1.21.9, so this is scoped to
+# 1.21.5-1.21.8 in fabric/build.gradle.kts: below 1.21.5 the field does not exist (textures were GL
+# names), and above it there is nothing to widen.
+#
+# Scoping it that way also keeps this file on Loom's classic access-widener path. From 1.21.9 Loom takes
+# the ClassTweaker route, which accepts only the `intermediary` namespace, and this branch is Mojmap
+# throughout -- so a widener that reached that band could not be written in a namespace it would accept.
+accessible	field	net/minecraft/client/renderer/texture/AbstractTexture	texture	Lcom/mojang/blaze3d/textures/GpuTexture;

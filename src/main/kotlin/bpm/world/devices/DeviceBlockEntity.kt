@@ -12,16 +12,16 @@ import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.entity.BlockEntityTicker
 import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.level.block.state.BlockState
-import software.bernie.geckolib.animatable.GeoBlockEntity
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
-import software.bernie.geckolib.util.GeckoLibUtil
+import bpm.platform.GeoBlockEntity
+import bpm.platform.AnimatableInstanceCache
+import bpm.platform.GeckoLibUtil
 
 /**
  * What every device block entity shares: a GeckoLib instance cache, a per-block Molang phase, and a small
  * "what the client needs" sync — subclasses write it in [saveSynced] / read it in [loadSynced] and the
  * same fields go into the world save.
  */
-abstract class DeviceBlockEntity(type: BlockEntityType<*>, pos: BlockPos, state: BlockState) : BlockEntity(type, pos, state), GeoBlockEntity {
+abstract class DeviceBlockEntity(type: BlockEntityType<*>, pos: BlockPos, state: BlockState) : bpm.platform.SavingBlockEntity(type, pos, state), GeoBlockEntity {
     private val animCache: AnimatableInstanceCache = GeckoLibUtil.createInstanceCache(this)
 
     /** A per-block Molang phase so neighbouring devices never animate in step. */
@@ -36,17 +36,11 @@ abstract class DeviceBlockEntity(type: BlockEntityType<*>, pos: BlockPos, state:
     protected open fun saveSynced(tag: CompoundTag, registries: HolderLookup.Provider) {}
     protected open fun loadSynced(tag: CompoundTag, registries: HolderLookup.Provider) {}
 
-    override fun saveAdditional(tag: CompoundTag, registries: HolderLookup.Provider) {
-        super.saveAdditional(tag, registries)
-        saveSynced(tag, registries)
-    }
+    override fun saveExtra(tag: CompoundTag, registries: HolderLookup.Provider) = saveSynced(tag, registries)
 
-    override fun loadAdditional(tag: CompoundTag, registries: HolderLookup.Provider) {
-        super.loadAdditional(tag, registries)
-        loadSynced(tag, registries)
-    }
+    override fun loadExtra(tag: CompoundTag, registries: HolderLookup.Provider) = loadSynced(tag, registries)
 
-    override fun getUpdateTag(registries: HolderLookup.Provider): CompoundTag = CompoundTag().also { saveSynced(it, registries) }
+    override fun getUpdateTag(registries: HolderLookup.Provider): CompoundTag = syncTag { saveSynced(it, registries) }
 
     override fun getUpdatePacket(): Packet<ClientGamePacketListener> = ClientboundBlockEntityDataPacket.create(this)
 

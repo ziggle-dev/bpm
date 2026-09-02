@@ -10,14 +10,13 @@ import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.math.Axis
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.LevelRenderer
-import net.minecraft.client.renderer.MultiBufferSource
-import net.minecraft.client.renderer.RenderType
+import bpm.platform.RenderType
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.particles.DustParticleOptions
 import net.minecraft.core.registries.BuiltInRegistries
-import net.minecraft.resources.ResourceLocation
+import bpm.platform.ResourceLocation
 import net.minecraft.world.item.ItemDisplayContext
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.item.ItemStack
@@ -133,7 +132,7 @@ object EffectManager {
         open val drawsLast: Boolean get() = false
 
         abstract fun tick(level: Level)
-        abstract fun render(level: Level, pose: PoseStack, buffers: MultiBufferSource, cam: Vec3, partial: Float)
+        abstract fun render(level: Level, pose: PoseStack, draw: bpm.platform.client.ImmediateDraw, cam: Vec3, partial: Float)
         abstract val done: Boolean
     }
 
@@ -216,7 +215,7 @@ object EffectManager {
             }
         }
 
-        override fun render(level: Level, pose: PoseStack, buffers: MultiBufferSource, cam: Vec3, partial: Float) {
+        override fun render(level: Level, pose: PoseStack, draw: bpm.platform.client.ImmediateDraw, cam: Vec3, partial: Float) {
             if (kind == EffectKind.FLUID) {
                 // The stream first, the drips over it: a transfer of a bucket a tick is a running column,
                 // not a shower, and drips alone made every rate look like a leak.
@@ -233,12 +232,12 @@ object EffectManager {
                     if (liveFrom > 0.02f) {
                         val a = from.near(partial)
                         val b = from.far(partial)
-                        stream(fluid, a, a.lerp(b, 1.0 - MOUTH_GAP), cam, pose, buffers, level, from.cell(partial), flow(), t, liveFrom)
+                        stream(fluid, a, a.lerp(b, 1.0 - MOUTH_GAP), cam, pose, draw, level, from.cell(partial), flow(), t, liveFrom)
                     }
                     if (liveTo > 0.02f) {
                         val c = to.far(partial)
                         val d = to.near(partial)
-                        stream(fluid, c.lerp(d, MOUTH_GAP), d, cam, pose, buffers, level, to.cell(partial), flow(), t, liveTo)
+                        stream(fluid, c.lerp(d, MOUTH_GAP), d, cam, pose, draw, level, to.cell(partial), flow(), t, liveTo)
                     }
                 }
             }
@@ -248,8 +247,8 @@ object EffectManager {
                 // what the rifts exist to avoid: the current goes into the tear here and comes out of the
                 // tear there, and the only visible run is the hop between a mouth and its own block.
                 val t = level.gameTime + partial.toDouble()
-                arc(from.near(partial), from.far(partial), cam, pose, buffers, t, seed, flow())
-                arc(to.far(partial), to.near(partial), cam, pose, buffers, t, seed + 977, flow())
+                arc(from.near(partial), from.far(partial), cam, pose, draw, t, seed, flow())
+                arc(to.far(partial), to.near(partial), cam, pose, draw, t, seed + 977, flow())
             }
             for (f in flyers) {
                 if (f.delay > 0) continue
@@ -265,16 +264,16 @@ object EffectManager {
                 // mouth just sits on top of the disc, which does not write depth to hide it.
                 val fade = if (f.fluid != null) 1f else 0.85f
                 val scale = if (f.shrink) 1f - p * fade else (1f - fade) + p * fade
-                val light = LevelRenderer.getLightColor(level, f.anchor.cell(partial))
+                val light = bpm.platform.client.lightAt(level, f.anchor.cell(partial))
                 pose.pushPose()
                 pose.translate(at.x - cam.x, at.y - cam.y, at.z - cam.z)
                 val fluid = f.fluid
                 if (fluid != null) {
-                    drip(fluid, pose, buffers, scale * 0.16f, light, f.seed, f.t + partial)
+                    drip(fluid, pose, draw, scale * 0.16f, light, f.seed, f.t + partial)
                 } else {
                     pose.mulPose(Axis.YP.rotationDegrees((f.t + partial) * 24f + f.seed))
                     pose.scale(scale * 0.55f, scale * 0.55f, scale * 0.55f)
-                    Minecraft.getInstance().itemRenderer.renderStatic(f.stack, ItemDisplayContext.GROUND, light, OverlayTexture.NO_OVERLAY, pose, buffers, level, f.seed)
+                    draw.item(pose, f.stack, ItemDisplayContext.GROUND, light, OverlayTexture.NO_OVERLAY, f.seed)
                 }
                 pose.popPose()
             }
@@ -286,8 +285,8 @@ object EffectManager {
             // it first gave the opposite of both — the fluid landed on top of the disc and looked stuck to
             // the front of it. A shared buffer source flushes whenever the render type changes, so asking
             // for these last is what actually puts them last on the GPU.
-            drawRift(level, fromRift, from, pose, buffers, cam, partial)
-            drawRift(level, toRift, to, pose, buffers, cam, partial)
+            drawRift(level, fromRift, from, pose, draw, cam, partial)
+            drawRift(level, toRift, to, pose, draw, cam, partial)
         }
     }
 
@@ -306,7 +305,7 @@ object EffectManager {
             if (kind == EffectKind.MINE && !closed && swing >= MINE_SWING_EVERY) blow()
         }
 
-        override fun render(level: Level, pose: PoseStack, buffers: MultiBufferSource, cam: Vec3, partial: Float) {
+        override fun render(level: Level, pose: PoseStack, draw: bpm.platform.client.ImmediateDraw, cam: Vec3, partial: Float) {
             val stack = stackOf(item)
             if (stack.isEmpty || hidden(level, at, partial)) return
             if (closed && swing >= SWING_TICKS) return
@@ -319,7 +318,7 @@ object EffectManager {
             pose.mulPose(Axis.YP.rotationDegrees(yawOf(at.facing) + 180f))
             pose.mulPose(Axis.XP.rotationDegrees(angle - 20f))
             pose.scale(0.7f, 0.7f, 0.7f)
-            Minecraft.getInstance().itemRenderer.renderStatic(stack, ItemDisplayContext.THIRD_PERSON_RIGHT_HAND, LevelRenderer.getLightColor(level, at.cell(partial)), OverlayTexture.NO_OVERLAY, pose, buffers, level, 0)
+            draw.item(pose, stack, ItemDisplayContext.THIRD_PERSON_RIGHT_HAND, bpm.platform.client.lightAt(level, at.cell(partial)), OverlayTexture.NO_OVERLAY)
             pose.popPose()
         }
     }
@@ -396,7 +395,7 @@ object EffectManager {
         if (effects.isEmpty()) return
         val mc = Minecraft.getInstance()
         val level = mc.level ?: return
-        val buffers = mc.renderBuffers().bufferSource()
+        val draw = bpm.platform.client.immediateWorldDraw()
         val cam = event.eye
         val partial = event.delta.getGameTimeDeltaPartialTick(false)
         // Two passes, energy second.
@@ -405,9 +404,9 @@ object EffectManager {
         // does not, so at the same link the two sit at effectively the same depth and whichever is drawn
         // last blends over the other. Left to the map's insertion order that was a coin toss; energy going
         // second makes the current read over the column it runs beside.
-        for (e in effects.values) if (!e.drawsLast) e.render(level, event.pose, buffers, cam, partial)
-        for (e in effects.values) if (e.drawsLast) e.render(level, event.pose, buffers, cam, partial)
-        buffers.endBatch()
+        for (e in effects.values) if (!e.drawsLast) e.render(level, event.pose, draw, cam, partial)
+        for (e in effects.values) if (e.drawsLast) e.render(level, event.pose, draw, cam, partial)
+        draw.flush()
     }
 
     // ---- placing things ------------------------------------------------------------------------------
@@ -433,12 +432,12 @@ object EffectManager {
             return Anchor(centre.add(0.0, SELF_CORE, 0.0), centre.add(0.0, SELF_HEIGHT, 0.0), DOWN, core = pos)
         }
         val d = if (face in 0..5) Direction.from3DDataValue(face) else Direction.UP
-        val n = Vec3.atLowerCornerOf(d.normal)
+        val n = Vec3.atLowerCornerOf(bpm.platform.unitVector(d))
         return Anchor(centre.add(n.scale(0.5)), centre.add(n.scale(OFF_FACE)), n)
     }
 
     private fun hidden(level: Level, a: Anchor, partial: Float = 1f): Boolean =
-        a.cell(partial).let { level.getBlockState(it).isSolidRender(level, it) }
+        a.cell(partial).let { bpm.platform.solidRender(level.getBlockState(it), level, it) }
 
     /**
      * Off for the rest of the session once the rift has thrown once.
@@ -453,10 +452,10 @@ object EffectManager {
     private var riftsBroken = false
 
     /** The rift sits where things vanish and appear — [Anchor.far]. It is billboarded, so it has no facing. */
-    private fun drawRift(level: Level, rift: Rift, a: Anchor, pose: PoseStack, buffers: MultiBufferSource, cam: Vec3, partial: Float) {
+    private fun drawRift(level: Level, rift: Rift, a: Anchor, pose: PoseStack, draw: bpm.platform.client.ImmediateDraw, cam: Vec3, partial: Float) {
         if (riftsBroken || !bpm.platform.client.RiftLooks.ready || hidden(level, a, partial)) return
         try {
-            RiftRenderer.draw(rift, a.far(partial).subtract(cam), a.cell(partial), a.facing, RIFT_SCALE, buffers, pose, partial)
+            RiftRenderer.draw(rift, a.far(partial).subtract(cam), a.cell(partial), a.facing, RIFT_SCALE, draw, pose, partial)
         } catch (t: Throwable) {
             riftsBroken = true
             bpm.Bpm.LOGGER.error("rift rendering failed; rifts are off for this session (transfers still draw their items)", t)
@@ -477,7 +476,7 @@ object EffectManager {
         val seed = if (abs(axis.y) > 0.9) Vec3(1.0, 0.0, 0.0) else Vec3(0.0, 1.0, 0.0)
         val u = seed.cross(axis).normalize()
         val v = axis.cross(u)
-        val options = DustParticleOptions(Vector3f(((colour shr 16) and 0xFF) / 255f, ((colour shr 8) and 0xFF) / 255f, (colour and 0xFF) / 255f), 0.7f)
+        val options = bpm.platform.dust(colour, 0.7f)
         repeat(MOTES_PER_PULSE) {
             val ang = Math.random() * Math.PI * 2
             val rad = RIFT_SCALE * (0.75 + Math.random() * 0.4)
@@ -493,7 +492,7 @@ object EffectManager {
     private fun yawOf(facing: Vec3): Float = Math.toDegrees(atan2(-facing.x, -facing.z)).toFloat()
 
     private fun dust(level: Level, from: Vec3, to: Vec3, colour: Int) {
-        val options = DustParticleOptions(Vector3f(((colour shr 16) and 0xFF) / 255f, ((colour shr 8) and 0xFF) / 255f, (colour and 0xFF) / 255f), 0.8f)
+        val options = bpm.platform.dust(colour, 0.8f)
         val v = to.subtract(from).scale(1.0 / LEG_TICKS)
         repeat(4) {
             val p = from.add((Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.2)
@@ -515,7 +514,7 @@ object EffectManager {
     private fun drip(
         fluid: net.minecraft.world.level.material.Fluid,
         pose: PoseStack,
-        buffers: MultiBufferSource,
+        draw: bpm.platform.client.ImmediateDraw,
         size: Float,
         light: Int,
         seed: Int,
@@ -523,9 +522,7 @@ object EffectManager {
     ) {
         if (size <= 0.001f) return
         val look = bpm.platform.client.FluidVisuals.of(fluid)
-        val sprite = Minecraft.getInstance()
-            .getTextureAtlas(net.minecraft.world.inventory.InventoryMenu.BLOCK_ATLAS)
-            .apply(look.still)
+        val sprite = bpm.platform.client.blockSprite(look.still)
         val tint = look.tint
         val r = ((tint shr 16) and 0xFF) / 255f
         val g = ((tint shr 8) and 0xFF) / 255f
@@ -537,7 +534,7 @@ object EffectManager {
         pose.mulPose(Axis.XP.rotationDegrees(age * 2.7f + seed * 0.61f))
 
         val last = pose.last()
-        val buffer = buffers.getBuffer(RenderType.entityTranslucentCull(net.minecraft.world.inventory.InventoryMenu.BLOCK_ATLAS))
+        val buffer = draw.consumer(bpm.platform.client.translucentCull(net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS))
         solid(last, buffer, size, size * 1.35f, size, sprite, r, g, b, a, light)
     }
 
@@ -613,7 +610,7 @@ object EffectManager {
         to: Vec3,
         cam: Vec3,
         pose: PoseStack,
-        buffers: MultiBufferSource,
+        draw: bpm.platform.client.ImmediateDraw,
         level: Level,
         cell: BlockPos,
         flow: Double,
@@ -637,18 +634,16 @@ object EffectManager {
         }
 
         val look = bpm.platform.client.FluidVisuals.of(fluid)
-        val sprite = Minecraft.getInstance()
-            .getTextureAtlas(net.minecraft.world.inventory.InventoryMenu.BLOCK_ATLAS)
-            .apply(look.flowing)
+        val sprite = bpm.platform.client.blockSprite(look.flowing)
         val tint = look.tint
         val r = ((tint shr 16) and 0xFF) / 255f
         val g = ((tint shr 8) and 0xFF) / 255f
         val b = (tint and 0xFF) / 255f
         val alpha = (0.6f + 0.15f * flow.toFloat()).coerceAtMost(0.92f) * life.coerceIn(0f, 1f)
         val half = STREAM_WIDTH * (0.55 + 0.5 * flow) * life.coerceIn(0f, 1f)
-        val light = LevelRenderer.getLightColor(level, cell)
+        val light = bpm.platform.client.lightAt(level, cell)
 
-        val buffer = buffers.getBuffer(RenderType.entityTranslucentCull(net.minecraft.world.inventory.InventoryMenu.BLOCK_ATLAS))
+        val buffer = draw.consumer(bpm.platform.client.translucentCull(net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS))
         val last = pose.last()
         val m = last.pose()
         val u0 = sprite.getU(0.18f)
@@ -707,7 +702,7 @@ object EffectManager {
      * carries the fatter ones, which is what gives a run of cubes the sense of a beam rather than a dotted
      * line.
      */
-    private fun arc(from: Vec3, to: Vec3, cam: Vec3, pose: PoseStack, buffers: MultiBufferSource, time: Double, seed: Int, flow: Double) {
+    private fun arc(from: Vec3, to: Vec3, cam: Vec3, pose: PoseStack, draw: bpm.platform.client.ImmediateDraw, time: Double, seed: Int, flow: Double) {
         val span = to.subtract(from)
         if (span.lengthSqr() < 1e-8) return
         val dir = span.normalize()
@@ -718,7 +713,7 @@ object EffectManager {
         val step = kotlin.math.floor(time / SPARK_STEP)
         val phase = seed * 0.7 + step * 1.31
 
-        val buffer = buffers.getBuffer(ARC)
+        val buffer = draw.consumer(ARC)
         val m = pose.last().pose()
 
         for (i in 0..SPARK_COUNT) {
@@ -786,7 +781,7 @@ object EffectManager {
         // current running between two boxes is not a bpm thing, it is electricity.
         EffectKind.ENERGY -> 0xFF4438
         EffectKind.XP -> 0xA8F04A
-        EffectKind.FLUID -> ResourceLocation.tryParse(item)?.let { BuiltInRegistries.FLUID.get(it) }?.let { bpm.platform.client.FluidVisuals.of(it).tint and 0xFFFFFF } ?: 0x3F76E4
+        EffectKind.FLUID -> ResourceLocation.tryParse(item)?.let { bpm.platform.valueOf(BuiltInRegistries.FLUID, it) }?.let { bpm.platform.client.FluidVisuals.of(it).tint and 0xFFFFFF } ?: 0x3F76E4
         else -> 0x8AB4F8
     }
 
@@ -819,25 +814,12 @@ object EffectManager {
     /**
      * The energy arc's own type.
      *
-     * NOT `RenderType.lightning()`, whose `WEATHER_TARGET` output state sends it to the weather framebuffer
+     * NOT `bpm.platform.client.lightning()`, whose `WEATHER_TARGET` output state sends it to the weather framebuffer
      * for the dedicated lightning pass. Additive on purpose here: an arc IS light added to the scene, and
      * effects are drawn after translucent blocks, so it glows over whatever is behind it.
      */
-    private val ARC: RenderType = RenderType.create(
-        "bpm_energy_arc",
-        com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_COLOR,
-        com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS,
-        256,
-        false,
-        false,
-        RenderType.CompositeState.builder()
-            .setShaderState(net.minecraft.client.renderer.RenderStateShard.ShaderStateShard(net.minecraft.client.renderer.GameRenderer::getPositionColorShader))
-            .setTextureState(net.minecraft.client.renderer.RenderStateShard.NO_TEXTURE)
-            .setTransparencyState(net.minecraft.client.renderer.RenderStateShard.ADDITIVE_TRANSPARENCY)
-            .setCullState(net.minecraft.client.renderer.RenderStateShard.NO_CULL)
-            .setWriteMaskState(net.minecraft.client.renderer.RenderStateShard.COLOR_WRITE)
-            .createCompositeState(false),
-    )
+    /** The energy arc: flat colour, added onto the scene, and NOT depth-writing. */
+    private val ARC: RenderType = bpm.platform.client.additiveQuads("bpm_energy_arc")
 
     private fun flyerCount(): Int = effects.values.sumOf { (it as? Transfer)?.flyers?.size ?: 0 }
 

@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "bpm:entanglium_shard",
+    "bpm:entanglium_shard",
+    "minecraft:iron_ingot",
+    "minecraft:redstone"
+  ],
+  "result": {
+    "id": "bpm:quantum_alloy_blend",
+    "count": 2
+  }
+}

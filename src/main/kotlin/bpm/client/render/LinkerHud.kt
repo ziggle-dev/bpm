@@ -7,22 +7,18 @@ import bpm.world.ControllerBlockEntity
 import bpm.world.LinkerItem
 import bpm.world.items.WardenVisorItem
 import com.mojang.blaze3d.systems.RenderSystem
-import com.mojang.blaze3d.vertex.BufferUploader
-import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.PoseStack
-import com.mojang.blaze3d.vertex.Tesselator
-import com.mojang.blaze3d.vertex.VertexFormat
 import net.minecraft.client.DeltaTracker
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
-import net.minecraft.client.gui.GuiGraphics
+import bpm.platform.client.GuiGraphics
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.renderer.GameRenderer
 import net.minecraft.client.renderer.LevelRenderer
-import net.minecraft.client.renderer.LightTexture
+import bpm.platform.client.FULL_BRIGHT
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
-import net.minecraft.resources.ResourceLocation
+import bpm.platform.ResourceLocation
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.BlockHitResult
@@ -32,6 +28,7 @@ import org.joml.Matrix4f
 import org.joml.Vector2f
 import org.joml.Vector4f
 import java.util.function.Consumer
+import bpm.platform.client.drawText
 
 /**
  * What a player holding the Quantum Linker sees: the bound controller's links outlined in the world with a
@@ -48,6 +45,9 @@ object LinkerHud {
 
     /** Presence links are orchid, as they are in the panel — a person reads apart from a chest at a glance. */
     private val ORCHID = floatArrayOf(0.79f, 0.37f, 0.65f)
+    /** The linker outlines are two pixels wide, which reads at arm.s length without shouting. */
+    private const val WIDTH = 2f
+
     private const val LABEL_RANGE = 48.0
 
     fun install() {
@@ -82,7 +82,7 @@ object LinkerHud {
      * the arm does not wave for a use that never reached the server.
      */
     private fun onInteract(player: net.minecraft.world.entity.player.Player): Boolean {
-        if (!Screen.hasControlDown()) return true
+        if (!bpm.platform.client.ctrlHeld()) return true
         val mc = Minecraft.getInstance()
         if (linkerIn(player) == null || ChamberDimension.isChamber(player.level())) return true
         val be = controller(player) ?: return true
@@ -122,13 +122,9 @@ object LinkerHud {
         // hung on them has to be too or it judders a tick behind the head it belongs to.
         val partial = event.delta.getGameTimeDeltaPartialTick(true)
 
-        RenderSystem.setShader(GameRenderer::getRendertypeLinesShader)
-        RenderSystem.enableBlend()
-        RenderSystem.defaultBlendFunc()
-        RenderSystem.lineWidth(2f)
-        if (throughWalls) RenderSystem.disableDepthTest() else RenderSystem.enableDepthTest()
-        RenderSystem.disableCull()
-        val builder = Tesselator.getInstance().begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL)
+        // One pass for everything: blend, cull and depth are the render type's business now, and the
+        // width rides on the vertices from 1.21.9. See [bpm.platform.client.LinePass].
+        bpm.platform.client.worldLines(throughWalls, WIDTH) { lines ->
         pose.pushPose()
         pose.translate(-cam.x, -cam.y, -cam.z)
 
@@ -141,44 +137,40 @@ object LinkerHud {
             // the body being drawn, not the one the last tick left behind.
             val at = who.getPosition(partial)
             val bounds = who.boundingBox.move(at.x - who.x, at.y - who.y, at.z - who.z)
-            box(pose, builder, bounds.inflate(0.08), ORCHID, 0.9f)
-            line(pose, builder, centre, at.add(0.0, who.bbHeight * 0.5, 0.0), ORCHID, 0.6f)
+            lines.box(pose, bounds.inflate(0.08), ORCHID, 0.9f)
+            lines.line(pose, centre, at.add(0.0, who.bbHeight * 0.5, 0.0), ORCHID, 0.6f)
         }
         for (link in be.links.blocks) {
             // A link whose block is gone is drawn amber: aim at it and sneak-use to unlink.
             val colour = if (player.level().getBlockState(link.pos).isAir) AMBER else TEAL
-            box(pose, builder, AABB(link.pos).inflate(0.02), colour, 0.9f)
+            lines.box(pose, AABB(link.pos).inflate(0.02), colour, 0.9f)
             link.side?.let { face ->
                 val fb = AABB(link.pos)
                 val f = faceBox(fb, face).inflate(0.03)
-                box(pose, builder, f, colour, 1f)
+                lines.box(pose, f, colour, 1f)
             }
-            line(pose, builder, centre, Vec3.atCenterOf(link.pos), colour, 0.6f)
+            lines.line(pose, centre, Vec3.atCenterOf(link.pos), colour, 0.6f)
         }
         // The looked-at block: green when the next use links it, red when it is out of reach.
         val hit = mc.hitResult as? BlockHitResult
         if (hit != null && hit.type == HitResult.Type.BLOCK && hit.blockPos != be.blockPos) {
             val ok = hit.blockPos.closerThan(be.blockPos, range)
-            box(pose, builder, faceBox(AABB(hit.blockPos), hit.direction).inflate(0.01), if (ok) GREEN else RED, 1f)
+            lines.box(pose, faceBox(AABB(hit.blockPos), hit.direction).inflate(0.01), if (ok) GREEN else RED, 1f)
         } else {
             LinkerItem.linkAhead(player.level(), player, be)?.let { ahead ->
-                box(pose, builder, AABB(ahead.pos).inflate(0.05), if (player.isShiftKeyDown) RED else AMBER, 1f)
+                lines.box(pose, AABB(ahead.pos).inflate(0.05), if (player.isShiftKeyDown) RED else AMBER, 1f)
             }
         }
         pose.popPose()
-        // Nothing to draw (no links, nothing aimed at) leaves the builder empty; `buildOrThrow` would throw on that.
-        builder.build()?.let { BufferUploader.drawWithShader(it) }
-        RenderSystem.enableCull()
-        RenderSystem.enableDepthTest()
-        RenderSystem.lineWidth(1f)
+        }
         labels(mc, player, be, cam, pose, partial)
     }
 
     /** Each link's name (and face) as a sign over its block — amber when the block is gone. */
     private fun labels(mc: Minecraft, player: Player, be: ControllerBlockEntity, cam: Vec3, pose: PoseStack, partial: Float) {
-        val buffers = mc.renderBuffers().bufferSource()
+        val draw = bpm.platform.client.immediateWorldDraw()
         val font = mc.font
-        val orientation = mc.entityRenderDispatcher.cameraOrientation()
+        val orientation = bpm.platform.client.cameraRotation()
         val bg = (mc.options.getBackgroundOpacity(0.25f) * 255).toInt() shl 24
         for (link in be.links.presence) {
             val who = tethered(player, link) ?: continue
@@ -188,10 +180,10 @@ object LinkerHud {
             pose.translate(at.x - cam.x, at.y + who.bbHeight + 0.5 - cam.y, at.z - cam.z)
             pose.mulPose(orientation)
             pose.scale(-0.025f, -0.025f, 0.025f)
-            val m = pose.last().pose()
             val x = -font.width(link.name) / 2f
-            font.drawInBatch(link.name, x, 0f, 0x20FFFFFF, false, m, buffers, Font.DisplayMode.SEE_THROUGH, bg, LightTexture.FULL_BRIGHT)
-            font.drawInBatch(link.name, x, 0f, 0xFFF0A3D6.toInt(), false, m, buffers, Font.DisplayMode.NORMAL, 0, LightTexture.FULL_BRIGHT)
+            val glyphs = net.minecraft.network.chat.Component.literal(link.name).visualOrderText
+            draw.text(pose, glyphs, x, 0f, 0x20FFFFFF, false, Font.DisplayMode.SEE_THROUGH, bg, FULL_BRIGHT)
+            draw.text(pose, glyphs, x, 0f, 0xFFF0A3D6.toInt(), false, Font.DisplayMode.NORMAL, 0, FULL_BRIGHT)
             pose.popPose()
         }
         for (link in be.links.blocks) {
@@ -203,13 +195,13 @@ object LinkerHud {
             pose.translate(p.x + 0.5 - cam.x, p.y + 1.3 - cam.y, p.z + 0.5 - cam.z)
             pose.mulPose(orientation)
             pose.scale(-0.025f, -0.025f, 0.025f)
-            val m = pose.last().pose()
             val x = -font.width(text) / 2f
-            font.drawInBatch(text, x, 0f, 0x20FFFFFF, false, m, buffers, Font.DisplayMode.SEE_THROUGH, bg, LightTexture.FULL_BRIGHT)
-            font.drawInBatch(text, x, 0f, if (gone) 0xFFFFB84D.toInt() else 0xFF4DFFD8.toInt(), false, m, buffers, Font.DisplayMode.NORMAL, 0, LightTexture.FULL_BRIGHT)
+            val glyphs = net.minecraft.network.chat.Component.literal(text).visualOrderText
+            draw.text(pose, glyphs, x, 0f, 0x20FFFFFF, false, Font.DisplayMode.SEE_THROUGH, bg, FULL_BRIGHT)
+            draw.text(pose, glyphs, x, 0f, if (gone) 0xFFFFB84D.toInt() else 0xFF4DFFD8.toInt(), false, Font.DisplayMode.NORMAL, 0, FULL_BRIGHT)
             pose.popPose()
         }
-        buffers.endBatch()
+        draw.flush()
     }
 
     /** The player a presence link points at, when this client can see them. */
@@ -227,23 +219,12 @@ object LinkerHud {
         net.minecraft.core.Direction.EAST -> AABB(b.maxX, b.minY, b.minZ, b.maxX, b.maxY, b.maxZ)
     }
 
-    private fun box(pose: PoseStack, builder: com.mojang.blaze3d.vertex.VertexConsumer, box: AABB, rgb: FloatArray, a: Float) {
-        LevelRenderer.renderLineBox(pose, builder, box, rgb[0], rgb[1], rgb[2], a)
-    }
-
-    private fun line(pose: PoseStack, builder: com.mojang.blaze3d.vertex.VertexConsumer, from: Vec3, to: Vec3, rgb: FloatArray, a: Float) {
-        val m = pose.last()
-        val d = to.subtract(from).normalize()
-        builder.addVertex(m, from.x.toFloat(), from.y.toFloat(), from.z.toFloat()).setColor(rgb[0], rgb[1], rgb[2], a).setNormal(m, d.x.toFloat(), d.y.toFloat(), d.z.toFloat())
-        builder.addVertex(m, to.x.toFloat(), to.y.toFloat(), to.z.toFloat()).setColor(rgb[0], rgb[1], rgb[2], a).setNormal(m, d.x.toFloat(), d.y.toFloat(), d.z.toFloat())
-    }
-
     // ---- the crosshair line -----------------------------------------------------------------------------
 
     private fun drawHud(g: GuiGraphics, delta: DeltaTracker) {
         val mc = Minecraft.getInstance()
         val player = mc.player ?: return
-        if (mc.options.hideGui) return
+        if (bpm.platform.client.hudHidden()) return
         val stack = linkerIn(player) ?: return
         val font = mc.font
         // Bottom-left, clear of the crosshair and the hotbar: two short lines.
@@ -256,22 +237,22 @@ object LinkerHud {
             val ready = stack.getOrDefault(bpm.world.ModComponents.TRACK_READY_AT.get(), 0L)
             val now = player.level().gameTime
             val track = if (now >= ready) "special ready" else "special in ${(ready - now) / 20 + 1} s"
-            g.drawString(font, "linker · specials $charges / ${LinkerItem.MAX_CHARGES} · $track", x, y1, if (charges == 0) 0xF26D6D else 0x4DFFD8, true)
-            g.drawString(font, "use: pulse · sneak + click: special · pedestal: recharge", x, y2, 0x9AA3B5, true)
+            g.drawText(font, "linker · specials $charges / ${LinkerItem.MAX_CHARGES} · $track", x, y1, if (charges == 0) 0xF26D6D else 0x4DFFD8, true)
+            g.drawText(font, "use: pulse · sneak + click: special · pedestal: recharge", x, y2, 0x9AA3B5, true)
             return
         }
         val be = controller(player)
         if (be == null) {
             val bound = LinkerItem.selectedPos(stack)
-            g.drawString(font, if (bound == null) "linker · sneak-use a controller to bind" else "linker · controller ${bound.toShortString()} out of sight", x, y1, 0x9AA3B5, true)
+            g.drawText(font, if (bound == null) "linker · sneak-use a controller to bind" else "linker · controller ${bound.toShortString()} out of sight", x, y1, 0x9AA3B5, true)
             return
         }
         val range = LinkerItem.reach(be, player)
-        g.drawString(font, "controller ${be.blockPos.toShortString()} · ${be.links.all.size}/${be.links.capacity} links · reach ${bpm.world.CoreTier.rangeText(range)}", x, y1, 0x4DFFD8, true)
+        g.drawText(font, "controller ${be.blockPos.toShortString()} · ${be.links.all.size}/${be.links.capacity} links · reach ${bpm.world.CoreTier.rangeText(range)}", x, y1, 0x4DFFD8, true)
         val hit = mc.hitResult as? BlockHitResult
         if (hit == null || hit.type != HitResult.Type.BLOCK) {
             val ahead = LinkerItem.linkAhead(player.level(), player, be) ?: return
-            g.drawString(font, "'${ahead.name}' — its block is gone · sneak-use to unlink · ctrl-use to rename", x, y2, 0xFFB84D, true)
+            g.drawText(font, "'${ahead.name}' — its block is gone · sneak-use to unlink · ctrl-use to rename", x, y2, 0xFFB84D, true)
             return
         }
         if (hit.blockPos == be.blockPos) return
@@ -284,6 +265,6 @@ object LinkerHud {
             player.isShiftKeyDown -> "$name — nothing linked here"
             else -> "use to link '${be.links.previewName(name)}' (${hit.direction.name.lowercase()} face)"
         }
-        g.drawString(font, text, x, y2, if (existing != null) 0xFFD27A else 0xE6E9F2, true)
+        g.drawText(font, text, x, y2, if (existing != null) 0xFFD27A else 0xE6E9F2, true)
     }
 }

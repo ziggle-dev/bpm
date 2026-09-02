@@ -28,18 +28,21 @@ import net.minecraft.world.entity.player.Player
 import net.minecraft.world.entity.projectile.Projectile
 import net.minecraft.world.level.Level
 import net.minecraft.world.phys.Vec3
-import software.bernie.geckolib.animatable.GeoEntity
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
-import software.bernie.geckolib.animation.AnimatableManager
-import software.bernie.geckolib.animation.AnimationController
-import software.bernie.geckolib.animation.PlayState
-import software.bernie.geckolib.animation.RawAnimation
-import software.bernie.geckolib.util.GeckoLibUtil
+import bpm.platform.GeoEntity
+import bpm.platform.AnimatableInstanceCache
+import bpm.platform.AnimatableManager
+import bpm.platform.AnimationController
+import bpm.platform.PlayState
+import bpm.platform.RawAnimation
+import bpm.platform.GeckoLibUtil
 import java.util.UUID
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
+import bpm.platform.intOr
+import bpm.platform.floatOr
+import bpm.platform.boolOr
 
 /**
  * The Quantum Warden — the containment vessel that guards the core (§7 of the mechanics design).
@@ -52,9 +55,10 @@ import kotlin.math.sqrt
  * plates, a pool of armour that must be broken to force the cage open; stage 3 is faster, and at the end it
  * blinks to the dais and stays open. Its death returns the core to the pedestal it rose from.
  */
-class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Level) : Monster(type, level), GeoEntity {
+class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Level) : bpm.platform.BossMonster(type, level), GeoEntity {
     private val animCache: AnimatableInstanceCache = GeckoLibUtil.createInstanceCache(this)
-    private val bossEvent = ServerBossEvent(displayName, BossEvent.BossBarColor.BLUE, BossEvent.BossBarOverlay.NOTCHED_6)
+    private val bossEvent =
+        bpm.platform.bossBar(uuid, displayName, BossEvent.BossBarColor.BLUE, BossEvent.BossBarOverlay.NOTCHED_6)
 
     /** The pedestal it rose from — the centre of its arena and where the core returns. */
     var home: BlockPos? = null
@@ -158,8 +162,7 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
 
     // ---- the fight --------------------------------------------------------------------------------------
 
-    override fun customServerAiStep() {
-        val l = level() as? ServerLevel ?: return
+    override fun fightTick(level: ServerLevel) {
         bossEvent.progress = (health / maxHealth).coerceIn(0f, 1f)
         if (spawnTicks < SPAWN_TICKS) {
             spawnTicks++
@@ -171,7 +174,7 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
         plates()
         // Someone on the dais — recharging at the pedestal — gets everything: the fury.
         val intruder = ChamberFight.daisIntruder(this)
-        val target = intruder ?: l.getNearestPlayer(this, 48.0)?.takeIf { !it.isCreative && !it.isSpectator }
+        val target = intruder ?: level.getNearestPlayer(this, 48.0)?.takeIf { !it.isCreative && !it.isSpectator }
         val fury = intruder != null
         facing = target?.getEyePosition(1f)
         if (disabled) {
@@ -187,19 +190,19 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
         if (grounded && target != null && blinkTicks == 0 && !retreating && groundedLoss >= maxHealth * AMBUSH_FRACTION) {
             groundedLoss -= maxHealth * AMBUSH_FRACTION
             ambush = target
-            beginBlink(behind(l, target))
+            beginBlink(behind(level, target))
         }
-        bolts(l)
+        bolts(level)
         if (blinkTicks > 0) {
-            blink(l)
+            blink(level)
             face()
             return
         }
         when {
-            retreating -> retreat(l)
-            fury -> closeIn(l)
-            grounded -> walk(l)
-            else -> hover(l)
+            retreating -> retreat(level)
+            fury -> closeIn(level)
+            grounded -> walk(level)
+            else -> hover(level)
         }
         if (!retreating && stage == 3 && health <= maxHealth * RETREAT_FRACTION && retreatLeft == 0) {
             retreating = true
@@ -213,7 +216,7 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
             attackIn = if (fury) FURY_ATTACK_EVERY else when (stage) { 1 -> 80; 2 -> 70; else -> 50 }
         }
         if ((exposed || fury) && target != null && --seekerIn <= 0) {
-            seeker(l, target)
+            seeker(level, target)
             seekerIn = if (fury) FURY_SEEKER_EVERY else SEEKER_EVERY
         }
         if (exposeLeft > 0) {
@@ -224,7 +227,7 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
         }
         // Now and then, spikes out of the floor under whoever it is watching.
         if (target != null && --spikesIn <= 0) {
-            spikeAttack(l, target)
+            spikeAttack(level, target)
             spikesIn = SPIKES_EVERY + random.nextInt(SPIKES_JITTER)
         }
         face()
@@ -486,16 +489,12 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
     }
 
     /** The body follows the yaw exactly — vanilla would turn it toward the movement, which is the spin. */
-    override fun tickHeadTurn(yBodyRot: Float, animStep: Float): Float {
-        this.yBodyRot = yRot
-        this.yHeadRot = yRot
-        return animStep
-    }
+    override fun holdHeadToYaw(): Boolean = true
 
     // ---- damage -----------------------------------------------------------------------------------------
 
-    override fun hurt(source: DamageSource, amount: Float): Boolean {
-        if (level().isClientSide || isInvulnerableTo(source) || isDeadOrDying) return super.hurt(source, amount)
+    override fun takeDamage(level: ServerLevel, source: DamageSource, amount: Float): Boolean {
+        if (invulnerable(level, source) || isDeadOrDying) return applyDamage(level, source, amount)
         val byPlayer = source.entity is Player || (source.directEntity as? Projectile)?.owner is Player
         if (byPlayer) lastPlayerHurtTick = tickCount
         var dealt = amount
@@ -505,7 +504,7 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
                 triggerAnim("overlay", "stagger")
                 staggerCooldown = 20
             }
-            return super.hurt(source, dealt)
+            return applyDamage(level, source, dealt)
         }
         if (shielded && plateHp > 0f) {
             plateHp -= dealt
@@ -517,14 +516,15 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
                 setExposed(true, (BpmConfig.exposeSeconds(2) * 20).toInt())
             }
         }
-        return super.hurt(source, dealt * ChamberFight.cageMultiplier(this))
+        return applyDamage(level, source, dealt * ChamberFight.cageMultiplier(this))
     }
 
     /** The linker's pulse: damage the cage cannot quarter, counted as the player's hit. */
     fun pulseHit(amount: Float, by: Entity?) {
-        if (level().isClientSide || isDeadOrDying) return
+        val level = level() as? ServerLevel ?: return
+        if (isDeadOrDying) return
         if (by is Player) lastPlayerHurtTick = tickCount
-        super.hurt(bpm.world.BpmDamage.source(level(), bpm.world.BpmDamage.LINKER_PULSE, by), amount)
+        applyDamage(level, bpm.world.BpmDamage.source(level, bpm.world.BpmDamage.LINKER_PULSE, by), amount)
         stagger()
     }
 
@@ -536,16 +536,13 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
         }
     }
 
-    override fun isInvulnerableTo(source: DamageSource): Boolean =
-        super.isInvulnerableTo(source) || source.`is`(DamageTypeTags.IS_FALL) || source.`is`(DamageTypeTags.IS_DROWNING) ||
+    override fun immuneTo(source: DamageSource): Boolean =
+        source.`is`(DamageTypeTags.IS_FALL) || source.`is`(DamageTypeTags.IS_DROWNING) ||
             source.`is`(DamageTypes.IN_WALL) || source.`is`(DamageTypes.CRAMMING) || source.`is`(DamageTypeTags.IS_FIRE)
 
     override fun isPushable(): Boolean = false
     override fun removeWhenFarAway(distance: Double): Boolean = false
     override fun canBeLeashed(): Boolean = false
-
-    /** A boss, not a spawn: Peaceful must not unmake it the tick it rises. */
-    public override fun shouldDespawnInPeaceful(): Boolean = false
 
     // ---- death: the core goes home -------------------------------------------------------------------------
 
@@ -589,10 +586,9 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
 
     // ---- save ---------------------------------------------------------------------------------------------
 
-    override fun addAdditionalSaveData(tag: CompoundTag) {
-        super.addAdditionalSaveData(tag)
-        home?.let { tag.put("home", NbtUtils.writeBlockPos(it)) }
-        slotOwner?.let { tag.putUUID("slotOwner", it) }
+    override fun saveExtra(tag: CompoundTag) {
+        home?.let { bpm.platform.putBlockPos(tag, "home", it) }
+        slotOwner?.let { bpm.platform.putUuid(tag, "slotOwner", it) }
         tag.putInt("stage", stage)
         tag.putBoolean("shield", shielded)
         tag.putBoolean("grounded", grounded)
@@ -600,23 +596,22 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
         tag.putInt("spawnTicks", spawnTicks)
     }
 
-    override fun readAdditionalSaveData(tag: CompoundTag) {
-        super.readAdditionalSaveData(tag)
-        home = NbtUtils.readBlockPos(tag, "home").orElse(null)
-        slotOwner = if (tag.hasUUID("slotOwner")) tag.getUUID("slotOwner") else null
-        entityData.set(STAGE, tag.getInt("stage").coerceIn(1, 3))
-        entityData.set(SHIELD, tag.getBoolean("shield"))
-        entityData.set(GROUNDED, tag.getBoolean("grounded"))
-        setNoGravity(!tag.getBoolean("grounded"))
-        plateHp = tag.getFloat("plateHp")
-        spawnTicks = tag.getInt("spawnTicks")
+    override fun loadExtra(tag: CompoundTag) {
+        home = bpm.platform.blockPosOrNull(tag, "home")
+        slotOwner = bpm.platform.uuidOrNull(tag, "slotOwner")
+        entityData.set(STAGE, tag.intOr("stage", 0).coerceIn(1, 3))
+        entityData.set(SHIELD, tag.boolOr("shield", false))
+        entityData.set(GROUNDED, tag.boolOr("grounded", false))
+        setNoGravity(!tag.boolOr("grounded", false))
+        plateHp = tag.floatOr("plateHp", 0f)
+        spawnTicks = tag.intOr("spawnTicks", 0)
     }
 
     // ---- geckolib -----------------------------------------------------------------------------------------
 
-    override fun registerControllers(controllers: AnimatableManager.ControllerRegistrar) {
+    override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
         controllers.add(
-            AnimationController(this, "main", 4) { state ->
+            bpm.platform.animController(this, "main", 4) { state ->
                 when {
                     isDeadOrDying -> state.setAndContinue(DEATH)
                     tickCount < SPAWN_TICKS -> state.setAndContinue(SPAWN)
@@ -626,12 +621,12 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
             },
         )
         controllers.add(
-            AnimationController(this, "overlay", 0) { PlayState.STOP }
+            bpm.platform.animController(this, "overlay", 0) { PlayState.STOP }
                 .triggerableAnim("attack_beam", ATTACK).triggerableAnim("stagger", STAGGER)
                 .triggerableAnim("blink_out", BLINK_OUT).triggerableAnim("blink_in", BLINK_IN),
         )
         controllers.add(
-            AnimationController(this, "core", 0) { PlayState.STOP }
+            bpm.platform.animController(this, "core", 0) { PlayState.STOP }
                 .triggerableAnim("expose", EXPOSE).triggerableAnim("retract", RETRACT),
         )
     }
@@ -705,7 +700,7 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
  * vanilla's flying control does and what made it spin. Flying: full 3-D steering; grounded: horizontal only,
  * gravity keeps it on the floor.
  */
-class WardenMoveControl(private val warden: QuantumWardenEntity) : MoveControl(warden) {
+class WardenMoveControl(private val warden: QuantumWardenEntity) : bpm.platform.MoveControlBase<QuantumWardenEntity>(warden) {
     override fun tick() {
         val v = warden.deltaMovement
         if (operation != Operation.MOVE_TO) {

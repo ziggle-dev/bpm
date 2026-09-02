@@ -14,6 +14,7 @@ import net.minecraft.core.component.DataComponentType
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.RegistryOps
 import net.minecraft.world.item.ItemStack
+import bpm.platform.keyId
 
 /** `items.*` — inventories reached through links, and what is in a stack. */
 object ItemNodes {
@@ -397,7 +398,7 @@ object ItemNodes {
                 val e = ItemStackValue.stack(stack()).enchantments
                 val out = LinkedHashMap<Any?, Any?>()
                 for (holder in e.keySet()) {
-                    val id = holder.unwrapKey().map { it.location().toString() }.orElse(holder.toString())
+                    val id = holder.unwrapKey().map { it.keyId().toString() }.orElse(holder.toString())
                     out[id] = e.getLevel(holder).toLong()
                 }
                 out

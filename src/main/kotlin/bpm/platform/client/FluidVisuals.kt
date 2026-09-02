@@ -1,6 +1,6 @@
 package bpm.platform.client
 
-import net.minecraft.resources.ResourceLocation
+import bpm.platform.ResourceLocation
 import net.minecraft.world.level.material.Fluid
 
 /**

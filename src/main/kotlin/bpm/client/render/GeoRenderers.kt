@@ -11,28 +11,28 @@ import bpm.world.ModComponents
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
 import net.minecraft.client.Minecraft
-import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer
-import net.minecraft.client.renderer.MultiBufferSource
-import net.minecraft.client.renderer.RenderType
-import net.minecraft.resources.ResourceLocation
+import bpm.platform.RenderType
+import bpm.platform.ResourceLocation
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import org.joml.Vector3f
-import software.bernie.geckolib.cache.`object`.GeoBone
+import bpm.platform.GeoBone
 import bpm.platform.client.RendererSink
 import bpm.platform.client.ClientRenderers
-import software.bernie.geckolib.animatable.GeoAnimatable
-import software.bernie.geckolib.constant.DataTickets
-import software.bernie.geckolib.loading.math.MolangQueries
-import software.bernie.geckolib.model.GeoModel
-import software.bernie.geckolib.renderer.GeoBlockRenderer
-import software.bernie.geckolib.renderer.GeoItemRenderer
+import bpm.platform.GeoAnimatable
+import bpm.platform.DataTickets
+import bpm.platform.MolangQueries
+import bpm.platform.GeoRenderProvider
 
-/** A GeckoLib model at fixed asset paths, so one model file can serve a block entity and its item. */
-open class PathGeoModel<T : GeoAnimatable>(private val geo: ResourceLocation, private val anim: ResourceLocation, private val tex: ResourceLocation) : GeoModel<T>() {
-    override fun getModelResource(animatable: T): ResourceLocation = geo
-    override fun getAnimationResource(animatable: T): ResourceLocation = anim
-    override fun getTextureResource(animatable: T): ResourceLocation = tex
+/**
+ * A GeckoLib model at fixed asset paths, so one model file can serve a block entity and its item.
+ *
+ * The geometry and texture paths are answered by [bpm.platform.client.PathGeoModelBase], because the
+ * signature that asks for them changed arity across the band. The animation path did not, so it is here.
+ */
+open class PathGeoModel<T : GeoAnimatable>(geo: ResourceLocation, private val anim: ResourceLocation, tex: ResourceLocation) :
+    bpm.platform.client.PathGeoModelBase<T>(geo, tex) {
+    override fun getAnimationResource(animatable: T): ResourceLocation = bpm.platform.client.geckoAsset(anim)
 }
 
 private fun rl(path: String) = ResourceLocation.fromNamespaceAndPath(Bpm.ID, path)
@@ -56,9 +56,10 @@ class TetherModel : PathGeoModel<bpm.world.items.QuantumTetherItem>(
 )
 
 /** The controller block. Beams carry alpha, so the whole model draws translucent; the glow mask rides on top. */
-class ControllerRenderer : GeoBlockRenderer<ControllerBlockEntity>(ControllerModel()) {
+class ControllerRenderer(ctx: net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider.Context) :
+    bpm.platform.client.GeoBlockRendererBase<ControllerBlockEntity>(ctx, ControllerModel()) {
     init {
-        addRenderLayer(GlowLayer(this))
+        addGlow()
     }
 
     /** The model reaches 1.33 blocks up and the flanges poke half a block out, so it must not be culled. */
@@ -71,10 +72,10 @@ class ControllerRenderer : GeoBlockRenderer<ControllerBlockEntity>(ControllerMod
      * test for three block-entity types that are almost always on screen when their chunk is; the cost of
      * the precise box was a method that does not exist on Fabric.
      */
-    override fun shouldRenderOffScreen(blockEntity: ControllerBlockEntity): Boolean = true
+    override fun alwaysRender(): Boolean = true
 
-    override fun getRenderType(animatable: ControllerBlockEntity, texture: ResourceLocation, bufferSource: MultiBufferSource?, partialTick: Float): RenderType =
-        RenderType.entityTranslucent(texture)
+    override fun renderTypeFor(texture: ResourceLocation): RenderType =
+        bpm.platform.client.entityTranslucent(texture)
 
     /**
      * Publish where the core actually is, for the effects that hang off it.
@@ -84,17 +85,8 @@ class ControllerRenderer : GeoBlockRenderer<ControllerBlockEntity>(ControllerMod
      * controller's end of a transfer was wrong by a few pixels on most frames and by design. At this point
      * in the walk the pose is the bone's own transform, so it is the answer rather than an estimate of it.
      */
-    override fun renderRecursively(
-        poseStack: PoseStack, animatable: ControllerBlockEntity, bone: GeoBone, renderType: RenderType,
-        bufferSource: MultiBufferSource, buffer: VertexConsumer, isReRender: Boolean, partialTick: Float,
-        packedLight: Int, packedOverlay: Int, colour: Int,
-    ) {
-        if (!isReRender && bone.name == CORE) {
-            val local = poseStack.last().pose().transformPosition(Vector3f(0f, 0f, 0f))
-            val cam = Minecraft.getInstance().gameRenderer.mainCamera.position
-            BoneAnchors.capture(animatable.blockPos, CORE, Vec3(local.x + cam.x, local.y + cam.y, local.z + cam.z))
-        }
-        super.renderRecursively(poseStack, animatable, bone, renderType, bufferSource, buffer, isReRender, partialTick, packedLight, packedOverlay, colour)
+    override fun onBones(bones: bpm.platform.client.BoneAccess, pos: net.minecraft.core.BlockPos, state: net.minecraft.world.level.block.state.BlockState) {
+        bones.watch(CORE) { world -> BoneAnchors.capture(pos, CORE, world) }
     }
 
     companion object {
@@ -103,40 +95,65 @@ class ControllerRenderer : GeoBlockRenderer<ControllerBlockEntity>(ControllerMod
     }
 }
 
-class ControllerItemRenderer : GeoItemRenderer<ControllerBlockItem>(ControllerModel()) {
+class ControllerItemRenderer : bpm.platform.client.GeoItemRendererBase<ControllerBlockItem>(ControllerModel()) {
     init {
-        addRenderLayer(GlowLayer(this))
+        addGlow()
     }
 
-    override fun getRenderType(animatable: ControllerBlockItem, texture: ResourceLocation, bufferSource: MultiBufferSource?, partialTick: Float): RenderType =
-        RenderType.entityTranslucent(texture)
+    override fun renderTypeFor(texture: ResourceLocation): RenderType =
+        bpm.platform.client.entityTranslucent(texture)
 }
 
-class LinkerRenderer : GeoItemRenderer<LinkerItem>(LinkerModel()) {
+class LinkerRenderer : bpm.platform.client.GeoItemRendererBase<LinkerItem>(LinkerModel()) {
     init {
-        addRenderLayer(GlowLayer(this))
+        addGlow()
     }
 }
 
-class TetherRenderer : GeoItemRenderer<bpm.world.items.QuantumTetherItem>(TetherModel())
+class TetherRenderer : bpm.platform.client.GeoItemRendererBase<bpm.world.items.QuantumTetherItem>(TetherModel())
 
 /**
  * Which item draws with which renderer.
  *
  * This used to live as an `initializeClient` override on each of the four item classes, which made four
- * otherwise plain items name a client class. One table on the client side says the same thing and is
- * where you would look for it.
+ * otherwise plain items name a client class. One table says the same thing and is where you would look
+ * for it; the items only say "ask the table", through GeckoLib's own [GeoRenderProvider].
+ *
+ * [rendererFor] is asked once per item, lazily, the first time GeckoLib needs to draw it -- which is why
+ * the renderers are built here and not at startup. Constructing a GeoRenderer during mod init is too
+ * early: it resolves item holders that nothing has bound yet, and the client dies before the title
+ * screen on "Trying to access unbound value". A dedicated server never runs this code, so no game test
+ * can see that mistake; it is only visible from a client, which is why the laziness is load-bearing
+ * rather than tidy.
  */
 object BpmItemRenderers {
-    fun install() = ClientRenderers.items { sink ->
-        sink.register(bpm.world.ModItems.CONTROLLER.get()) { ControllerItemRenderer() }
-        sink.register(bpm.world.ModItems.LINKER.get()) { LinkerRenderer() }
-        sink.register(bpm.world.ContentItems.QUANTUM_TETHER.get()) { TetherRenderer() }
-        for (item in bpm.world.DeviceItems.all) {
-            val device = item.get() as? bpm.world.DeviceBlockItem ?: continue
-            sink.register(device) { DeviceItemExtensions.of(device.model) }
-        }
+
+    /** Null for any item that is not drawn by a model of ours -- GeckoLib then leaves it to its own item model. */
+    fun rendererFor(item: net.minecraft.world.item.Item): bpm.platform.client.GeoItemRendererBase<*>? = when {
+        item === bpm.world.ModItems.CONTROLLER.get() -> ControllerItemRenderer()
+        item === bpm.world.ModItems.LINKER.get() -> LinkerRenderer()
+        item === bpm.world.ContentItems.QUANTUM_TETHER.get() -> TetherRenderer()
+        item is bpm.world.DeviceBlockItem -> DeviceItemExtensions.of(item.model)
+        else -> null
     }
+}
+
+/**
+ * The one line each of this mod's GeckoLib items needs on its client side.
+ *
+ * GeckoLib caches whatever the consumer is handed, per item, and hands it back through
+ * `GeoRenderProvider.of(item)` -- which its NeoForge bridge reads as an `IClientItemExtensions` custom
+ * renderer on 1.21.1, and its `SpecialModelRenderers` mixin reads as a vanilla special renderer on
+ * 1.21.4. One override, four items, both loaders, both sides of the break.
+ */
+fun geoItemRenderer(item: net.minecraft.world.item.Item, consumer: java.util.function.Consumer<GeoRenderProvider>) {
+    consumer.accept(
+        object : GeoRenderProvider {
+            private val renderer by lazy { BpmItemRenderers.rendererFor(item) }
+
+            override fun getGeoItemRenderer(): bpm.platform.client.GeoItemRendererBase<*>? = renderer
+        },
+    )
 }
 
 /**
@@ -147,7 +164,7 @@ object BpmItemRenderers {
  */
 object GeoRenderers {
     fun registerRenderers() = ClientRenderers.renderers { sink ->
-        sink.blockEntity(ModBlockEntities.CONTROLLER.get()) { ControllerRenderer() }
+        sink.blockEntity(ModBlockEntities.CONTROLLER.get()) { ControllerRenderer(it) }
         DeviceRenderers.register(sink)
         sink.entity(bpm.world.entity.ModEntities.WARDEN.get()) { WardenRenderer(it) }
         sink.entity(bpm.world.entity.ModEntities.BOLT.get()) { WardenBoltRenderer(it) }
@@ -226,7 +243,7 @@ object GeoRenderers {
         // …and the tether: 1 while the stack being drawn is bound to a controller, which speeds its ring up
         // and swells the gem, exactly as a bound linker spins faster.
         MolangQueries.setActorVariable<Any>("variable.linked") { actor ->
-            val stack = actor.animationState().getData(DataTickets.ITEMSTACK)
+            val stack = bpm.platform.client.actorStack(actor)
             val bound = stack != null &&
                 (stack.has(ModComponents.SELECTED_CONTROLLER.get()) || stack.has(ModComponents.TETHER_CONTROLLER.get()))
             if (bound) 1.0 else 0.0

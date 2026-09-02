@@ -5,15 +5,13 @@ import bpm.world.entity.QuantumWardenEntity
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
 import net.minecraft.client.Minecraft
-import net.minecraft.client.renderer.MultiBufferSource
-import net.minecraft.client.renderer.RenderType
+import bpm.platform.RenderType
 import net.minecraft.client.renderer.entity.EntityRendererProvider
 import net.minecraft.core.particles.ParticleTypes
-import net.minecraft.resources.ResourceLocation
+import bpm.platform.ResourceLocation
 import net.minecraft.world.phys.Vec3
 import org.joml.Vector3f
-import software.bernie.geckolib.cache.`object`.GeoBone
-import software.bernie.geckolib.renderer.GeoEntityRenderer
+import bpm.platform.GeoBone
 
 private fun rl(path: String) = ResourceLocation.fromNamespaceAndPath(Bpm.ID, path)
 
@@ -24,14 +22,14 @@ class WardenModel : PathGeoModel<QuantumWardenEntity>(
 )
 
 /** The Warden: translucent for the bolts' alpha, the glow mask on top, a wide shadow for a wide boss. */
-class WardenRenderer(context: EntityRendererProvider.Context) : GeoEntityRenderer<QuantumWardenEntity>(context, WardenModel()) {
+class WardenRenderer(context: EntityRendererProvider.Context) : bpm.platform.client.GeoEntityRendererBase<QuantumWardenEntity>(context, WardenModel()) {
     init {
-        addRenderLayer(GlowLayer(this))
+        addGlow()
         shadowRadius = 1.4f
     }
 
-    override fun getRenderType(animatable: QuantumWardenEntity, texture: ResourceLocation, bufferSource: MultiBufferSource?, partialTick: Float): RenderType =
-        RenderType.entityTranslucent(texture)
+    override fun renderTypeFor(texture: ResourceLocation): RenderType =
+        bpm.platform.client.entityTranslucent(texture)
 
     /**
      * Publish the two beam roots, and spark at them.
@@ -43,19 +41,16 @@ class WardenRenderer(context: EntityRendererProvider.Context) : GeoEntityRendere
      * ignores all of it. So the authoritative bolt keeps its offset and the tell that reads at range — the
      * charge at each claw — comes off the bone, which means it tracks the arm wherever the clip puts it.
      */
-    override fun renderRecursively(
-        poseStack: PoseStack, animatable: QuantumWardenEntity, bone: GeoBone, renderType: RenderType,
-        bufferSource: MultiBufferSource, buffer: VertexConsumer, isReRender: Boolean, partialTick: Float,
-        packedLight: Int, packedOverlay: Int, colour: Int,
-    ) {
-        if (!isReRender && (bone.name == BEAM_L || bone.name == BEAM_R)) {
-            val local = poseStack.last().pose().transformPosition(Vector3f(0f, 0f, 0f))
-            val cam = Minecraft.getInstance().gameRenderer.mainCamera.position
-            val at = Vec3(local.x + cam.x, local.y + cam.y, local.z + cam.z)
-            BoneAnchors.capture(animatable.id, bone.name, at)
-            spark(animatable, at)
+    override fun onBones(bones: bpm.platform.client.BoneAccess, entityId: Int) {
+        for (claw in listOf(BEAM_L, BEAM_R)) {
+            bones.watch(claw) { at ->
+                bpm.client.render.BoneAnchors.capture(entityId, claw, at)
+                // The warden is looked up rather than held: a render state exists precisely so the draw
+                // pass does not keep the entity, and one map lookup a frame is the honest price of that.
+                (net.minecraft.client.Minecraft.getInstance().level?.getEntity(entityId) as? QuantumWardenEntity)
+                    ?.let { spark(it, at) }
+            }
         }
-        super.renderRecursively(poseStack, animatable, bone, renderType, bufferSource, buffer, isReRender, partialTick, packedLight, packedOverlay, colour)
     }
 
     /** A charge at the claw — thicker once the plates are down, which is when it is worth closing on. */

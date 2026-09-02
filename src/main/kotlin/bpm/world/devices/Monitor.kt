@@ -23,13 +23,12 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.block.state.properties.BooleanProperty
-import net.minecraft.world.level.block.state.properties.DirectionProperty
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.shapes.CollisionContext
 import net.minecraft.world.phys.shapes.VoxelShape
-import software.bernie.geckolib.animation.AnimatableManager
-import software.bernie.geckolib.animation.AnimationController
-import software.bernie.geckolib.animation.RawAnimation
+import bpm.platform.AnimatableManager
+import bpm.platform.AnimationController
+import bpm.platform.RawAnimation
 
 /**
  * The Quantum Monitor: a 6 px panel against the back of its cell whose screen faces [FACING]. Tiles that touch
@@ -41,7 +40,7 @@ import software.bernie.geckolib.animation.RawAnimation
  * Drawing on the screen is the renderer's job later: the model's `screen` bone marks the content plane, 11/16
  * of a block in from the front face, and each tile's visible area is 16 x 16 less a 2 px bezel on outer edges.
  */
-class MonitorBlock(properties: Properties) : Block(properties), EntityBlock {
+class MonitorBlock(properties: Properties) : bpm.platform.ShapeAwareBlock(properties), EntityBlock {
     init {
         registerDefaultState(
             stateDefinition.any().setValue(FACING, Direction.NORTH)
@@ -64,7 +63,7 @@ class MonitorBlock(properties: Properties) : Block(properties), EntityBlock {
         return state
     }
 
-    override fun updateShape(state: BlockState, direction: Direction, neighborState: BlockState, level: LevelAccessor, pos: BlockPos, neighborPos: BlockPos): BlockState {
+    override fun onNeighborShape(state: BlockState, direction: Direction, neighborState: BlockState): BlockState {
         val prop = edge(state.getValue(FACING), direction) ?: return state
         return state.setValue(prop, !joins(state, neighborState))
     }
@@ -76,7 +75,7 @@ class MonitorBlock(properties: Properties) : Block(properties), EntityBlock {
         SHAPES.getValue(state.getValue(FACING))
 
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = MonitorBlockEntity(pos, state)
-    override fun getRenderShape(state: BlockState): RenderShape = RenderShape.ENTITYBLOCK_ANIMATED
+    override fun getRenderShape(state: BlockState): RenderShape = bpm.platform.ANIMATED_BLOCK_SHAPE
 
     override fun <T : BlockEntity> getTicker(level: Level, state: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T>? =
         DeviceBlockEntity.ticker(level, type, DeviceBlockEntities.MONITOR.get())
@@ -93,7 +92,7 @@ class MonitorBlock(properties: Properties) : Block(properties), EntityBlock {
         state.rotate(mirror.getRotation(state.getValue(FACING))).setValue(LEFT, state.getValue(RIGHT)).setValue(RIGHT, state.getValue(LEFT))
 
     companion object {
-        val FACING: DirectionProperty = BlockStateProperties.HORIZONTAL_FACING
+        val FACING: net.minecraft.world.level.block.state.properties.EnumProperty<net.minecraft.core.Direction> = BlockStateProperties.HORIZONTAL_FACING
         val UP: BooleanProperty = BooleanProperty.create("up")
         val DOWN: BooleanProperty = BooleanProperty.create("down")
         /** The viewer's left: `facing.clockWise` (a north-facing screen's left edge is its east side). */
@@ -227,8 +226,8 @@ class MonitorBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(D
         widgets = tag.getWidgets("widgets", registries)
     }
 
-    override fun registerControllers(controllers: AnimatableManager.ControllerRegistrar) {
-        controllers.add(AnimationController(this, "main", 0) { state -> state.setAndContinue(IDLE) })
+    override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
+        controllers.add(bpm.platform.animController(this, "main", 0) { state -> state.setAndContinue(IDLE) })
     }
 
     companion object {

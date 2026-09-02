@@ -33,12 +33,12 @@ import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.material.MapColor
-import software.bernie.geckolib.animatable.GeoItem
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
-import software.bernie.geckolib.animation.AnimatableManager
-import software.bernie.geckolib.animation.AnimationController
-import software.bernie.geckolib.animation.RawAnimation
-import software.bernie.geckolib.util.GeckoLibUtil
+import bpm.platform.GeoItem
+import bpm.platform.AnimatableInstanceCache
+import bpm.platform.AnimatableManager
+import bpm.platform.AnimationController
+import bpm.platform.RawAnimation
+import bpm.platform.GeckoLibUtil
 import java.util.function.Consumer
 
 /**
@@ -70,9 +70,8 @@ object DeviceBlocks {
 object DeviceBlockEntities {
     val REG: Registrar<BlockEntityType<*>> = Registrars.of(Registries.BLOCK_ENTITY_TYPE, Bpm.ID)
 
-    @Suppress("DataFlowIssue")
     private fun <T : BlockEntity> type(name: String, block: RegistryRef<out Block>, factory: (BlockPos, BlockState) -> T): RegistryRef<BlockEntityType<T>> =
-        REG.register(name) { -> BlockEntityType.Builder.of(factory, block.get()).build(null) }
+        REG.register(name) { -> bpm.platform.blockEntityType(factory, block.get()) }
 
     val GATE = type("quantum_gate", DeviceBlocks.QUANTUM_GATE, ::GateBlockEntity)
     val PEDESTAL = type("core_pedestal", DeviceBlocks.CORE_PEDESTAL, ::PedestalBlockEntity)
@@ -89,11 +88,15 @@ class DeviceBlockItem(block: Block, properties: Properties, val model: String, p
     private val animCache: AnimatableInstanceCache = GeckoLibUtil.createInstanceCache(this)
     private val rest: RawAnimation = RawAnimation.begin().thenLoop(restAnimation)
 
-    override fun registerControllers(controllers: AnimatableManager.ControllerRegistrar) {
-        controllers.add(AnimationController(this, "rest", 0) { state -> state.setAndContinue(rest) })
+    override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
+        controllers.add(bpm.platform.animController(this, "rest", 0) { state -> state.setAndContinue(rest) })
     }
 
     override fun getAnimatableInstanceCache(): AnimatableInstanceCache = animCache
+
+    /** Drawn by the table in [bpm.client.render.BpmItemRenderers]; GeckoLib asks the item, so the item asks it. */
+    override fun createGeoRenderer(consumer: Consumer<bpm.platform.GeoRenderProvider>) =
+        bpm.client.render.geoItemRenderer(this, consumer)
 
 }
 

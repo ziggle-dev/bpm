@@ -19,6 +19,7 @@ import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.EntityHitResult
 import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
+import bpm.platform.showMessage
 
 /**
  * The Quantum Linker's pulse, fired inside a chamber. The quick pulse (right-click, free) flies straight: a
@@ -90,7 +91,7 @@ class LinkerPulseEntity(type: EntityType<out LinkerPulseEntity>, level: Level) :
     override fun canHitEntity(target: Entity): Boolean = super.canHitEntity(target) && target !is WardenBoltEntity && target !is LinkerPulseEntity
 
     private fun tell(text: String) {
-        (owner as? Player)?.displayClientMessage(Component.literal("[bpm] $text"), true)
+        (owner as? Player)?.showMessage(Component.literal("[bpm] $text"), true)
     }
 
     override fun onHitEntity(result: EntityHitResult) {
@@ -100,20 +101,20 @@ class LinkerPulseEntity(type: EntityType<out LinkerPulseEntity>, level: Level) :
             when {
                 w == null -> {}
                 w.disabled -> {
-                    w.pulseHit(CORE_DAMAGE, owner)
+                    w.pulseHit(CORE_DAMAGE, getOwner())
                     tell("the pulse bites the fallen Warden")
                 }
                 tracking -> {
                     w.disable(WARDEN_TICKS)
-                    w.pulseHit(CORE_DAMAGE, owner)
+                    w.pulseHit(CORE_DAMAGE, getOwner())
                     tell("the special seizes the Warden — it falls")
                 }
                 w.exposed -> {
-                    w.pulseHit(CAGE_DAMAGE, owner)
+                    w.pulseHit(CAGE_DAMAGE, getOwner())
                     tell("the pulse stings the open core")
                 }
                 else -> {
-                    w.pulseHit(CAGE_DAMAGE * 0.5f, owner)
+                    w.pulseHit(CAGE_DAMAGE * 0.5f, getOwner())
                     tell("the pulse breaks on the closed cage")
                 }
             }
@@ -146,8 +147,8 @@ class LinkerPulseEntity(type: EntityType<out LinkerPulseEntity>, level: Level) :
         p.deltaMovement = Vec3(p.deltaMovement.x * 0.4, v, p.deltaMovement.z * 0.4)
         p.hurtMarked = true
         p.currentImpulseImpactPos = result.location
-        p.setIgnoreFallDamageFromCurrentImpulse(true)
-        p.fallDistance = 0f
+        bpm.platform.ignoreImpulseFallDamage(p, result.location)
+        p.resetFallDistance()
         l.sendParticles(ParticleTypes.GUST, result.location.x, result.location.y + 0.1, result.location.z, 1, 0.0, 0.0, 0.0, 0.0)
         l.sendParticles(ParticleTypes.CLOUD, result.location.x, result.location.y + 0.2, result.location.z, 16, 0.5, 0.1, 0.5, 0.05)
         l.playSound(null, result.location.x, result.location.y, result.location.z, net.minecraft.sounds.SoundEvents.WIND_CHARGE_BURST.value(), net.minecraft.sounds.SoundSource.PLAYERS, 0.8f, 1.1f)

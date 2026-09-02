@@ -1,5 +1,6 @@
 package bpm.client.mc
 
+import bpm.platform.compoundAt
 import bpm.net.HudInputPayload
 import bpm.net.HudPanelPayload
 import bpm.runtime.HudPanels
@@ -47,7 +48,7 @@ object HudOverlay {
             }
             val registries = mc.level?.registryAccess() ?: return@execute
             val widgets = (0 until p.widgets.size).mapNotNull { i ->
-                runCatching { Widget.load(p.widgets.getCompound(i), registries) }.getOrNull()
+                runCatching { Widget.load(p.widgets.compoundAt(i), registries) }.getOrNull()
             }
             panels[p.controller] = Panel(p.controller, p.anchor, p.offsetX, p.offsetY, p.width, p.scale, widgets)
             // Oldest out when a player is shown more than they can read.
@@ -64,11 +65,11 @@ object HudOverlay {
     }
 
     /** Hung off the top of the HUD: draws every panel, and nothing else. */
-    fun render(g: net.minecraft.client.gui.GuiGraphics, delta: net.minecraft.client.DeltaTracker) {
+    fun render(g: bpm.platform.client.GuiGraphics, delta: net.minecraft.client.DeltaTracker) {
         if (panels.isEmpty() || hidden) return
         val mc = Minecraft.getInstance()
         // A screen draws its own copy, with a cursor; the HUD would only be a second one underneath.
-        if (mc.screen != null || mc.level == null) return
+        if (bpm.platform.client.currentScreen() != null || mc.level == null) return
         val w = mc.window
         // -1 for the mouse: the HUD is a readout, and nothing on it can be pressed.
         PanelDraw.drawAll(g, all, w.guiScaledWidth, w.guiScaledHeight, -1, -1)

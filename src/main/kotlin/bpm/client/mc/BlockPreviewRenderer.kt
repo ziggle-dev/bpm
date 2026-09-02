@@ -11,14 +11,13 @@ import dev.ziggle.vscript.editor.host.IconRef
 import dev.ziggle.vscript.editor.host.IconRegion
 import dev.ziggle.vscript.editor.host.IconSource
 import net.minecraft.client.Minecraft
-import com.mojang.blaze3d.vertex.ByteBufferBuilder
-import net.minecraft.client.gui.GuiGraphics
-import net.minecraft.client.renderer.MultiBufferSource
+import bpm.platform.client.GuiGraphics
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
-import net.minecraft.resources.ResourceLocation
+import bpm.platform.ResourceLocation
 import net.minecraft.world.item.ItemStack
 import org.joml.Matrix4f
+import bpm.platform.keyId
 
 /**
  * Renders items into small off-screen textures the editor can show: the block a link points at, the
@@ -47,7 +46,7 @@ object BlockPreviewRenderer : BlockPreviews, ItemIcons, IconSource {
     override fun want(link: LinkView) {
         val mc = Minecraft.getInstance()
         val level = mc.level ?: return
-        if (level.dimension().location().toString() != link.dimension) return
+        if (level.dimension().keyId().toString() != link.dimension) return
         val pos = BlockPos(link.x, link.y, link.z)
         if (!level.isLoaded(pos)) return
         val state = level.getBlockState(pos)
@@ -76,8 +75,8 @@ object BlockPreviewRenderer : BlockPreviews, ItemIcons, IconSource {
         val skin = mc.level?.players()?.firstOrNull { it.uuid == uuid }?.skin
             ?: net.minecraft.client.resources.DefaultPlayerSkin.get(uuid)
         // Widened where it is produced, not where it is drawn: IconRegion takes a Long because from
-        // 1.21.6 the game stops handing out GL names at all. Today this is still one, so it widens here.
-        val id = mc.textureManager.getTexture(skin.texture()).id.toLong()
+        // 1.21.6 the game stops handing out GL names at all -- and from 1.21.9 it stops having any.
+        val id = bpm.platform.client.skinHandle(skin) ?: return null
         // 8/64 .. 16/64 — the face; the hat layer at 40/64 is left off, it reads as noise at this size.
         return IconRegion(id, 0.125f, 0.125f, 0.25f, 0.25f)
     }
@@ -95,11 +94,12 @@ object BlockPreviewRenderer : BlockPreviews, ItemIcons, IconSource {
         slot.wantedAt = System.currentTimeMillis()
         if (!slot.rendered) return null
         // A frame buffer's texture is upside down for a GUI: flip V.
-        return IconRegion(slot.target.colorTextureId.toLong(), 0f, 1f, 1f, 0f)
+        val id = bpm.platform.client.targetHandle(slot.target) ?: return null
+        return IconRegion(id, 0f, 1f, 1f, 0f)
     }
 
     override fun labelOf(itemId: String): String? = slots[itemId]?.label?.ifEmpty { null }
-        ?: ResourceLocation.tryParse(itemId)?.let { BuiltInRegistries.ITEM.getOptional(it).orElse(null)?.description?.string }
+        ?: ResourceLocation.tryParse(itemId)?.let { bpm.platform.valueOf(BuiltInRegistries.ITEM, it)?.let { item -> net.minecraft.network.chat.Component.translatable(item.descriptionId).string } }
 
     // ---- vscript's icon source: the value picker's rows and previews --------------------------------------------
 
@@ -116,14 +116,14 @@ object BlockPreviewRenderer : BlockPreviews, ItemIcons, IconSource {
         while (it.hasNext() && budget > 0) {
             val id = it.next()
             it.remove()
-            val slot = slots.getOrPut(id) { Slot(TextureTarget(SIZE, SIZE, true, Minecraft.ON_OSX)) }
+            val slot = slots.getOrPut(id) { Slot(bpm.platform.client.offscreenTarget(SIZE, SIZE)) }
             slot.wantedAt = now
             if (slot.rendered) continue
             val item = ResourceLocation.tryParse(id)?.let { rl -> BuiltInRegistries.ITEM.getOptional(rl).orElse(null) } ?: continue
             val stack = ItemStack(item)
             slot.label = stack.hoverName.string
             runCatching { render(mc, slot, stack) }
-                .onSuccess { slot.rendered = true }
+                .onSuccess { drawn -> slot.rendered = drawn }
                 .onFailure {
                     lastFailure = "$id: $it"
                     Bpm.LOGGER.warn("item picture failed for {}: {}", id, it.toString())
@@ -141,42 +141,16 @@ object BlockPreviewRenderer : BlockPreviews, ItemIcons, IconSource {
     }
 
     /**
-     * Our own buffer source rather than the game's shared one.
+     * False when this band has no offscreen path -- see [bpm.platform.client.renderItemPreview].
      *
-     * `mc.renderBuffers().bufferSource()` may already hold geometry another mod queued this frame; flushing it
-     * here would draw that into this 96x96 texture, and leave ours to be flushed into theirs later.
+     * The buffers this draws through belong to the seam, not to here, and deliberately are not the game's
+     * shared ones: `mc.renderBuffers().bufferSource()` may already hold geometry another mod queued this
+     * frame, and flushing it here would draw that into this 96x96 texture and leave ours to be flushed
+     * into theirs later. That reason lives on the other side of the seam now because `MultiBufferSource`
+     * does not exist on every band this compiles for.
      */
-    private val buffers: MultiBufferSource.BufferSource by lazy { MultiBufferSource.immediate(ByteBufferBuilder(1536)) }
-
-    private fun render(mc: Minecraft, slot: Slot, stack: ItemStack) {
-        val target = slot.target
-        target.setClearColor(0f, 0f, 0f, 0f)
-        target.clear(Minecraft.ON_OSX)
-        target.bindWrite(true)
-        RenderSystem.backupProjectionMatrix()
-        val modelView = RenderSystem.getModelViewStack()
-        modelView.pushMatrix()
-        modelView.identity()
-        RenderSystem.applyModelViewMatrix()
-        // A 16-unit GUI space against an IDENTITY model-view, both set here.
-        //
-        // This used to set only the projection, with a 1000..21000 depth range chosen to match the -11000 Z
-        // push the vanilla GUI model-view happens to carry — that is, it borrowed whatever model-view the
-        // frame had left lying around. It works in a plain client and fails wherever another mod has set a
-        // different one, because then the item lands outside the depth range and clips away silently.
-        RenderSystem.setProjectionMatrix(Matrix4f().setOrtho(0f, 16f, 16f, 0f, -1000f, 1000f), VertexSorting.ORTHOGRAPHIC_Z)
-        val graphics = GuiGraphics(mc, buffers)
-        try {
-            graphics.renderItem(stack, 0, 0)
-            graphics.flush()
-        } finally {
-            modelView.popMatrix()
-            RenderSystem.applyModelViewMatrix()
-            RenderSystem.restoreProjectionMatrix()
-            target.unbindWrite()
-            mc.mainRenderTarget.bindWrite(true)
-        }
-    }
+    private fun render(mc: Minecraft, slot: Slot, stack: ItemStack): Boolean =
+        bpm.platform.client.renderItemPreview(mc, slot.target, stack)
 
     /** What `/bpm previews` reports — enough to tell "nothing was asked for" from "everything failed". */
     fun diagnostics(): String {

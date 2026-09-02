@@ -7,6 +7,7 @@ import bpm.world.ControllerBlockEntity
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
+import bpm.platform.showMessage
 
 /**
  * Ticks every loaded controller's program from one place, so that they share one budget fairly instead of
@@ -117,7 +118,7 @@ object RuntimeManager {
         val p = be.blockPos
         for (player in world.players()) {
             if (player is ServerPlayer && player.distanceToSqr(p.x + 0.5, p.y + 0.5, p.z + 0.5) <= NOTIFY_RANGE_SQ) {
-                player.displayClientMessage(text, actionBar)
+                player.showMessage(text, actionBar)
             }
         }
     }

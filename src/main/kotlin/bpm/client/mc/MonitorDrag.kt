@@ -4,12 +4,13 @@ import bpm.net.MonitorDragPayload
 import bpm.net.MonitorTextPayload
 import bpm.world.devices.Widget
 import net.minecraft.client.Minecraft
-import net.minecraft.client.gui.GuiGraphics
+import bpm.platform.client.GuiGraphics
 import net.minecraft.client.gui.components.EditBox
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
 import bpm.platform.net.Net
+import bpm.platform.client.drawCenteredText
 
 /**
  * The two things a monitor's controls need a client for.
@@ -58,7 +59,7 @@ object MonitorDrag {
  * confirms and sends, Escape leaves the field as it was.
  */
 class FieldScreen private constructor(private val widget: Widget, private val send: (String) -> Unit) :
-    Screen(Component.literal(widget.label.ifEmpty { widget.id })) {
+    bpm.platform.client.InputScreen(Component.literal(widget.label.ifEmpty { widget.id })) {
 
 
     private lateinit var box: EditBox
@@ -72,19 +73,16 @@ class FieldScreen private constructor(private val widget: Widget, private val se
         setInitialFocus(box)
     }
 
-    override fun render(g: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
-        super.render(g, mouseX, mouseY, partialTick)
-        g.drawCenteredString(font, title, width / 2, height / 2 - 26, 0xFFB8FFF0.toInt())
-        g.drawCenteredString(font, HINT, width / 2, height / 2 + 16, 0xFF9AA3B5.toInt())
+    override fun onDraw(g: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+        g.drawCenteredText(font, title, width / 2, height / 2 - 26, 0xFFB8FFF0.toInt())
+        g.drawCenteredText(font, HINT, width / 2, height / 2 + 16, 0xFF9AA3B5.toInt())
     }
 
-    override fun keyPressed(key: Int, scan: Int, modifiers: Int): Boolean {
-        if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER || key == org.lwjgl.glfw.GLFW.GLFW_KEY_KP_ENTER) {
-            send(box.value)
-            onClose()
-            return true
-        }
-        return super.keyPressed(key, scan, modifiers)
+    override fun onKeyDown(key: Int, scan: Int, modifiers: Int): Boolean {
+        if (key != org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER && key != org.lwjgl.glfw.GLFW.GLFW_KEY_KP_ENTER) return false
+        send(box.value)
+        onClose()
+        return true
     }
 
     /** The world carries on behind it, as it does for the panels. */
@@ -96,7 +94,7 @@ class FieldScreen private constructor(private val widget: Widget, private val se
         /** Open the box for [widget]; [send] carries the string wherever it belongs. */
         fun open(widget: Widget, send: (String) -> Unit) {
             val mc = Minecraft.getInstance()
-            mc.tell { mc.setScreen(FieldScreen(widget, send)) }
+            mc.execute { bpm.platform.client.openScreen(FieldScreen(widget, send)) }
         }
     }
 }

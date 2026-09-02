@@ -4,7 +4,7 @@ import net.minecraft.core.Holder
 import net.minecraft.core.Registry
 import net.minecraft.core.component.DataComponentType
 import net.minecraft.resources.ResourceKey
-import net.minecraft.resources.ResourceLocation
+import bpm.platform.ResourceLocation
 import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.Item
 import net.minecraft.world.level.block.Block
@@ -27,13 +27,13 @@ import java.util.function.Supplier
  * A handle to something registered. Deferred or not, the rule is the same: **do not call [get] during
  * class initialisation**, only once registration has run.
  */
-interface RegistryRef<T> : Supplier<T> {
+interface RegistryRef<T : Any> : Supplier<T> {
     val id: ResourceLocation
     override fun get(): T
     fun holder(): Holder<T>
 }
 
-interface Registrar<T> {
+interface Registrar<T : Any> {
     fun <R : T> register(name: String, factory: () -> R): RegistryRef<R>
 }
 
@@ -48,9 +48,17 @@ interface ItemRegistrar : Registrar<Item> {
 }
 
 interface ComponentRegistrar {
-    fun <T> registerComponentType(
+    /**
+     * [configure] and not `build`, which is what it was called until 1.21.11 refused to compile it.
+     *
+     * A `build` on the classpath of a newer node collided with the parameter and the Kotlin compiler
+     * failed with an internal error rather than an ambiguity — "If one candidate within a group is
+     * property+invoke, other should be the same". Nothing about the mod was wrong; the name was just
+     * unlucky, and a name is cheap to change.
+     */
+    fun <T : Any> registerComponentType(
         name: String,
-        build: (DataComponentType.Builder<T>) -> DataComponentType.Builder<T>,
+        configure: (DataComponentType.Builder<T>) -> DataComponentType.Builder<T>,
     ): RegistryRef<DataComponentType<T>>
 }
 
@@ -58,7 +66,7 @@ interface PlatformRegistries {
     fun blocks(namespace: String): BlockRegistrar
     fun items(namespace: String): ItemRegistrar
     fun components(namespace: String): ComponentRegistrar
-    fun <T> of(key: ResourceKey<Registry<T>>, namespace: String): Registrar<T>
+    fun <T : Any> of(key: ResourceKey<Registry<T>>, namespace: String): Registrar<T>
 
     /**
      * Realise everything that has been asked for, in the order it was asked for.
@@ -105,7 +113,7 @@ object Registrars {
     fun blocks(namespace: String): BlockRegistrar = backend.blocks(namespace)
     fun items(namespace: String): ItemRegistrar = backend.items(namespace)
     fun components(namespace: String): ComponentRegistrar = backend.components(namespace)
-    fun <T> of(key: ResourceKey<Registry<T>>, namespace: String): Registrar<T> = backend.of(key, namespace)
+    fun <T : Any> of(key: ResourceKey<Registry<T>>, namespace: String): Registrar<T> = backend.of(key, namespace)
     fun installAll() = backend.installAll()
 
     fun entityAttributes(block: (AttributeSink) -> Unit) = backend.entityAttributes(block)

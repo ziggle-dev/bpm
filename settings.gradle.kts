@@ -41,8 +41,23 @@ rootProject.name = "bpm"
  */
 stonecutter {
     create(rootProject) {
-        branch("neoforge") { versions("1.21.1") }
-        branch("fabric") { versions("1.21.1") }
+        branch("neoforge") { versions("1.21.1", "1.21.4", "1.21.5", "1.21.8", "1.21.11", "26.2") }
+        /*
+         * No Fabric 26.2 node yet, and the blocker is the TOOLING rather than this mod.
+         *
+         * From 26.1 the game ships deobfuscated, so Mojang publishes no mappings for it: 26.2's version
+         * manifest carries `client` and `server` downloads and nothing else. Architectury Loom's
+         * `officialMojangMappings()` therefore has nothing to fetch and fails with "Failed to find
+         * official mojang mappings for 26.2", and an empty layered spec -- the honest request for a game
+         * that needs no mapping layer -- NPEs inside Loom on a null source namespace. 1.17.491 is the
+         * newest Loom release, so there is nothing to upgrade to.
+         *
+         * Everything else for the band is already in place and waiting: the pins in gradle.properties,
+         * the JDK-25 toolchain and the Modrinth GeckoLib coordinate in this branch's build script, and
+         * every 26.1 arm in `fabric/src`. Adding "26.2" here is the whole of what is left once Loom
+         * supports the deobfuscated era.
+         */
+        branch("fabric") { versions("1.21.1", "1.21.4", "1.21.5", "1.21.8", "1.21.11") }
         vcsVersion = "1.21.1"
     }
 }

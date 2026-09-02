@@ -2,7 +2,7 @@ package bpm.client.mc
 
 import bpm.client.mc.imgui.BpmImGui
 import bpm.client.mc.imgui.ScreenInput
-import net.minecraft.client.gui.GuiGraphics
+import bpm.platform.client.GuiGraphics
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
 import org.lwjgl.glfw.GLFW
@@ -25,7 +25,7 @@ open class BpmEditorScreen(
     private val onFrame: (Int) -> Unit = {},
     /** Whether the world behind is dimmed and blurred; a small box hung over a block leaves it as it is. */
     private val dimsWorld: Boolean = true,
-) : Screen(Component.literal("bpm")) {
+) : bpm.platform.client.InputScreen(Component.literal("bpm")) {
 
     private val input = ScreenInput({ v -> (v * pixelsPerGuiUnit()).toFloat() }, BpmImGui.typed)
     private var frames = 0
@@ -40,18 +40,33 @@ open class BpmEditorScreen(
         BpmImGui.resetClock()
     }
 
-    override fun render(graphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
-        if (dimsWorld) renderBackground(graphics, mouseX, mouseY, partialTick)
+    /**
+     * A box hung over a block leaves the world as it is.
+     *
+     * Overridden rather than simply not called, because from 1.21.9 the background is drawn by the
+     * caller before the screen draws -- refusing it is the only way to not have one.
+     */
+    override fun onBackground(g: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+        if (!dimsWorld) return
+        drawDefaultBackground(g, mouseX, mouseY, partialTick)
+    }
+
+    override fun onDraw(graphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+        // Only where the caller has not already done it -- see [bpm.platform.client.screenRendersOwnBackground].
+        if (dimsWorld && bpm.platform.client.screenRendersOwnBackground) onBackground(graphics, mouseX, mouseY, partialTick)
         // Minecraft batches its GUI draws; flush them before raw GL draws over the top.
-        graphics.flush()
+        bpm.platform.client.flushGui(graphics)
         val w = minecraft!!.window
         val fbScale = w.width.toFloat() / w.screenWidth.toFloat()
-        BpmImGui.frame(
-            w.screenWidth.toFloat(), w.screenHeight.toFloat(), fbScale,
-            pump = { io -> input.syncModifiers(io, w.window) },
-            bareRoot = !dimsWorld,
-            body = body,
-        )
+        // Immediately, or at the end of the frame where the GUI is painted after this method returns.
+        bpm.platform.client.deferGuiDraw {
+            BpmImGui.frame(
+                w.screenWidth.toFloat(), w.screenHeight.toFloat(), fbScale,
+                pump = { io -> input.syncModifiers(io, bpm.platform.client.windowHandle()) },
+                bareRoot = !dimsWorld,
+                body = body,
+            )
+        }
         frames++
         onFrame(frames)
     }
@@ -60,42 +75,42 @@ open class BpmEditorScreen(
         input.mouseMoved(mouseX, mouseY)
     }
 
-    override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
-        input.mouseMoved(mouseX, mouseY)
+    override fun onMouseDown(x: Double, y: Double, button: Int): Boolean {
+        input.mouseMoved(x, y)
         input.mouseButton(button, true)
         return true
     }
 
-    override fun mouseReleased(mouseX: Double, mouseY: Double, button: Int): Boolean {
+    override fun onMouseUp(x: Double, y: Double, button: Int): Boolean {
         input.mouseButton(button, false)
         return true
     }
 
-    override fun mouseDragged(mouseX: Double, mouseY: Double, button: Int, dragX: Double, dragY: Double): Boolean {
-        input.mouseMoved(mouseX, mouseY)
+    override fun onMouseDrag(x: Double, y: Double, button: Int, dx: Double, dy: Double): Boolean {
+        input.mouseMoved(x, y)
         return true
     }
 
-    override fun mouseScrolled(mouseX: Double, mouseY: Double, scrollX: Double, scrollY: Double): Boolean {
-        input.scroll(scrollX, scrollY)
+    override fun onScroll(x: Double, y: Double, dx: Double, dy: Double): Boolean {
+        input.scroll(dx, dy)
         return true
     }
 
-    override fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
-        if (keyCode == GLFW.GLFW_KEY_ESCAPE && !wantsEscape()) {
+    override fun onKeyDown(key: Int, scan: Int, modifiers: Int): Boolean {
+        if (key == GLFW.GLFW_KEY_ESCAPE && !wantsEscape()) {
             onClose()
             return true
         }
-        input.key(keyCode, true, modifiers)
+        input.key(key, true, modifiers)
         return true
     }
 
-    override fun keyReleased(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
-        input.key(keyCode, false, modifiers)
+    override fun onKeyUp(key: Int, scan: Int, modifiers: Int): Boolean {
+        input.key(key, false, modifiers)
         return true
     }
 
-    override fun charTyped(codePoint: Char, modifiers: Int): Boolean {
+    override fun onCharTyped(codePoint: Char, modifiers: Int): Boolean {
         input.charTyped(codePoint)
         return true
     }

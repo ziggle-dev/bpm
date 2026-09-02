@@ -5,13 +5,10 @@ import bpm.world.entity.WardenBoltEntity
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
 import com.mojang.math.Axis
-import net.minecraft.client.renderer.MultiBufferSource
-import net.minecraft.client.renderer.RenderType
-import net.minecraft.client.renderer.entity.EntityRenderer
+import bpm.platform.RenderType
 import net.minecraft.client.renderer.entity.EntityRendererProvider
-import net.minecraft.client.renderer.texture.TextureAtlas
-import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.entity.Entity
+import net.minecraft.world.phys.Vec3
 import kotlin.math.atan2
 import kotlin.math.sqrt
 
@@ -23,40 +20,42 @@ class BoltStyle(
 )
 
 /**
- * A bolt as an energy spear laid along its velocity. No texture: the lightning render type is plain colour,
+ * Draw a bolt of [style] laid along [motion]. No texture: the lightning render type is plain colour,
  * added onto whatever is behind it, so it glows without a glow mask.
+ *
+ * A pose, somewhere to draw and trigonometry -- nothing here knows what a render state is, which is why
+ * this is the half that stays shared while [bpm.platform.client.BoltRendererBase] carries the half that
+ * changed.
  */
-open class EnergyBoltRenderer<T : Entity>(context: EntityRendererProvider.Context, private val style: (T) -> BoltStyle) : EntityRenderer<T>(context) {
-    override fun getTextureLocation(entity: T): ResourceLocation = TextureAtlas.LOCATION_BLOCKS
-
-    override fun render(entity: T, yaw: Float, partialTick: Float, pose: PoseStack, buffers: MultiBufferSource, light: Int) {
-        val v = entity.deltaMovement
-        if (v.lengthSqr() < 1e-6) return
-        val s = style(entity)
-        pose.pushPose()
-        val yawDeg = Math.toDegrees(atan2(v.x, v.z)).toFloat()
-        val pitchDeg = (-Math.toDegrees(atan2(v.y, sqrt(v.x * v.x + v.z * v.z)))).toFloat()
-        pose.mulPose(Axis.YP.rotationDegrees(yawDeg))
-        pose.mulPose(Axis.XP.rotationDegrees(pitchDeg))
-        val c = buffers.getBuffer(RenderType.lightning())
-        box(c, pose, s.radius, s.length, s.coreR, s.coreG, s.coreB, 1f)
-        box(c, pose, s.radius * 2.4f, s.length * 1.15f, s.sheathR, s.sheathG, s.sheathB, 0.3f)
-        pose.popPose()
-        super.render(entity, yaw, partialTick, pose, buffers, light)
+fun drawBolt(pose: PoseStack, draw: bpm.platform.client.WorldDraw, motion: Vec3, style: BoltStyle) {
+    if (motion.lengthSqr() < 1e-6) return
+    pose.pushPose()
+    val yawDeg = Math.toDegrees(atan2(motion.x, motion.z)).toFloat()
+    val pitchDeg = (-Math.toDegrees(atan2(motion.y, sqrt(motion.x * motion.x + motion.z * motion.z)))).toFloat()
+    pose.mulPose(Axis.YP.rotationDegrees(yawDeg))
+    pose.mulPose(Axis.XP.rotationDegrees(pitchDeg))
+    draw.into(pose, bpm.platform.client.lightning()) { p, c ->
+        box(c, p, style.radius, style.length, style.coreR, style.coreG, style.coreB, 1f)
+        box(c, p, style.radius * 2.4f, style.length * 1.15f, style.sheathR, style.sheathG, style.sheathB, 0.3f)
     }
-
-    /** A box [r] wide either side and [l] long either way along +Z, one flat colour, alpha [a]. */
-    private fun box(c: VertexConsumer, pose: PoseStack, r: Float, l: Float, red: Float, green: Float, blue: Float, a: Float) {
-        val m = pose.last().pose()
-        fun v(x: Float, y: Float, z: Float) { c.addVertex(m, x, y, z).setColor(red, green, blue, a) }
-        v(r, -r, -l); v(r, r, -l); v(r, r, l); v(r, -r, l)
-        v(-r, -r, l); v(-r, r, l); v(-r, r, -l); v(-r, -r, -l)
-        v(-r, r, -l); v(r, r, -l); v(r, r, l); v(-r, r, l)
-        v(-r, -r, l); v(r, -r, l); v(r, -r, -l); v(-r, -r, -l)
-        v(-r, -r, l); v(r, -r, l); v(r, r, l); v(-r, r, l)
-        v(-r, r, -l); v(r, r, -l); v(r, -r, -l); v(-r, -r, -l)
-    }
+    pose.popPose()
 }
+
+/** A box [r] wide either side and [l] long either way along +Z, one flat colour, alpha [a]. */
+private fun box(c: VertexConsumer, pose: PoseStack.Pose, r: Float, l: Float, red: Float, green: Float, blue: Float, a: Float) {
+    val m = pose.pose()
+    fun v(x: Float, y: Float, z: Float) { c.addVertex(m, x, y, z).setColor(red, green, blue, a) }
+    v(r, -r, -l); v(r, r, -l); v(r, r, l); v(r, -r, l)
+    v(-r, -r, l); v(-r, r, l); v(-r, r, -l); v(-r, -r, -l)
+    v(-r, r, -l); v(r, r, -l); v(r, r, l); v(-r, r, l)
+    v(-r, -r, l); v(r, -r, l); v(r, -r, -l); v(-r, -r, -l)
+    v(-r, -r, l); v(r, -r, l); v(r, r, l); v(-r, r, l)
+    v(-r, r, -l); v(r, r, -l); v(r, -r, -l); v(-r, -r, -l)
+}
+
+/** A bolt renderer is now only a choice of style; the drawing is above and the plumbing is per band. */
+open class EnergyBoltRenderer<T : Entity>(context: EntityRendererProvider.Context, style: (T) -> BoltStyle) :
+    bpm.platform.client.BoltRendererBase<T>(context, style)
 
 /** Teal for a volley bolt; orchid, thicker and shorter for the seeker. */
 class WardenBoltRenderer(context: EntityRendererProvider.Context) : EnergyBoltRenderer<WardenBoltEntity>(

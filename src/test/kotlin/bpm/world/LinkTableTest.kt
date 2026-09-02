@@ -66,8 +66,8 @@ class LinkTableTest {
 
     @Test
     fun `an auto name is the block's path`() {
-        assertEquals("chest", LinkTable.autoName(net.minecraft.resources.ResourceLocation.parse("minecraft:chest")))
-        assertEquals("tank", LinkTable.autoName(net.minecraft.resources.ResourceLocation.parse("mekanism:machines/tank")))
+        assertEquals("chest", LinkTable.autoName(bpm.platform.ResourceLocation.parse("minecraft:chest")))
+        assertEquals("tank", LinkTable.autoName(bpm.platform.ResourceLocation.parse("mekanism:machines/tank")))
     }
 
     @Test

@@ -15,7 +15,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.HolderLookup
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.chat.Component
-import net.minecraft.resources.ResourceLocation
+import bpm.platform.ResourceLocation
 import net.minecraft.world.Containers
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.player.Player
@@ -35,9 +35,17 @@ import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.block.state.properties.BooleanProperty
 import net.minecraft.world.phys.BlockHitResult
-import software.bernie.geckolib.animation.AnimatableManager
-import software.bernie.geckolib.animation.AnimationController
-import software.bernie.geckolib.animation.RawAnimation
+import bpm.platform.AnimatableManager
+import bpm.platform.AnimationController
+import bpm.platform.RawAnimation
+import bpm.platform.intOr
+import bpm.platform.floatOr
+import bpm.platform.stringOr
+import bpm.platform.boolOr
+import bpm.platform.byteOr
+import bpm.platform.compoundOr
+import bpm.platform.listOr
+import bpm.platform.showMessage
 
 /**
  * The Quantum Assembler: the block bpm's own things are made on, instead of a crafting grid.
@@ -45,7 +53,7 @@ import software.bernie.geckolib.animation.RawAnimation
  * [RUNNING] is on the blockstate rather than only in the entity so the light level can follow it without the
  * client needing the entity at all.
  */
-class AssemblerBlock(properties: Properties) : HorizontalDirectionalBlock(properties), EntityBlock {
+class AssemblerBlock(properties: Properties) : bpm.platform.RemovalAwareHorizontalBlock(properties), EntityBlock {
 
     init {
         registerDefaultState(stateDefinition.any().setValue(FACING, net.minecraft.core.Direction.NORTH).setValue(RUNNING, false))
@@ -62,7 +70,7 @@ class AssemblerBlock(properties: Properties) : HorizontalDirectionalBlock(proper
 
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = AssemblerBlockEntity(pos, state)
 
-    override fun getRenderShape(state: BlockState): RenderShape = RenderShape.ENTITYBLOCK_ANIMATED
+    override fun getRenderShape(state: BlockState): RenderShape = bpm.platform.ANIMATED_BLOCK_SHAPE
 
     override fun <T : BlockEntity> getTicker(level: Level, state: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T>? =
         DeviceBlockEntity.ticker(level, type, DeviceBlockEntities.ASSEMBLER.get())
@@ -76,24 +84,21 @@ class AssemblerBlock(properties: Properties) : HorizontalDirectionalBlock(proper
         player: Player,
         hand: net.minecraft.world.InteractionHand,
         hit: BlockHitResult,
-    ): net.minecraft.world.ItemInteractionResult {
-        if (level.isClientSide) return net.minecraft.world.ItemInteractionResult.sidedSuccess(true)
-        val be = level.getBlockEntity(pos) as? AssemblerBlockEntity ?: return net.minecraft.world.ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION
+    ): bpm.platform.BlockUseResult {
+        if (level.isClientSide) return bpm.platform.BlockUse.sidedSuccess(true)
+        val be = level.getBlockEntity(pos) as? AssemblerBlockEntity ?: return bpm.platform.BlockUse.PASS_TO_BLOCK
         val refusal = be.offer(stack)
         if (refusal != null) {
-            player.displayClientMessage(Component.literal("[bpm] $refusal"), true)
-            return net.minecraft.world.ItemInteractionResult.FAIL
+            player.showMessage(Component.literal("[bpm] $refusal"), true)
+            return bpm.platform.BlockUse.FAIL
         }
-        return net.minecraft.world.ItemInteractionResult.SUCCESS
+        return bpm.platform.BlockUse.SUCCESS
     }
 
-    override fun onRemove(state: BlockState, level: Level, pos: BlockPos, newState: BlockState, moved: Boolean) {
-        if (!state.`is`(newState.block)) {
-            (level.getBlockEntity(pos) as? AssemblerBlockEntity)?.let { be ->
-                Containers.dropItemStack(level, pos.x + 0.5, pos.y + 1.0, pos.z + 0.5, be.catalyst)
-            }
+    override fun onBlockRemoved(state: BlockState, level: net.minecraft.server.level.ServerLevel, pos: BlockPos, movedByPiston: Boolean) {
+        (level.getBlockEntity(pos) as? AssemblerBlockEntity)?.let { be ->
+            Containers.dropItemStack(level, pos.x + 0.5, pos.y + 1.0, pos.z + 0.5, be.catalyst)
         }
-        super.onRemove(state, level, pos, newState, moved)
     }
 
     companion object {
@@ -206,7 +211,7 @@ class AssemblerBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity
         val recipe = found.value()
         // Spent on starting, not on finishing: the lens is what sets the process going.
         items.extract(CATALYST, 1, false)
-        recipeId = found.id()
+        recipeId = bpm.platform.recipeIdOf(found)
         running = true
         ticksDone = 0
         totalTicks = recipe.ticks
@@ -294,7 +299,7 @@ class AssemblerBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity
         val l = level ?: return null
         if (withCatalyst.isEmpty) return null
         val input = AssemblyInput(pedestals().map { it.held }, withCatalyst)
-        val found = l.recipeManager.getRecipeFor(ModRecipes.ASSEMBLY.get(), input, l).orElse(null) ?: return null
+        val found = bpm.platform.findRecipe(l, ModRecipes.ASSEMBLY.get(), input) ?: return null
         return if (found.value().paired) null else found
     }
 
@@ -380,7 +385,7 @@ class AssemblerBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity
         val id = recipeId ?: return null
         // The VALUE is type-checked, not the holder: an unchecked cast of the holder proves nothing at
         // runtime and would let a datapack that reused the id hand us some other recipe entirely.
-        val holder = l.recipeManager.byKey(id).orElse(null) ?: return null
+        val holder = bpm.platform.recipeById(l, id) ?: return null
         return holder.value() as? AssemblyRecipe
     }
 
@@ -396,27 +401,27 @@ class AssemblerBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity
         tag.putInt("totalTicks", totalTicks)
         tag.putFloat("coherence", coherence)
         tag.putByte("instability", instability.ordinal.toByte())
-        tag.put("forming", forming.saveOptional(registries))
+        tag.put("forming", bpm.platform.writeStack(registries, forming))
         recipeId?.let { tag.putString("recipe", it.toString()) }
     }
 
     override fun loadSynced(tag: CompoundTag, registries: HolderLookup.Provider) {
-        if (tag.contains("items")) items.load(registries, tag.getList("items", net.minecraft.nbt.Tag.TAG_COMPOUND.toInt()))
+        if (tag.contains("items")) items.load(registries, tag.listOr("items"))
         catalyst = items.stackIn(CATALYST)
-        energy.set(tag.getInt("energy").toLong())
-        if (tag.contains("tanks")) tanks.load(tag.getList("tanks", net.minecraft.nbt.Tag.TAG_COMPOUND.toInt()))
-        running = tag.getBoolean("running")
-        ticksDone = tag.getInt("ticksDone")
-        totalTicks = tag.getInt("totalTicks")
-        coherence = tag.getFloat("coherence")
-        instability = Instability.entries.getOrElse(tag.getByte("instability").toInt()) { Instability.NONE }
-        forming = ItemStack.parseOptional(registries, tag.getCompound("forming"))
-        recipeId = if (tag.contains("recipe")) ResourceLocation.tryParse(tag.getString("recipe")) else null
+        energy.set(tag.intOr("energy", 0).toLong())
+        if (tag.contains("tanks")) tanks.load(tag.listOr("tanks"))
+        running = tag.boolOr("running", false)
+        ticksDone = tag.intOr("ticksDone", 0)
+        totalTicks = tag.intOr("totalTicks", 0)
+        coherence = tag.floatOr("coherence", 0f)
+        instability = Instability.entries.getOrElse(tag.byteOr("instability", 0).toInt()) { Instability.NONE }
+        forming = bpm.platform.readStack(registries, tag.compoundOr("forming"))
+        recipeId = if (tag.contains("recipe")) ResourceLocation.tryParse(tag.stringOr("recipe", "")) else null
     }
 
-    override fun registerControllers(controllers: AnimatableManager.ControllerRegistrar) {
+    override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
         controllers.add(
-            AnimationController(this, "main", 5) { state -> state.setAndContinue(if (running) ASSEMBLE else IDLE) }
+            bpm.platform.animController(this, "main", 5) { state -> state.setAndContinue(if (running) ASSEMBLE else IDLE) }
                 .triggerableAnim("assemble", ASSEMBLE)
                 .triggerableAnim("decohere", DECOHERE)
                 .triggerableAnim("finish", FINISH),

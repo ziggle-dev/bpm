@@ -17,6 +17,7 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.level.block.state.properties.EnumProperty
 import net.minecraft.world.phys.BlockHitResult
+import bpm.platform.showMessage
 
 /** What a controller is doing, as a block-state property so that the model and light need no entity sync. */
 enum class ControllerStatus(private val key: String) : StringRepresentable {
@@ -37,7 +38,7 @@ enum class ControllerStatus(private val key: String) : StringRepresentable {
  * six faces, driven by `redstone.emit`. Right-click reports what the controller is doing; sneak + right-click
  * toggles it. The editor opens through the client (phase 5).
  */
-class ControllerBlock(properties: Properties) : Block(properties), EntityBlock {
+class ControllerBlock(properties: Properties) : bpm.platform.RemovalAwareBlock(properties), EntityBlock {
 
     init {
         registerDefaultState(stateDefinition.any().setValue(STATUS, ControllerStatus.IDLE))
@@ -49,7 +50,7 @@ class ControllerBlock(properties: Properties) : Block(properties), EntityBlock {
 
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = ControllerBlockEntity(pos, state)
 
-    override fun getRenderShape(state: BlockState): RenderShape = RenderShape.ENTITYBLOCK_ANIMATED
+    override fun getRenderShape(state: BlockState): RenderShape = bpm.platform.ANIMATED_BLOCK_SHAPE
 
     override fun isSignalSource(state: BlockState): Boolean = true
 
@@ -65,16 +66,16 @@ class ControllerBlock(properties: Properties) : Block(properties), EntityBlock {
             if (level.isClientSide) return InteractionResult.SUCCESS
             val be = level.getBlockEntity(pos) as? ControllerBlockEntity ?: return InteractionResult.PASS
             be.setEnabled(!be.enabled)
-            player.displayClientMessage(Component.literal("[bpm] controller ${if (be.enabled) "enabled" else "disabled"}"), true)
+            player.showMessage(Component.literal("[bpm] controller ${if (be.enabled) "enabled" else "disabled"}"), true)
             return InteractionResult.CONSUME
         }
         // The editor is a client screen; the class named here is only ever loaded on the client.
         if (level.isClientSide) bpm.client.ClientHooks.openWorkbench(pos)
-        return InteractionResult.sidedSuccess(level.isClientSide)
+        return bpm.platform.Interact.sided(level.isClientSide)
     }
 
-    override fun onRemove(state: BlockState, level: Level, pos: BlockPos, newState: BlockState, movedByPiston: Boolean) {
-        if (!state.`is`(newState.block)) {
+    override fun onBlockRemoved(state: BlockState, level: net.minecraft.server.level.ServerLevel, pos: BlockPos, movedByPiston: Boolean) {
+        run {
             (level.getBlockEntity(pos) as? ControllerBlockEntity)?.let { be ->
                 val inv = be.inventory
                 for (i in 0 until inv.slots) {
@@ -82,7 +83,7 @@ class ControllerBlock(properties: Properties) : Block(properties), EntityBlock {
                     if (!stack.isEmpty) Containers.dropItemStack(level, pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, stack)
                 }
                 // The controller's own graph goes with it; a library it happened to run stays.
-                val server = (level as? net.minecraft.server.level.ServerLevel)?.server
+                val server = level.server
                 val id = be.docId
                 if (server != null && id != null && !movedByPiston) {
                     val lib = bpm.library.BpmLibrary.get(server)
@@ -90,7 +91,6 @@ class ControllerBlock(properties: Properties) : Block(properties), EntityBlock {
                 }
             }
         }
-        super.onRemove(state, level, pos, newState, movedByPiston)
     }
 
     companion object {

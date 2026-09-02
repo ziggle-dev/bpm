@@ -15,13 +15,14 @@ import dev.ziggle.vscript.nodes.Contribution
 import dev.ziggle.vscript.nodes.library
 import net.minecraft.core.particles.SimpleParticleType
 import net.minecraft.core.registries.BuiltInRegistries
-import net.minecraft.resources.ResourceLocation
+import bpm.platform.ResourceLocation
 import net.minecraft.sounds.SoundSource
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import kotlin.math.sqrt
+import bpm.platform.keyId
 
 /** `world.*` — reading and acting on the world around the controller. */
 object WorldNodes {
@@ -142,19 +143,19 @@ object WorldNodes {
             title("Time Of Day")
             doc("The time of day in ticks, 0 to 23999. Day starts at 0, night around 13000.")
             result("Time", McVs.int)
-            query { host.level.dayTime % 24000L }
+            query { bpm.platform.dayTime(host.level) % 24000L }
         }
         func("day") {
             title("Day Number")
             doc("How many days the world has seen.")
             result("Day", McVs.int)
-            query { host.level.dayTime / 24000L }
+            query { bpm.platform.dayTime(host.level) / 24000L }
         }
         func("isDay") {
             title("Is Day")
             doc("Whether it is daytime.")
             result("Day", McVs.bool)
-            query { host.level.isDay }
+            query { bpm.platform.isDaytime(host.level) }
         }
         func("isRaining") {
             title("Is Raining")
@@ -173,7 +174,7 @@ object WorldNodes {
             result("Biome", McVs.string)
             query {
                 val p = BlockPosValue.toBlockPos(pos()) ?: return@query ""
-                host.level.getBiome(p).unwrapKey().map { it.location().toString() }.orElse("")
+                host.level.getBiome(p).unwrapKey().map { it.keyId().toString() }.orElse("")
             }
         }
         func("lightAt") {
@@ -482,7 +483,7 @@ object WorldNodes {
             val volume = param("Volume", McVs.float, "", default = 1.0)
             val pitch = param("Pitch", McVs.float, "", default = 1.0)
             command {
-                val sound = ResourceLocation.tryParse(id().trim())?.let { BuiltInRegistries.SOUND_EVENT.get(it) } ?: return@command null
+                val sound = ResourceLocation.tryParse(id().trim())?.let { bpm.platform.valueOf(BuiltInRegistries.SOUND_EVENT, it) } ?: return@command null
                 val at = BlockPosValue.toBlockPos(pos()) ?: host.pos
                 host.level.playSound(null, at, sound, SoundSource.BLOCKS, volume().toFloat(), pitch().toFloat())
                 null
@@ -496,7 +497,7 @@ object WorldNodes {
             val count = param("Count", McVs.int, "", default = 8L)
             val spread = param("Spread", McVs.float, "how far they scatter", default = 0.5)
             command {
-                val type = ResourceLocation.tryParse(id().trim())?.let { BuiltInRegistries.PARTICLE_TYPE.get(it) } as? SimpleParticleType
+                val type = ResourceLocation.tryParse(id().trim())?.let { bpm.platform.valueOf(BuiltInRegistries.PARTICLE_TYPE, it) } as? SimpleParticleType
                     ?: return@command null
                 val at = BlockPosValue.toBlockPos(pos())?.let { Vec3.atCenterOf(it) } ?: Vec3.atCenterOf(host.pos).add(0.0, 1.0, 0.0)
                 val s = spread()

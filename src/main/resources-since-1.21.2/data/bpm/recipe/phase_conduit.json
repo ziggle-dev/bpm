@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "AAA",
+    "SSS",
+    "AAA"
+  ],
+  "key": {
+    "A": "bpm:quantum_alloy_ingot",
+    "S": "bpm:entanglium_shard"
+  },
+  "result": {
+    "id": "bpm:phase_conduit",
+    "count": 6
+  }
+}

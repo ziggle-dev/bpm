@@ -22,14 +22,21 @@ import bpm.platform.ports.Droplets
 import bpm.platform.ports.EnergyCell
 import bpm.platform.ports.MultiTank
 import bpm.platform.ports.SlotStore
-import software.bernie.geckolib.animatable.GeoBlockEntity
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
-import software.bernie.geckolib.animation.AnimatableManager
-import software.bernie.geckolib.animation.AnimationController
-import software.bernie.geckolib.animation.PlayState
-import software.bernie.geckolib.animation.RawAnimation
-import software.bernie.geckolib.util.GeckoLibUtil
+import bpm.platform.GeoBlockEntity
+import bpm.platform.AnimatableInstanceCache
+import bpm.platform.AnimatableManager
+import bpm.platform.AnimationController
+import bpm.platform.PlayState
+import bpm.platform.RawAnimation
+import bpm.platform.GeckoLibUtil
 import java.util.UUID
+import bpm.platform.intOr
+import bpm.platform.stringOr
+import bpm.platform.boolOr
+import bpm.platform.compoundOr
+import bpm.platform.listOr
+import bpm.platform.intsOr
+import bpm.platform.compoundAt
 
 /**
  * A controller's saved state and its running program.
@@ -44,7 +51,7 @@ import java.util.UUID
  * the client never needs entity data for the model or the light.
  */
 class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
-    BlockEntity(ModBlockEntities.CONTROLLER.get(), pos, state), GeoBlockEntity, bpm.session.Deployable {
+    bpm.platform.SavingBlockEntity(ModBlockEntities.CONTROLLER.get(), pos, state), GeoBlockEntity, bpm.session.Deployable {
 
     var docId: UUID? = null
         private set
@@ -120,9 +127,8 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
 
     // ---- nbt --------------------------------------------------------------------------------------------
 
-    override fun saveAdditional(tag: CompoundTag, registries: HolderLookup.Provider) {
-        super.saveAdditional(tag, registries)
-        docId?.let { tag.putUUID("doc", it) }
+    override fun saveExtra(tag: CompoundTag, registries: HolderLookup.Provider) {
+        docId?.let { bpm.platform.putUuid(tag, "doc", it) }
         tag.putInt("docVersion", docVersion)
         tag.putInt("runningVersion", runningVersion)
         tag.putBoolean("enabled", enabled)
@@ -138,25 +144,24 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
         tag.put("breakpoints", net.minecraft.nbt.ListTag().also { list -> breakpoints.forEach { (id, on) -> list.add(CompoundTag().also { it.putInt("node", id); it.putBoolean("on", on) }) } })
     }
 
-    override fun loadAdditional(tag: CompoundTag, registries: HolderLookup.Provider) {
-        super.loadAdditional(tag, registries)
-        docId = if (tag.hasUUID("doc")) tag.getUUID("doc") else null
-        docVersion = tag.getInt("docVersion")
-        runningVersion = tag.getInt("runningVersion")
-        enabled = !tag.contains("enabled") || tag.getBoolean("enabled")
-        debugBuild = !tag.contains("debug") || tag.getBoolean("debug")
-        coreTier = CoreTier.byKey(tag.getString("coreTier"))
-        links.load(tag.getList("links", Tag.TAG_COMPOUND.toInt()))
-        scriptData = tag.getCompound("data")
-        val s = tag.getIntArray("signals")
+    override fun loadExtra(tag: CompoundTag, registries: HolderLookup.Provider) {
+        docId = bpm.platform.uuidOrNull(tag, "doc")
+        docVersion = tag.intOr("docVersion", 0)
+        runningVersion = tag.intOr("runningVersion", 0)
+        enabled = !tag.contains("enabled") || tag.boolOr("enabled", false)
+        debugBuild = !tag.contains("debug") || tag.boolOr("debug", false)
+        coreTier = CoreTier.byKey(tag.stringOr("coreTier", ""))
+        links.load(tag.listOr("links"))
+        scriptData = tag.compoundOr("data")
+        val s = tag.intsOr("signals")
         if (s.size == 6) s.copyInto(signals) else signals.fill(0)
-        if (tag.contains("inventory")) inventory.load(registries, tag.getList("inventory", Tag.TAG_COMPOUND.toInt()))
-        if (tag.contains("tanks")) tanks.load(tag.getList("tanks", Tag.TAG_COMPOUND.toInt()))
+        if (tag.contains("inventory")) inventory.load(registries, tag.listOr("inventory"))
+        if (tag.contains("tanks")) tanks.load(tag.listOr("tanks"))
         tag.get("energy")?.let { energy.load(it) }
-        lastError = if (tag.contains("lastError")) tag.getString("lastError") else null
+        lastError = if (tag.contains("lastError")) tag.stringOr("lastError", "") else null
         breakpoints.clear()
-        val bps = tag.getList("breakpoints", Tag.TAG_COMPOUND.toInt())
-        for (i in 0 until bps.size) bps.getCompound(i).let { breakpoints[it.getInt("node")] = it.getBoolean("on") }
+        val bps = tag.listOr("breakpoints")
+        for (i in 0 until bps.size) bps.compoundAt(i).let { breakpoints[it.intOr("node", 0)] = it.boolOr("on", false) }
     }
 
     /** Arms, disarms or removes a breakpoint, now and for every later run. */
@@ -167,9 +172,8 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
     }
 
     /** What the client needs: the link table (wand HUD, editor) and the binding. */
-    override fun applyImplicitComponents(input: DataComponentInput) {
-        super.applyImplicitComponents(input)
-        coreTier = CoreTier.byKey(input.get(ModComponents.CORE_TIER.get()))
+    override fun readComponents(components: bpm.platform.ComponentSource) {
+        coreTier = CoreTier.byKey(components.get(ModComponents.CORE_TIER.get()))
     }
 
     override fun collectImplicitComponents(builder: net.minecraft.core.component.DataComponentMap.Builder) {
@@ -177,9 +181,9 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
         builder.set(ModComponents.CORE_TIER.get(), coreTier.key)
     }
 
-    override fun getUpdateTag(registries: HolderLookup.Provider): CompoundTag = CompoundTag().also { tag ->
+    override fun getUpdateTag(registries: HolderLookup.Provider): CompoundTag = syncTag { tag ->
         tag.putString("coreTier", coreTier.key)
-        docId?.let { tag.putUUID("doc", it) }
+        docId?.let { bpm.platform.putUuid(tag, "doc", it) }
         tag.put("links", links.save())
         tag.putBoolean("enabled", enabled)
         lastError?.let { tag.putString("lastError", it) }
@@ -426,16 +430,16 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
 
     // ---- geckolib ---------------------------------------------------------------------------------------
 
-    override fun registerControllers(controllers: AnimatableManager.ControllerRegistrar) {
+    override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
         controllers.add(
-            AnimationController(this, "status", 5) { state ->
+            bpm.platform.animController(this, "status", 5) { state ->
                 val on = blockState.takeIf { it.hasProperty(ControllerBlock.STATUS) }?.getValue(ControllerBlock.STATUS)?.isOn ?: false
                 state.setAndContinue(if (on) IDLE else OFF)
                 PlayState.CONTINUE
             }.triggerableAnim("powerup", POWERUP).triggerableAnim("powerdown", POWERDOWN),
         )
         controllers.add(
-            AnimationController(this, "overlay", 0) { PlayState.STOP }
+            bpm.platform.animController(this, "overlay", 0) { PlayState.STOP }
                 .triggerableAnim("open", OPEN).triggerableAnim("close", CLOSE),
         )
     }

@@ -31,6 +31,7 @@ import kotlin.math.hypot
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
+import bpm.platform.intsOr
 
 /**
  * What varies from room to room, drawn once from a slot's seed (its owner and how many times it has reset):
@@ -70,17 +71,17 @@ class RoomLayout(
 
         fun load(t: CompoundTag): RoomLayout? {
             if (!t.contains("spikes")) return null
-            val tr = t.getIntArray("turrets")
-            val cv = t.getIntArray("cover")
+            val tr = t.intsOr("turrets")
+            val cv = t.intsOr("cover")
             return RoomLayout(
-                bridges = t.getIntArray("bridges").toList(),
-                spikes = unflat(t.getIntArray("spikes")),
-                vents = unflat(t.getIntArray("vents")),
+                bridges = t.intsOr("bridges").toList(),
+                spikes = unflat(t.intsOr("spikes")),
+                vents = unflat(t.intsOr("vents")),
                 turrets = (0 until tr.size / 4).map { BlockPos(tr[it * 4], tr[it * 4 + 1], tr[it * 4 + 2]) to Direction.from3DDataValue(tr[it * 4 + 3]) },
-                consoles = unflat(t.getIntArray("consoles")),
+                consoles = unflat(t.intsOr("consoles")),
                 cover = (0 until cv.size / 4).map { BlockPos(cv[it * 4], cv[it * 4 + 1], cv[it * 4 + 2]) to cv[it * 4 + 3] },
-                crystals = unflat(t.getIntArray("crystals")),
-                lights = unflat(t.getIntArray("lights")),
+                crystals = unflat(t.intsOr("crystals")),
+                lights = unflat(t.intsOr("lights")),
             )
         }
 

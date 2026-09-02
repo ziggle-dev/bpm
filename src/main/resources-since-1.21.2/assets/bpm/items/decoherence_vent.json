@@ -1,0 +1,9 @@
+{
+  "model": {
+    "type": "minecraft:special",
+    "base": "bpm:item/decoherence_vent",
+    "model": {
+      "type": "geckolib:geckolib"
+    }
+  }
+}

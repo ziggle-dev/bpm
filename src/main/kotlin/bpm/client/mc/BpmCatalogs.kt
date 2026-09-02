@@ -16,6 +16,7 @@ import net.minecraft.core.Registry
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.item.Item
 import net.minecraft.world.level.block.Block
+import bpm.platform.keyId
 
 /**
  * The value pickers for the mod's types: items, blocks and fluids from the registries (searched by display
@@ -23,7 +24,7 @@ import net.minecraft.world.level.block.Block
  * `EditorHost.values`; vscript then gives every pin of those types a searchable catalogue editor.
  */
 object BpmCatalogs : ValueCatalogs {
-    private val items = RegistryCatalog(BuiltInRegistries.ITEM) { (it as Item).description.string }
+    private val items = RegistryCatalog(BuiltInRegistries.ITEM) { net.minecraft.network.chat.Component.translatable((it as Item).descriptionId).string }
     private val blocks = RegistryCatalog(BuiltInRegistries.BLOCK) { (it as Block).name.string }
     private val fluids = RegistryCatalog(BuiltInRegistries.FLUID) { null }
     private val tags = TagCatalog()
@@ -62,7 +63,7 @@ private class RegistryCatalog(private val registry: Registry<*>, private val dis
     private var entries: List<Entry>? = null
 
     private fun entries(): List<Entry> = entries ?: registry.entrySet()
-        .map { (key, value) -> Entry(key.location().toString(), runCatching { display(value as Any) }.getOrNull() ?: key.location().path) }
+        .map { (key, value) -> Entry(key.keyId().toString(), runCatching { display(value as Any) }.getOrNull() ?: key.keyId().path) }
         .sortedBy { it.label.lowercase() }
         .also { entries = it }
 
@@ -144,7 +145,7 @@ private class KeyCatalog : ValueCatalog {
 private class TagCatalog : ValueCatalog {
     private var ids: List<String>? = null
 
-    private fun ids(): List<String> = ids ?: BuiltInRegistries.ITEM.tags.map { it.first.location().toString() }.toList().sorted().also { ids = it }
+    private fun ids(): List<String> = ids ?: bpm.platform.tagIds(BuiltInRegistries.ITEM).sorted().also { ids = it }
 
     fun invalidate() {
         ids = null

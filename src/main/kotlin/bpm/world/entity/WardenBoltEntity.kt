@@ -17,13 +17,14 @@ import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.EntityHitResult
 import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
+import bpm.platform.floatOr
 
 /**
  * The Warden's bolt: a fast energy spear drawn by [bpm.client.render.WardenBoltRenderer] — teal for the
  * volley, orchid and slower for the *seeker* the open cage fires, which bends toward its target a little
  * every tick and can be outrun or ducked behind cover. Breaks on whatever it meets first.
  */
-class WardenBoltEntity(type: EntityType<out WardenBoltEntity>, level: Level) : Projectile(type, level) {
+class WardenBoltEntity(type: EntityType<out WardenBoltEntity>, level: Level) : bpm.platform.SavingProjectile(type, level) {
     var damage: Float = 6f
     var speed: Double = SPEED
     var life: Int = LIFE
@@ -88,7 +89,7 @@ class WardenBoltEntity(type: EntityType<out WardenBoltEntity>, level: Level) : P
 
     override fun onHitEntity(result: EntityHitResult) {
         super.onHitEntity(result)
-        if (!level().isClientSide) result.entity.hurt(BpmDamage.source(level(), BpmDamage.WARDEN_BEAM, owner), damage)
+        if (!level().isClientSide) result.entity.hurt(BpmDamage.source(level(), BpmDamage.WARDEN_BEAM, getOwner()), damage)
         discard()
     }
 
@@ -97,13 +98,11 @@ class WardenBoltEntity(type: EntityType<out WardenBoltEntity>, level: Level) : P
         discard()
     }
 
-    override fun readAdditionalSaveData(tag: CompoundTag) {
-        super.readAdditionalSaveData(tag)
-        damage = tag.getFloat("damage")
+    override fun loadExtra(tag: CompoundTag, registries: net.minecraft.core.HolderLookup.Provider) {
+        damage = tag.floatOr("damage", 0f)
     }
 
-    override fun addAdditionalSaveData(tag: CompoundTag) {
-        super.addAdditionalSaveData(tag)
+    override fun saveExtra(tag: CompoundTag, registries: net.minecraft.core.HolderLookup.Provider) {
         tag.putFloat("damage", damage)
     }
 

@@ -59,9 +59,20 @@ class AssemblyRecipe(
     val energy: Int,
     val experience: Int,
     val ticks: Int,
-    val result: ItemStack,
+    /**
+     * What comes out, as the band can hold it before item components are bound -- see
+     * [bpm.platform.RecipeResult]. The stack is made from it on first use, by which time they are.
+     */
+    val resultSpec: bpm.platform.RecipeResult,
     val requires: List<String>,
-) : Recipe<AssemblyInput> {
+) : bpm.platform.PedestalRecipe<AssemblyInput>() {
+
+    /** Made once, on first use rather than while the datapack is being read. */
+    val result: ItemStack by lazy { resultSpec.create() }
+
+    override val inputs: List<Ingredient> get() = parts
+
+    override val output: ItemStack get() = result
 
     /** Rounded UP, so a job is always fully paid for by the time it ends rather than a tick short. */
     val energyPerTick: Int get() = ceilDiv(energy, ticks)
@@ -110,39 +121,38 @@ class AssemblyRecipe(
         return false
     }
 
-    override fun assemble(input: AssemblyInput, registries: HolderLookup.Provider): ItemStack = result.copy()
+    override fun assembleResult(input: AssemblyInput): ItemStack = result.copy()
 
-    /** Not a grid recipe; the pedestals are the shape and there is no width to speak of. */
-    override fun canCraftInDimensions(width: Int, height: Int): Boolean = true
+    override fun getSerializer(): RecipeSerializer<out Recipe<AssemblyInput>> = ModRecipes.ASSEMBLY_SERIALIZER.get()
 
-    override fun getResultItem(registries: HolderLookup.Provider): ItemStack = result
-
-    override fun getIngredients(): NonNullList<Ingredient> = parts
-
-    override fun getSerializer(): RecipeSerializer<*> = ModRecipes.ASSEMBLY_SERIALIZER.get()
-
-    override fun getType(): RecipeType<*> = ModRecipes.ASSEMBLY.get()
+    override fun getType(): RecipeType<out Recipe<AssemblyInput>> = ModRecipes.ASSEMBLY.get()
 
     /** A recipe whose result the player cannot see coming is no fun; the screen and JEI both read this. */
     override fun isSpecial(): Boolean = false
 
-    class Serializer : RecipeSerializer<AssemblyRecipe> {
+    /**
+     * The two codecs, and nothing else.
+     *
+     * An object rather than a `RecipeSerializer` subclass, because from 26.1 a serializer is a final
+     * record built from exactly these two things -- see `bpm.platform.recipeSerializer`.
+     */
+    object Serializer {
 
-        private val codec: MapCodec<AssemblyRecipe> = RecordCodecBuilder.mapCodec { it ->
+        val codec: MapCodec<AssemblyRecipe> = RecordCodecBuilder.mapCodec { it ->
             it.group(
-                Ingredient.CODEC_NONEMPTY.listOf().fieldOf("ingredients").forGetter { r -> r.parts },
-                Ingredient.CODEC_NONEMPTY.fieldOf("catalyst").forGetter { r -> r.catalyst },
+                bpm.platform.INGREDIENT_CODEC.listOf().fieldOf("ingredients").forGetter { r -> r.parts },
+                bpm.platform.INGREDIENT_CODEC.fieldOf("catalyst").forGetter { r -> r.catalyst },
                 Codec.INT.optionalFieldOf("energy", 0).forGetter { r -> r.energy },
                 Codec.INT.optionalFieldOf("experience", 0).forGetter { r -> r.experience },
                 Codec.INT.optionalFieldOf("ticks", 200).forGetter { r -> r.ticks },
-                ItemStack.CODEC.fieldOf("result").forGetter { r -> r.result },
+                bpm.platform.RECIPE_RESULT_CODEC.fieldOf("result").forGetter { r -> r.resultSpec },
                 Codec.STRING.listOf().optionalFieldOf("requires", listOf()).forGetter { r -> r.requires },
             ).apply(it) { ingredients, catalyst, energy, experience, ticks, result, requires ->
                 AssemblyRecipe(list(ingredients), catalyst, energy, experience, ticks.coerceAtLeast(1), result, requires)
             }
         }
 
-        private val streamCodec: StreamCodec<RegistryFriendlyByteBuf, AssemblyRecipe> =
+        val streamCodec: StreamCodec<RegistryFriendlyByteBuf, AssemblyRecipe> =
             StreamCodec.of({ buf, r ->
                 ByteBufCodecs.collection<RegistryFriendlyByteBuf, Ingredient, MutableList<Ingredient>>({ ArrayList(it) }, Ingredient.CONTENTS_STREAM_CODEC)
                     .encode(buf, r.parts)
@@ -160,14 +170,12 @@ class AssemblyRecipe(
                 val energy = buf.readVarInt()
                 val experience = buf.readVarInt()
                 val ticks = buf.readVarInt()
-                val result = ItemStack.STREAM_CODEC.decode(buf)
+                val result = bpm.platform.RecipeResult.of(ItemStack.STREAM_CODEC.decode(buf))
                 val requires = ByteBufCodecs.collection<RegistryFriendlyByteBuf, String, MutableList<String>>({ ArrayList(it) }, ByteBufCodecs.stringUtf8(64))
                     .decode(buf)
                 AssemblyRecipe(list(ingredients), catalyst, energy, experience, ticks, result, requires)
             })
 
-        override fun codec(): MapCodec<AssemblyRecipe> = codec
-        override fun streamCodec(): StreamCodec<RegistryFriendlyByteBuf, AssemblyRecipe> = streamCodec
     }
 
     companion object {
@@ -195,5 +203,7 @@ object ModRecipes {
         override fun toString(): String = "bpm:assembly"
     } }
 
-    val ASSEMBLY_SERIALIZER = SERIALIZERS.register("assembly") { -> AssemblyRecipe.Serializer() }
+    val ASSEMBLY_SERIALIZER = SERIALIZERS.register("assembly") { ->
+        bpm.platform.recipeSerializer(AssemblyRecipe.Serializer.codec, AssemblyRecipe.Serializer.streamCodec)
+    }
 }

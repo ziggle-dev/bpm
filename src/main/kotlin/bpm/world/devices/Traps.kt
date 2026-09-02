@@ -33,7 +33,6 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.block.state.properties.BooleanProperty
-import net.minecraft.world.level.block.state.properties.DirectionProperty
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
@@ -41,12 +40,19 @@ import net.minecraft.world.phys.shapes.CollisionContext
 import net.minecraft.world.phys.shapes.Shapes
 import net.minecraft.world.phys.shapes.VoxelShape
 import org.joml.Vector3f
-import software.bernie.geckolib.animation.AnimatableManager
-import software.bernie.geckolib.animation.AnimationController
-import software.bernie.geckolib.animation.RawAnimation
+import bpm.platform.AnimatableManager
+import bpm.platform.AnimationController
+import bpm.platform.RawAnimation
 import java.util.UUID
 import kotlin.math.atan2
 import kotlin.math.sqrt
+import bpm.platform.longOr
+import bpm.platform.floatOr
+import bpm.platform.stringOr
+import bpm.platform.boolOr
+import bpm.platform.compoundOr
+import bpm.platform.intsOr
+import bpm.platform.showMessage
 
 /*
  * The chamber's hazards as blocks — usable anywhere, which is why they have recipes.
@@ -64,7 +70,7 @@ class TrapBlock(
     private val shape: VoxelShape = PLATE,
 ) : Block(properties), EntityBlock {
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = factory(pos, state)
-    override fun getRenderShape(state: BlockState): RenderShape = RenderShape.ENTITYBLOCK_ANIMATED
+    override fun getRenderShape(state: BlockState): RenderShape = bpm.platform.ANIMATED_BLOCK_SHAPE
     override fun getShape(state: BlockState, level: BlockGetter, pos: BlockPos, ctx: CollisionContext): VoxelShape = shape
 
     override fun <T : BlockEntity> getTicker(level: Level, state: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T>? {
@@ -72,7 +78,7 @@ class TrapBlock(
         return BlockEntityTicker { _, _, _, be -> (be as? DeviceBlockEntity)?.serverTick() }
     }
 
-    override fun neighborChanged(state: BlockState, level: Level, pos: BlockPos, block: Block, fromPos: BlockPos, moving: Boolean) {
+    override fun neighborChanged(state: BlockState, level: Level, pos: BlockPos, block: Block, fromPos: bpm.platform.NeighborSource, moving: Boolean) {
         super.neighborChanged(state, level, pos, block, fromPos, moving)
         if (!level.isClientSide) (level.getBlockEntity(pos) as? TrapBlockEntity)?.onRedstone(level.hasNeighborSignal(pos))
     }
@@ -167,8 +173,8 @@ abstract class TrapBlockEntity(type: BlockEntityType<*>, pos: BlockPos, state: B
     }
 
     override fun loadSynced(tag: CompoundTag, registries: HolderLookup.Provider) {
-        mode = runCatching { TrapMode.valueOf(tag.getString("mode")) }.getOrDefault(TrapMode.CYCLE)
-        proximity = tag.getBoolean("proximity")
+        mode = runCatching { TrapMode.valueOf(tag.stringOr("mode", "")) }.getOrDefault(TrapMode.CYCLE)
+        proximity = tag.boolOr("proximity", false)
     }
 }
 
@@ -217,9 +223,9 @@ class SpikeBlockEntity(pos: BlockPos, state: BlockState) : TrapBlockEntity(Devic
 
     override fun loadSynced(tag: CompoundTag, registries: HolderLookup.Provider) {
         super.loadSynced(tag, registries)
-        conjured = tag.getBoolean("conjured")
-        revertAt = tag.getLong("revertAt")
-        original = if (tag.contains("original")) net.minecraft.nbt.NbtUtils.readBlockState(net.minecraft.core.registries.BuiltInRegistries.BLOCK.asLookup(), tag.getCompound("original")) else null
+        conjured = tag.boolOr("conjured", false)
+        revertAt = tag.longOr("revertAt", 0L)
+        original = if (tag.contains("original")) net.minecraft.nbt.NbtUtils.readBlockState(bpm.platform.blockLookup(), tag.compoundOr("original")) else null
     }
 
     override val phase: String
@@ -244,14 +250,14 @@ class SpikeBlockEntity(pos: BlockPos, state: BlockState) : TrapBlockEntity(Devic
             for (v in victims(1.0)) {
                 if (!hit.add(v.uuid)) continue
                 v.hurt(BpmDamage.source(l, BpmDamage.SPIKE), BpmConfig.TRAP_SPIKE_DAMAGE.orDefault().toFloat())
-                v.addEffect(MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 8, 1))
+                v.addEffect(MobEffectInstance(bpm.platform.SLOWNESS, 8, 1))
             }
         }
     }
 
-    override fun registerControllers(controllers: AnimatableManager.ControllerRegistrar) {
+    override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
         controllers.add(
-            AnimationController(this, "main", 2) { s -> s.setAndContinue(IDLE) }
+            bpm.platform.animController(this, "main", 2) { s -> s.setAndContinue(IDLE) }
                 .triggerableAnim("arm", ARM).triggerableAnim("extend", EXTEND).triggerableAnim("retract", RETRACT),
         )
     }
@@ -305,12 +311,12 @@ class VentBlockEntity(pos: BlockPos, state: BlockState) : TrapBlockEntity(Device
         l.sendParticles(ParticleTypes.PORTAL, from.x, from.y + 1.0, from.z, 30, 0.3, 0.6, 0.3, 0.3)
         entity.teleportTo(to.x + 0.5, to.y + 1.0, to.z + 0.5)
         entity.setPortalCooldown(ARRIVAL_COOLDOWN)
-        entity.fallDistance = 0f
+        entity.resetFallDistance()
         l.sendParticles(ParticleTypes.PORTAL, to.x + 0.5, to.y + 2.0, to.z + 0.5, 30, 0.3, 0.6, 0.3, 0.3)
         l.playSound(null, to, net.minecraft.sounds.SoundEvents.ENDERMAN_TELEPORT, net.minecraft.sounds.SoundSource.BLOCKS, 0.7f, 1.6f)
         triggerAnim("main", "charge")
         (l.getBlockEntity(to) as? VentBlockEntity)?.triggerAnim("main", "charge")
-        if (entity is Player) entity.displayClientMessage(net.minecraft.network.chat.Component.literal("[bpm] the vent throws you across the room"), true)
+        if (entity is Player) entity.showMessage(net.minecraft.network.chat.Component.literal("[bpm] the vent throws you across the room"), true)
     }
 
     override val phase: String
@@ -346,13 +352,13 @@ class VentBlockEntity(pos: BlockPos, state: BlockState) : TrapBlockEntity(Device
     override fun loadSynced(tag: CompoundTag, registries: HolderLookup.Provider) {
         super.loadSynced(tag, registries)
         peers.clear()
-        val a = tag.getIntArray("peers")
+        val a = tag.intsOr("peers")
         for (i in 0 until a.size / 3) peers += BlockPos(a[i * 3], a[i * 3 + 1], a[i * 3 + 2])
     }
 
-    override fun registerControllers(controllers: AnimatableManager.ControllerRegistrar) {
+    override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
         controllers.add(
-            AnimationController(this, "main", 2) { s -> s.setAndContinue(IDLE) }
+            bpm.platform.animController(this, "main", 2) { s -> s.setAndContinue(IDLE) }
                 .triggerableAnim("charge", CHARGE).triggerableAnim("erupt", ERUPT),
         )
     }
@@ -377,13 +383,13 @@ class TurretBlock(properties: Properties) : Block(properties), EntityBlock {
 
     override fun getStateForPlacement(ctx: BlockPlaceContext): BlockState = defaultBlockState().setValue(FACING, ctx.clickedFace)
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = TurretBlockEntity(pos, state)
-    override fun getRenderShape(state: BlockState): RenderShape = RenderShape.ENTITYBLOCK_ANIMATED
+    override fun getRenderShape(state: BlockState): RenderShape = bpm.platform.ANIMATED_BLOCK_SHAPE
 
     override fun <T : BlockEntity> getTicker(level: Level, state: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T>? =
         DeviceBlockEntity.ticker(level, type, DeviceBlockEntities.TURRET.get())
 
     companion object {
-        val FACING: DirectionProperty = BlockStateProperties.FACING
+        val FACING: net.minecraft.world.level.block.state.properties.EnumProperty<net.minecraft.core.Direction> = BlockStateProperties.FACING
     }
 }
 
@@ -463,7 +469,7 @@ class TurretBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(De
     val facing: Direction get() = blockState.takeIf { it.hasProperty(TurretBlock.FACING) }?.getValue(TurretBlock.FACING) ?: Direction.UP
 
     /** The eye: just outside the block along the mount's normal, so its own block never blocks its sight. */
-    fun eye(): Vec3 = Vec3.atCenterOf(worldPosition).add(Vec3.atLowerCornerOf(facing.normal).scale(0.56))
+    fun eye(): Vec3 = Vec3.atCenterOf(worldPosition).add(Vec3.atLowerCornerOf(bpm.platform.unitVector(facing)).scale(0.56))
 
     /** Point the eye at [pos] (null lets it hunt again). */
     fun aimAt(pos: Vec3?) {
@@ -676,17 +682,17 @@ class TurretBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(De
     }
 
     override fun loadSynced(tag: CompoundTag, registries: HolderLookup.Provider) {
-        targetYaw = tag.getFloat("yaw")
-        targetPitch = tag.getFloat("pitch")
-        tracking = tag.getBoolean("tracking")
-        active = !tag.contains("active") || tag.getBoolean("active")
-        off = tag.getBoolean("off")
-        disabledUntil = tag.getLong("darkUntil")
+        targetYaw = tag.floatOr("yaw", 0f)
+        targetPitch = tag.floatOr("pitch", 0f)
+        tracking = tag.boolOr("tracking", false)
+        active = !tag.contains("active") || tag.boolOr("active", false)
+        off = tag.boolOr("off", false)
+        disabledUntil = tag.longOr("darkUntil", 0L)
     }
 
-    override fun registerControllers(controllers: AnimatableManager.ControllerRegistrar) {
+    override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
         controllers.add(
-            AnimationController(this, "main", 4) { s -> s.setAndContinue(if (off) OFF else if (tracking) TRACK else IDLE) }
+            bpm.platform.animController(this, "main", 4) { s -> s.setAndContinue(if (off) OFF else if (tracking) TRACK else IDLE) }
                 .triggerableAnim("fire", FIRE).triggerableAnim("powerdown", POWERDOWN).triggerableAnim("powerup", POWERUP),
         )
     }
@@ -728,7 +734,7 @@ class TurretBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(De
 }
 
 /** The superposition block: solid or a ghost frame, toggled by its cycle, redstone, or a link. */
-class PhaseBlock(properties: Properties) : Block(properties), EntityBlock {
+class PhaseBlock(properties: Properties) : bpm.platform.SkylightAwareBlock(properties), EntityBlock {
     init {
         registerDefaultState(stateDefinition.any().setValue(SOLID, true))
     }
@@ -738,7 +744,7 @@ class PhaseBlock(properties: Properties) : Block(properties), EntityBlock {
     }
 
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = PhaseBlockEntity(pos, state)
-    override fun getRenderShape(state: BlockState): RenderShape = RenderShape.ENTITYBLOCK_ANIMATED
+    override fun getRenderShape(state: BlockState): RenderShape = bpm.platform.ANIMATED_BLOCK_SHAPE
 
     /** A ghost is nothing to walk on — except for the Warden, which walks its own decohered floor. */
     override fun getCollisionShape(state: BlockState, level: BlockGetter, pos: BlockPos, context: CollisionContext): VoxelShape {
@@ -748,8 +754,8 @@ class PhaseBlock(properties: Properties) : Block(properties), EntityBlock {
     }
 
     /** Inside a decohered trail tile, anything living but the Warden is hurt — the reason not to follow it. */
-    override fun entityInside(state: BlockState, level: Level, pos: BlockPos, entity: Entity) {
-        if (level.isClientSide || state.getValue(SOLID)) return
+    override fun insideBlock(state: BlockState, level: net.minecraft.server.level.ServerLevel, pos: BlockPos, entity: Entity) {
+        if (state.getValue(SOLID)) return
         if (entity !is LivingEntity || entity is bpm.world.entity.QuantumWardenEntity) return
         if (entity is Player && (entity.isCreative || entity.isSpectator)) return
         val be = level.getBlockEntity(pos) as? PhaseBlockEntity ?: return
@@ -759,12 +765,12 @@ class PhaseBlock(properties: Properties) : Block(properties), EntityBlock {
 
     override fun getShape(state: BlockState, level: BlockGetter, pos: BlockPos, context: CollisionContext): VoxelShape = Shapes.block()
 
-    override fun propagatesSkylightDown(state: BlockState, level: BlockGetter, pos: BlockPos): Boolean = !state.getValue(SOLID)
+    override fun propagatesSkylight(state: BlockState): Boolean = !state.getValue(SOLID)
 
     override fun <T : BlockEntity> getTicker(level: Level, state: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T>? =
         DeviceBlockEntity.ticker(level, type, DeviceBlockEntities.PHASE.get())
 
-    override fun neighborChanged(state: BlockState, level: Level, pos: BlockPos, block: Block, fromPos: BlockPos, moving: Boolean) {
+    override fun neighborChanged(state: BlockState, level: Level, pos: BlockPos, block: Block, fromPos: bpm.platform.NeighborSource, moving: Boolean) {
         super.neighborChanged(state, level, pos, block, fromPos, moving)
         if (!level.isClientSide) (level.getBlockEntity(pos) as? PhaseBlockEntity)?.onRedstone(level.hasNeighborSignal(pos))
     }
@@ -868,15 +874,15 @@ class PhaseBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(Dev
     }
 
     override fun loadSynced(tag: CompoundTag, registries: HolderLookup.Provider) {
-        mode = runCatching { TrapMode.valueOf(tag.getString("mode")) }.getOrDefault(TrapMode.LINKED)
-        trail = tag.getBoolean("trail")
-        revertAt = tag.getLong("revertAt")
-        original = if (tag.contains("original")) net.minecraft.nbt.NbtUtils.readBlockState(net.minecraft.core.registries.BuiltInRegistries.BLOCK.asLookup(), tag.getCompound("original")) else null
+        mode = runCatching { TrapMode.valueOf(tag.stringOr("mode", "")) }.getOrDefault(TrapMode.LINKED)
+        trail = tag.boolOr("trail", false)
+        revertAt = tag.longOr("revertAt", 0L)
+        original = if (tag.contains("original")) net.minecraft.nbt.NbtUtils.readBlockState(bpm.platform.blockLookup(), tag.compoundOr("original")) else null
     }
 
-    override fun registerControllers(controllers: AnimatableManager.ControllerRegistrar) {
+    override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
         controllers.add(
-            AnimationController(this, "main", 2) { s -> s.setAndContinue(if (solid) SOLID_ANIM else GHOST) }
+            bpm.platform.animController(this, "main", 2) { s -> s.setAndContinue(if (solid) SOLID_ANIM else GHOST) }
                 .triggerableAnim("phase_out", PHASE_OUT).triggerableAnim("phase_in", PHASE_IN),
         )
     }

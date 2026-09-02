@@ -8,13 +8,16 @@ import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.ListTag
 import net.minecraft.nbt.Tag
 import net.minecraft.resources.ResourceKey
-import net.minecraft.resources.ResourceLocation
+import bpm.platform.ResourceLocation
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.Level
 import bpm.platform.ports.EnergyPort
 import bpm.platform.ports.Ports
 import bpm.platform.ports.FluidPort
 import bpm.platform.ports.ItemPort
+import bpm.platform.intOr
+import bpm.platform.stringOr
+import bpm.platform.keyId
 
 /**
  * One face in the world a controller may talk to, by name — or one person, when [player] is set.
@@ -41,18 +44,18 @@ data class Link(
         t.putString("name", name)
         t.putInt("x", pos.x); t.putInt("y", pos.y); t.putInt("z", pos.z)
         side?.let { t.putString("side", it.name.lowercase()) }
-        t.putString("dim", dimension.location().toString())
-        player?.let { t.putUUID("player", it) }
+        t.putString("dim", dimension.keyId().toString())
+        player?.let { bpm.platform.putUuid(t, "player", it) }
     }
 
     companion object {
         fun load(t: CompoundTag): Link? {
-            val name = t.getString("name").ifBlank { return null }
-            val dim = ResourceLocation.tryParse(t.getString("dim")) ?: return null
-            val side = t.getString("side").takeIf { it.isNotBlank() }?.let { s -> Direction.entries.firstOrNull { it.name.equals(s, true) } }
-            val player = if (t.hasUUID("player")) t.getUUID("player") else null
+            val name = t.stringOr("name", "").ifBlank { return null }
+            val dim = ResourceLocation.tryParse(t.stringOr("dim", "")) ?: return null
+            val side = t.stringOr("side", "").takeIf { it.isNotBlank() }?.let { s -> Direction.entries.firstOrNull { it.name.equals(s, true) } }
+            val player = bpm.platform.uuidOrNull(t, "player")
             return Link(
-                name, BlockPos(t.getInt("x"), t.getInt("y"), t.getInt("z")), side,
+                name, BlockPos(t.intOr("x", 0), t.intOr("y", 0), t.intOr("z", 0)), side,
                 ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION, dim), player,
             )
         }

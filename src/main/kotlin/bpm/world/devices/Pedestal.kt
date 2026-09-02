@@ -20,11 +20,13 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.level.block.state.properties.BooleanProperty
 import net.minecraft.world.phys.BlockHitResult
-import software.bernie.geckolib.animation.AnimatableManager
-import software.bernie.geckolib.animation.AnimationController
-import software.bernie.geckolib.animation.PlayState
-import software.bernie.geckolib.animation.RawAnimation
+import bpm.platform.AnimatableManager
+import bpm.platform.AnimationController
+import bpm.platform.PlayState
+import bpm.platform.RawAnimation
 import java.util.UUID
+import bpm.platform.compoundOr
+import bpm.platform.showMessage
 
 /**
  * The Core Pedestal: holds the Quantum Core the Warden guards. Using it with the core in place wakes the
@@ -41,24 +43,24 @@ class PedestalBlock(properties: Properties) : Block(properties), EntityBlock {
     }
 
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = PedestalBlockEntity(pos, state)
-    override fun getRenderShape(state: BlockState): RenderShape = RenderShape.ENTITYBLOCK_ANIMATED
+    override fun getRenderShape(state: BlockState): RenderShape = bpm.platform.ANIMATED_BLOCK_SHAPE
 
     override fun <T : BlockEntity> getTicker(level: Level, state: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T>? =
         DeviceBlockEntity.ticker(level, type, DeviceBlockEntities.PEDESTAL.get())
 
-    override fun useItemOn(stack: net.minecraft.world.item.ItemStack, state: BlockState, level: Level, pos: BlockPos, player: Player, hand: net.minecraft.world.InteractionHand, hit: BlockHitResult): net.minecraft.world.ItemInteractionResult {
+    override fun useItemOn(stack: net.minecraft.world.item.ItemStack, state: BlockState, level: Level, pos: BlockPos, player: Player, hand: net.minecraft.world.InteractionHand, hit: BlockHitResult): bpm.platform.BlockUseResult {
         val be = level.getBlockEntity(pos) as? PedestalBlockEntity
         val linker = stack.item as? bpm.world.LinkerItem
         if (linker != null && bpm.chamber.ChamberDimension.isChamber(level)) {
             if (!level.isClientSide) linker.recharge(stack, player)
-            return net.minecraft.world.ItemInteractionResult.sidedSuccess(level.isClientSide)
+            return bpm.platform.BlockUse.sidedSuccess(level.isClientSide)
         }
         // A chamber altar is the fight's, not a bench: only a pedestal a player put down holds ingredients.
         if (be == null || be.slotOwner != null || !be.held.isEmpty) {
-            return net.minecraft.world.ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION
+            return bpm.platform.BlockUse.PASS_TO_BLOCK
         }
         if (!level.isClientSide) be.put(stack.split(1))
-        return net.minecraft.world.ItemInteractionResult.sidedSuccess(level.isClientSide)
+        return bpm.platform.BlockUse.sidedSuccess(level.isClientSide)
     }
 
     override fun useWithoutItem(state: BlockState, level: Level, pos: BlockPos, player: Player, hit: BlockHitResult): InteractionResult {
@@ -172,22 +174,22 @@ class PedestalBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(
             if (!player.inventory.add(stack)) player.drop(stack, false)
             return
         }
-        player.displayClientMessage(Component.literal("[bpm] " + if (hasCore) "the core hums in its socket" else "an empty socket"), true)
+        player.showMessage(Component.literal("[bpm] " + if (hasCore) "the core hums in its socket" else "an empty socket"), true)
     }
 
     override fun saveSynced(tag: CompoundTag, registries: HolderLookup.Provider) {
-        slotOwner?.let { tag.putUUID("slotOwner", it) }
-        tag.put("held", held.saveOptional(registries))
+        slotOwner?.let { bpm.platform.putUuid(tag, "slotOwner", it) }
+        tag.put("held", bpm.platform.writeStack(registries, held))
     }
 
     override fun loadSynced(tag: CompoundTag, registries: HolderLookup.Provider) {
-        slotOwner = if (tag.hasUUID("slotOwner")) tag.getUUID("slotOwner") else null
-        held = ItemStack.parseOptional(registries, tag.getCompound("held"))
+        slotOwner = bpm.platform.uuidOrNull(tag, "slotOwner")
+        held = bpm.platform.readStack(registries, tag.compoundOr("held"))
     }
 
-    override fun registerControllers(controllers: AnimatableManager.ControllerRegistrar) {
+    override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
         controllers.add(
-            AnimationController(this, "main", 3) { state -> state.setAndContinue(IDLE) }
+            bpm.platform.animController(this, "main", 3) { state -> state.setAndContinue(IDLE) }
                 .triggerableAnim("awaken", AWAKEN).triggerableAnim("claim", CLAIM),
         )
     }

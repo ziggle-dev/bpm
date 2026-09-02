@@ -19,11 +19,9 @@ import net.minecraft.server.level.ServerPlayer
 import net.minecraft.sounds.SoundEvents
 import net.minecraft.sounds.SoundSource
 import net.minecraft.world.InteractionHand
-import net.minecraft.world.InteractionResultHolder
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.entity.player.Player
-import net.minecraft.world.item.Equipable
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.TooltipFlag
 import net.minecraft.world.level.ClipContext
@@ -33,14 +31,12 @@ import net.minecraft.world.phys.Vec3
 import kotlin.math.atan2
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
+import bpm.platform.showMessage
 
-private fun say(player: Player, text: String) = player.displayClientMessage(Component.literal("[bpm] $text"), true)
+private fun say(player: Player, text: String) = player.showMessage(Component.literal("[bpm] $text"), true)
 
 /** The Warden's Visor: worn on the head; the linker reaches half again as far and its lines show through walls. */
-class WardenVisorItem(properties: Properties) : TooltipItem(properties), Equipable {
-    override fun getEquipmentSlot(): EquipmentSlot = EquipmentSlot.HEAD
-
-    override fun use(level: Level, player: Player, hand: InteractionHand): InteractionResultHolder<ItemStack> = swapWithEquipmentSlot(this, level, player, hand)
+class WardenVisorItem(properties: Properties) : bpm.platform.HeadWornItem(properties) {
 
     companion object {
         const val RANGE_FACTOR = 1.5
@@ -54,15 +50,15 @@ class WardenVisorItem(properties: Properties) : TooltipItem(properties), Equipab
  * eighth blink eats an Entanglium Shard from the inventory (the count rides on the stack).
  */
 class PhaseGauntletItem(properties: Properties) : TooltipItem(properties) {
-    override fun use(level: Level, player: Player, hand: InteractionHand): InteractionResultHolder<ItemStack> {
+    override fun use(level: Level, player: Player, hand: InteractionHand): bpm.platform.UseResult {
         val stack = player.getItemInHand(hand)
-        if (player.cooldowns.isOnCooldown(this)) return InteractionResultHolder.pass(stack)
-        if (level.isClientSide) return InteractionResultHolder.success(stack)
+        if (bpm.platform.onCooldown(player, stack)) return bpm.platform.Use.pass(stack)
+        if (level.isClientSide) return bpm.platform.Use.success(stack)
         val blinks = stack.getOrDefault(ModComponents.BLINKS.get(), 0)
         if (blinks >= BLINKS_PER_SHARD && !player.isCreative) {
             if (!take(player, ContentItems.ENTANGLIUM_SHARD.get())) {
                 say(player, "the gauntlet needs an Entanglium Shard")
-                return InteractionResultHolder.fail(stack)
+                return bpm.platform.Use.fail(stack)
             }
             stack.set(ModComponents.BLINKS.get(), 0)
         } else {
@@ -70,7 +66,7 @@ class PhaseGauntletItem(properties: Properties) : TooltipItem(properties) {
         }
         val to = destination(level, player) ?: run {
             say(player, "nowhere to blink to")
-            return InteractionResultHolder.fail(stack)
+            return bpm.platform.Use.fail(stack)
         }
         val from = player.position()
         (level as? ServerLevel)?.let { l ->
@@ -79,9 +75,9 @@ class PhaseGauntletItem(properties: Properties) : TooltipItem(properties) {
         }
         level.playSound(null, from.x, from.y, from.z, SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.8f, 1.4f)
         player.teleportTo(to.x, to.y, to.z)
-        player.fallDistance = 0f
-        player.cooldowns.addCooldown(this, COOLDOWN_TICKS)
-        return InteractionResultHolder.consume(stack)
+        player.resetFallDistance()
+        bpm.platform.addCooldown(player, stack, COOLDOWN_TICKS)
+        return bpm.platform.Use.consume(stack)
     }
 
     /** The farthest free spot along the look, up to [RANGE] blocks, stepping back from whatever is in the way. */
@@ -115,9 +111,9 @@ class PhaseGauntletItem(properties: Properties) : TooltipItem(properties) {
         return false
     }
 
-    override fun appendHoverText(stack: ItemStack, context: TooltipContext, tooltip: MutableList<Component>, flag: TooltipFlag) {
-        super.appendHoverText(stack, context, tooltip, flag)
-        tooltip.add(Component.literal("Charge: ${BLINKS_PER_SHARD - stack.getOrDefault(ModComponents.BLINKS.get(), 0)} blinks"))
+    override fun lore(stack: ItemStack, add: (Component) -> Unit) {
+        super.lore(stack, add)
+        add(Component.literal("Charge: ${BLINKS_PER_SHARD - stack.getOrDefault(ModComponents.BLINKS.get(), 0)} blinks"))
     }
 
     companion object {
@@ -134,9 +130,9 @@ class PhaseGauntletItem(properties: Properties) : TooltipItem(properties) {
 class EntangledCompassItem(properties: Properties) : TooltipItem(properties) {
     private val found = HashMap<java.util.UUID, Pair<BlockPos, Long>>()
 
-    override fun use(level: Level, player: Player, hand: InteractionHand): InteractionResultHolder<ItemStack> {
+    override fun use(level: Level, player: Player, hand: InteractionHand): bpm.platform.UseResult {
         val stack = player.getItemInHand(hand)
-        if (!player.isShiftKeyDown) return InteractionResultHolder.pass(stack)
+        if (!player.isShiftKeyDown) return bpm.platform.Use.pass(stack)
         if (!level.isClientSide) {
             val next = when (stack.getOrDefault(ModComponents.COMPASS_MODE.get(), MODE_ORE)) {
                 MODE_ORE -> MODE_GATE
@@ -147,15 +143,15 @@ class EntangledCompassItem(properties: Properties) : TooltipItem(properties) {
             found.remove(player.uuid)
             say(player, "compass seeks: ${label(next)}")
         }
-        return InteractionResultHolder.sidedSuccess(stack, level.isClientSide)
+        return bpm.platform.Use.sided(stack, level.isClientSide)
     }
 
-    override fun inventoryTick(stack: ItemStack, level: Level, entity: Entity, slot: Int, selected: Boolean) {
+    override fun carriedTick(stack: ItemStack, level: ServerLevel, entity: Entity, inHand: Boolean) {
         val player = entity as? ServerPlayer ?: return
-        if (!selected && player.offhandItem !== stack) return
+        if (!inHand) return
         if (level.gameTime % 20 != 0L) return
         val mode = stack.getOrDefault(ModComponents.COMPASS_MODE.get(), MODE_ORE)
-        val target = target(level as ServerLevel, player, mode)
+        val target = target(level, player, mode)
         if (target == null) {
             say(player, "${label(mode)}: nothing within ${SCAN.toInt()} blocks")
             return
@@ -224,10 +220,10 @@ class EntangledCompassItem(properties: Properties) : TooltipItem(properties) {
 
 /** The Warden's Program: a document item — using it puts the room's trap program into the world's library. */
 class WardenProgramItem(properties: Properties) : TooltipItem(properties) {
-    override fun use(level: Level, player: Player, hand: InteractionHand): InteractionResultHolder<ItemStack> {
+    override fun use(level: Level, player: Player, hand: InteractionHand): bpm.platform.UseResult {
         val stack = player.getItemInHand(hand)
-        if (level.isClientSide) return InteractionResultHolder.success(stack)
-        val server = level.server ?: return InteractionResultHolder.pass(stack)
+        if (level.isClientSide) return bpm.platform.Use.success(stack)
+        val server = level.server ?: return bpm.platform.Use.pass(stack)
         val lib = BpmLibrary.get(server)
         val existing = lib.byName(Programs.WARDEN_PROGRAM)
         if (existing != null) {
@@ -236,6 +232,6 @@ class WardenProgramItem(properties: Properties) : TooltipItem(properties) {
             lib.create(Programs.WARDEN_PROGRAM, GraphDoc.toJson(Programs.wardenProgram()), player.uuid, isLibrary = true)
             say(player, "'${Programs.WARDEN_PROGRAM}' added to the library")
         }
-        return InteractionResultHolder.consume(stack)
+        return bpm.platform.Use.consume(stack)
     }
 }

@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "The `neoforge:fluid_container` model loader is gone at 1.21.11 -- NeoForge ships only",
+    "`neoforge:empty`, `neoforge:obj` and `neoforge:composite` there -- so the composited bucket this",
+    "loader used to build from an empty bucket plus a tinted fluid overlay cannot be asked for. Without",
+    "this file the item has no model at all, which is the black-and-purple cube.",
+    "A plain empty bucket, matching what the 1.21.4 node falls back to. It is only reached if the",
+    "client-item JSON beside it is missing, which would mean the composited model above failed to",
+    "load; an empty bucket then reads as ''something is wrong with this item'' rather than as a",
+    "different fluid."
+  ],
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "minecraft:item/bucket"
+  }
+}

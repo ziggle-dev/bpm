@@ -70,7 +70,7 @@ class ScreenInput(private val toImGui: (Double) -> Float, private val typed: Scr
         io.addKeyEvent(ImGuiKey.ModSuper, mods and GLFW.GLFW_MOD_SUPER != 0)
     }
 
-    private fun isDown(window: Long, key: Int) = InputConstants.isKeyDown(window, key)
+    private fun isDown(window: Long, key: Int) = bpm.platform.client.isKeyHeld(key)
 }
 
 /**

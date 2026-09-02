@@ -44,7 +44,7 @@ class ChamberGameTests {
         // away from the plot's interior (plot south), and the 3 x 3 backplate of frames stands one block behind
         // the opening, into the plot.
         val intoPlot = helper.absolutePos(centre.south()).subtract(helper.absolutePos(centre))
-        val facing = Direction.getNearest(-intoPlot.x.toDouble(), 0.0, -intoPlot.z.toDouble())
+        val facing = bpm.platform.nearestDirection(-intoPlot.x.toDouble(), 0.0, -intoPlot.z.toDouble())
         for (du in -1..1) for (dv in -1..1) helper.setBlock(centre.south().offset(du, dv, 0), ContentBlocks.GATE_FRAME.get())
         helper.setBlock(projector, DeviceBlocks.QUANTUM_GATE.get().defaultBlockState().setValue(GateBlock.FACING, facing))
         return projector
@@ -101,8 +101,20 @@ class ChamberGameTests {
 
     @GameTest(template = "empty7", timeoutTicks = 60)
     fun remainsGoInAChestBesideTheReturnPoint(helper: GameTestHelper) {
-        // The plot's three layers are air; its ground is the floor under y = 0, where a returning player stands.
-        val at = helper.absolutePos(BlockPos(3, 0, 3))
+        /*
+         * Lay the floor rather than assume one.
+         *
+         * This used to take the plot's own ground as read -- "its three layers are air; the floor is under
+         * y = 0" -- and that stopped being true at 1.21.2, which moved where a test structure sits relative
+         * to the floor beneath it. The chest then went a block low and the test failed, reporting a
+         * PRODUCT bug that was not one: `stash` prefers a cell with something solid under it, there was no
+         * such cell at the return point's own level, and going down to find one is exactly what it should
+         * do. The premise was wrong, not the behaviour.
+         *
+         * So the premise is stated here now, in the plot's own terms, and holds on any version.
+         */
+        for (dx in 0..6) for (dz in 0..6) helper.setBlock(BlockPos(dx, 0, dz), Blocks.STONE)
+        val at = helper.absolutePos(BlockPos(3, 1, 3))
         val first = Chambers.stash(helper.level, at, null, Component.literal("test"), listOf(ItemStack(Items.DIAMOND, 5)))
         helper.assertTrue(first != null, "nothing was stashed")
         helper.assertTrue(first != at && first!!.distManhattan(at) <= 3 && first.y == at.y, "the chest went to $first, the return point being $at")
@@ -119,6 +131,44 @@ class ChamberGameTests {
      * server bakes its world from the flat preset against an empty stem registry, so `bpm:decoherence` (a data
      * pack dimension) only exists in real worlds. The builder is the same code either way.
      */
+
+    /**
+     * A block that declines an item must still get its own empty-hand turn.
+     *
+     * This is the regression test for the single wrongest line of the 1.21.4 port. When 1.21.2 merged
+     * `ItemInteractionResult` into `InteractionResult`, the fall-through -- "not mine, let the block have
+     * it" -- got its own value, `TRY_WITH_EMPTY_HAND`, and both game modes gate on
+     * `instanceof TryEmptyHandInteraction` before they will call `useWithoutItem`. The port mapped it to
+     * `PASS`, which type-checks perfectly and means "nothing happened".
+     *
+     * The effect was that every block declining in favour of its own handler went silently dead while
+     * holding anything: the chamber pedestal ignored clicks and the gate would not open. It compiled, it
+     * launched, and it passed all 59 game tests, because nothing exercised the dispatch.
+     *
+     * A full pedestal is the cheapest thing that does. `useItemOn` declines (it is already holding
+     * something), so the item only comes back if the fall-through actually happened -- and
+     * `GameTestHelper.useBlock` reproduces the real dispatch, `instanceof` check included.
+     */
+    @GameTest(template = "empty7", timeoutTicks = 60)
+    fun aFullPedestalHandsItsItemBackToAFullHand(helper: GameTestHelper) {
+        val at = BlockPos(3, 1, 3)
+        helper.setBlock(at, DeviceBlocks.CORE_PEDESTAL.get())
+        val be = helper.getBlockEntity(at) as bpm.world.devices.PedestalBlockEntity
+        be.put(ItemStack(Items.DIAMOND, 1))
+
+        // Something in hand, so the interaction goes through `useItemOn` rather than straight past it.
+        val player = helper.makeMockPlayer(net.minecraft.world.level.GameType.SURVIVAL)
+        player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, ItemStack(Items.STONE, 1))
+        helper.useBlock(at, player)
+
+        helper.assertTrue(be.held.isEmpty, "the pedestal kept its diamond: useItemOn declined and nothing picked it up")
+        helper.assertTrue(
+            player.inventory.countItem(Items.DIAMOND) == 1,
+            "the diamond never reached the player, so useWithoutItem never ran",
+        )
+        helper.succeed()
+    }
+
     @GameTest(template = "empty7", timeoutTicks = 100)
     fun chamberRoomIsStampedFromItsLayout(helper: GameTestHelper) {
         val chamber = helper.level.server.getLevel(ChamberDimension.KEY) ?: helper.level

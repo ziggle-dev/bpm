@@ -1,34 +1,17 @@
 package bpm.client.render
 
 import bpm.Bpm
+import bpm.platform.ResourceLocation
 import com.mojang.blaze3d.platform.NativeImage
-import com.mojang.blaze3d.vertex.PoseStack
-import com.mojang.blaze3d.vertex.VertexConsumer
 import net.minecraft.client.Minecraft
-import net.minecraft.client.renderer.MultiBufferSource
-import net.minecraft.client.renderer.RenderType
-import net.minecraft.resources.ResourceLocation
-import software.bernie.geckolib.animatable.GeoAnimatable
-import software.bernie.geckolib.cache.`object`.BakedGeoModel
-import software.bernie.geckolib.renderer.GeoRenderer
-import software.bernie.geckolib.renderer.layer.AutoGlowingGeoLayer
 
-/**
- * GeckoLib's glow layer, minus its one sharp edge: a `_glowmask` with no visible pixel (an "off" texture with
- * nothing lit) makes [AutoGlowingGeoLayer] throw while registering the emissive texture and crashes the client
- * the first time the model is drawn — including in the creative tab. This layer looks at the mask first and
- * skips the glow when there is nothing to glow; a missing mask is left to GeckoLib (it may still carry glow
- * sections in the base texture's mcmeta).
+/*
+ * The glow LAYER now lives in `bpm.platform.client`, per loader and per band.
+ *
+ * Its generic arity changed at GeckoLib 5 -- `GeoRenderLayer<T>` became `GeoRenderLayer<T, O, R>` -- and
+ * a shared file cannot name a type whose parameter count depends on the version. What stays here is the
+ * part that never changed and is the whole reason the layer is subclassed at all: the survey below.
  */
-class GlowLayer<T : GeoAnimatable>(renderer: GeoRenderer<T>) : AutoGlowingGeoLayer<T>(renderer) {
-    override fun render(
-        poseStack: PoseStack, animatable: T, bakedModel: BakedGeoModel, renderType: RenderType?, bufferSource: MultiBufferSource,
-        buffer: VertexConsumer?, partialTick: Float, packedLight: Int, packedOverlay: Int,
-    ) {
-        if (!Glowmasks.glows(getTextureResource(animatable))) return
-        super.render(poseStack, animatable, bakedModel, renderType, bufferSource, buffer, partialTick, packedLight, packedOverlay)
-    }
-}
 
 /** Which textures have a glowmask worth drawing; answered once per texture until resources reload. */
 object Glowmasks {
@@ -53,7 +36,7 @@ object Glowmasks {
     }
 
     fun hasVisiblePixel(image: NativeImage): Boolean {
-        for (y in 0 until image.height) for (x in 0 until image.width) if (image.getPixelRGBA(x, y) ushr 24 != 0) return true
+        for (y in 0 until image.height) for (x in 0 until image.width) if (bpm.platform.pixel(image, x, y) ushr 24 != 0) return true
         return false
     }
 }

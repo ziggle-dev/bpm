@@ -4,7 +4,7 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
 import dev.ziggle.vscript.vm.StructValue
-import net.minecraft.advancements.critereon.ItemPredicate
+import bpm.platform.ItemPredicate
 import net.minecraft.core.Holder
 import net.minecraft.core.RegistryAccess
 import net.minecraft.core.component.DataComponentType
@@ -12,7 +12,7 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.RegistryOps
 import net.minecraft.resources.ResourceKey
-import net.minecraft.resources.ResourceLocation
+import bpm.platform.ResourceLocation
 import net.minecraft.tags.TagKey
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
@@ -173,12 +173,12 @@ object FilterValue {
 
     fun enchantment(id: String, registries: RegistryAccess?): Holder<Enchantment>? {
         val rl = ResourceLocation.tryParse(id.trim()) ?: return null
-        val registry = registries?.registryOrThrow(Registries.ENCHANTMENT) ?: return null
-        return registry.getHolder(ResourceKey.create(Registries.ENCHANTMENT, rl)).orElse(null)
+        val access = registries ?: return null
+        return bpm.platform.holderOrNull(access, Registries.ENCHANTMENT, ResourceKey.create(Registries.ENCHANTMENT, rl))
     }
 
     fun componentType(id: String): DataComponentType<*>? =
-        ResourceLocation.tryParse(id.trim())?.let { rl -> if (BuiltInRegistries.DATA_COMPONENT_TYPE.containsKey(rl)) BuiltInRegistries.DATA_COMPONENT_TYPE.get(rl) else null }
+        ResourceLocation.tryParse(id.trim())?.let { bpm.platform.valueOf(BuiltInRegistries.DATA_COMPONENT_TYPE, it) }
 
     /** A parsed vanilla item predicate, cached by its text. Null when the JSON is not one. */
     fun predicate(json: String, registries: RegistryAccess?): ItemPredicate? {

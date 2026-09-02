@@ -1,5 +1,6 @@
 package bpm.world.devices
 
+import bpm.platform.listOr
 import net.minecraft.core.BlockPos
 import net.minecraft.core.HolderLookup
 import net.minecraft.nbt.CompoundTag
@@ -10,6 +11,10 @@ import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
+import bpm.platform.intOr
+import bpm.platform.doubleOr
+import bpm.platform.stringOr
+import bpm.platform.compoundOr
 
 /**
  * One thing on a monitor's screen. [kind] says which of the fields matter:
@@ -56,7 +61,7 @@ data class Widget(
         if (label.isNotEmpty()) t.putString("label", label)
         if (value != 0.0) t.putDouble("value", value)
         if (max != 0.0) t.putDouble("max", max)
-        if (!item.isEmpty) t.put("item", item.save(registries))
+        if (!item.isEmpty) t.put("item", bpm.platform.writeStack(registries, item))
         if (fluid.isNotEmpty()) t.putString("fluid", fluid)
         if (colour.isNotEmpty()) t.putString("colour", colour)
         if (size != 1) t.putInt("size", size)
@@ -116,19 +121,19 @@ data class Widget(
         fun isDraggable(kind: String): Boolean = kind == SLIDER
 
         fun load(t: CompoundTag, registries: HolderLookup.Provider): Widget = Widget(
-            kind = t.getString("kind").ifEmpty { TEXT },
-            text = t.getString("text"),
-            label = t.getString("label"),
-            value = t.getDouble("value"),
-            max = t.getDouble("max"),
-            item = if (t.contains("item")) ItemStack.parseOptional(registries, t.getCompound("item")) else ItemStack.EMPTY,
-            fluid = t.getString("fluid"),
-            colour = t.getString("colour"),
-            size = if (t.contains("size")) t.getInt("size").coerceIn(1, 4) else 1,
-            align = t.getString("align").ifEmpty { "Left" },
-            unit = t.getString("unit"),
-            span = if (t.contains("span")) t.getInt("span").coerceIn(0, 8) else 1,
-            id = t.getString("id"),
+            kind = t.stringOr("kind", "").ifEmpty { TEXT },
+            text = t.stringOr("text", ""),
+            label = t.stringOr("label", ""),
+            value = t.doubleOr("value", 0.0),
+            max = t.doubleOr("max", 0.0),
+            item = if (t.contains("item")) bpm.platform.readStack(registries, t.compoundOr("item")) else ItemStack.EMPTY,
+            fluid = t.stringOr("fluid", ""),
+            colour = t.stringOr("colour", ""),
+            size = if (t.contains("size")) t.intOr("size", 0).coerceIn(1, 4) else 1,
+            align = t.stringOr("align", "").ifEmpty { "Left" },
+            unit = t.stringOr("unit", ""),
+            span = if (t.contains("span")) t.intOr("span", 0).coerceIn(0, 8) else 1,
+            id = t.stringOr("id", ""),
         )
 
         fun saveAll(list: List<Widget>, registries: HolderLookup.Provider): ListTag = ListTag().also { l -> list.forEach { l.add(it.save(registries)) } }
@@ -206,4 +211,4 @@ internal fun CompoundTag.putWidgets(key: String, widgets: List<Widget>, registri
 }
 
 internal fun CompoundTag.getWidgets(key: String, registries: HolderLookup.Provider): List<Widget> =
-    if (contains(key)) Widget.loadAll(getList(key, Tag.TAG_COMPOUND.toInt()), registries) else emptyList()
+    if (contains(key)) Widget.loadAll(listOr(key), registries) else emptyList()

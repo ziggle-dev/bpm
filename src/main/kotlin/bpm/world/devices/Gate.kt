@@ -16,7 +16,7 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
-import net.minecraft.world.ItemInteractionResult
+import bpm.platform.BlockUseResult
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.context.BlockPlaceContext
@@ -32,17 +32,19 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.block.state.properties.BooleanProperty
-import net.minecraft.world.level.block.state.properties.DirectionProperty
 import net.minecraft.world.level.block.state.properties.EnumProperty
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.Vec3
-import software.bernie.geckolib.animation.AnimatableManager
-import software.bernie.geckolib.animation.AnimationController
-import software.bernie.geckolib.animation.PlayState
-import software.bernie.geckolib.animation.RawAnimation
+import bpm.platform.AnimatableManager
+import bpm.platform.AnimationController
+import bpm.platform.PlayState
+import bpm.platform.RawAnimation
 import java.util.UUID
 import kotlin.math.abs
+import bpm.platform.longOr
+import bpm.platform.boolOr
+import bpm.platform.showMessage
 
 /**
  * The Quantum Gate projector: the top-centre block of a 5 × 5 ring of gate frames in a vertical plane, which
@@ -50,7 +52,7 @@ import kotlin.math.abs
  * opening for ten ticks travels — into the player's Decoherence Chamber from the overworld, back out through
  * the chamber's return gate, which is always open.
  */
-class GateBlock(properties: Properties) : Block(properties), EntityBlock {
+class GateBlock(properties: Properties) : bpm.platform.RemovalAwareBlock(properties), EntityBlock {
     init {
         registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(OPEN, false))
     }
@@ -64,42 +66,41 @@ class GateBlock(properties: Properties) : Block(properties), EntityBlock {
         defaultBlockState().setValue(FACING, ctx.horizontalDirection.opposite)
 
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = GateBlockEntity(pos, state)
-    override fun getRenderShape(state: BlockState): RenderShape = RenderShape.ENTITYBLOCK_ANIMATED
+    override fun getRenderShape(state: BlockState): RenderShape = bpm.platform.ANIMATED_BLOCK_SHAPE
 
     override fun <T : BlockEntity> getTicker(level: Level, state: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T>? =
         DeviceBlockEntity.ticker(level, type, DeviceBlockEntities.GATE.get())
 
-    override fun useItemOn(stack: ItemStack, state: BlockState, level: Level, pos: BlockPos, player: Player, hand: InteractionHand, hit: BlockHitResult): ItemInteractionResult {
-        if (!stack.`is`(ContentItems.COHERENCE_LENS.get())) return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION
-        if (level.isClientSide) return ItemInteractionResult.SUCCESS
-        val be = level.getBlockEntity(pos) as? GateBlockEntity ?: return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION
+    override fun useItemOn(stack: ItemStack, state: BlockState, level: Level, pos: BlockPos, player: Player, hand: InteractionHand, hit: BlockHitResult): bpm.platform.BlockUseResult {
+        if (!stack.`is`(ContentItems.COHERENCE_LENS.get())) return bpm.platform.BlockUse.PASS_TO_BLOCK
+        if (level.isClientSide) return bpm.platform.BlockUse.SUCCESS
+        val be = level.getBlockEntity(pos) as? GateBlockEntity ?: return bpm.platform.BlockUse.PASS_TO_BLOCK
         if (be.tryOpen(player) && !player.isCreative) stack.shrink(1)
-        return ItemInteractionResult.CONSUME
+        return bpm.platform.BlockUse.CONSUME
     }
 
     override fun useWithoutItem(state: BlockState, level: Level, pos: BlockPos, player: Player, hit: BlockHitResult): InteractionResult {
         if (level.isClientSide) return InteractionResult.SUCCESS
         val be = level.getBlockEntity(pos) as? GateBlockEntity ?: return InteractionResult.PASS
         be.revalidate()
-        player.displayClientMessage(Component.literal("[bpm] " + be.describe()), true)
+        player.showMessage(Component.literal("[bpm] " + be.describe()), true)
         if (!state.getValue(OPEN)) be.triggerAnim("overlay", "pulse")
         return InteractionResult.CONSUME
     }
 
-    override fun neighborChanged(state: BlockState, level: Level, pos: BlockPos, block: Block, fromPos: BlockPos, moving: Boolean) {
+    override fun neighborChanged(state: BlockState, level: Level, pos: BlockPos, block: Block, fromPos: bpm.platform.NeighborSource, moving: Boolean) {
         super.neighborChanged(state, level, pos, block, fromPos, moving)
         if (!level.isClientSide) (level.getBlockEntity(pos) as? GateBlockEntity)?.frameChanged()
     }
 
     /** The projector going away un-forms its ring. */
-    override fun onRemove(state: BlockState, level: Level, pos: BlockPos, newState: BlockState, moving: Boolean) {
-        if (!state.`is`(newState.block) && !level.isClientSide) GateFrames.setFormed(level, pos, state.getValue(FACING), false)
-        super.onRemove(state, level, pos, newState, moving)
+    override fun onBlockRemoved(state: BlockState, level: net.minecraft.server.level.ServerLevel, pos: BlockPos, movedByPiston: Boolean) {
+        GateFrames.setFormed(level, pos, state.getValue(FACING), false)
     }
 
     companion object {
         /** The side the oval faces (where you approach from); the spine of three frames runs the other way. */
-        val FACING: DirectionProperty = BlockStateProperties.HORIZONTAL_FACING
+        val FACING: net.minecraft.world.level.block.state.properties.EnumProperty<net.minecraft.core.Direction> = BlockStateProperties.HORIZONTAL_FACING
         val OPEN: BooleanProperty = BlockStateProperties.OPEN
 
         /** The horizontal axis the ring spans: a north-facing gate stretches east–west. */
@@ -195,11 +196,11 @@ class GateBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(Devi
     fun tryOpen(player: Player?): Boolean {
         revalidate()
         if (isOpen) {
-            player?.displayClientMessage(Component.literal("[bpm] the gate is already open"), true)
+            player?.showMessage(Component.literal("[bpm] the gate is already open"), true)
             return false
         }
         if (!frameOk) {
-            player?.displayClientMessage(Component.literal("[bpm] the projection has nothing to focus — complete the frame"), true)
+            player?.showMessage(Component.literal("[bpm] the projection has nothing to focus — complete the frame"), true)
             triggerAnim("overlay", "pulse")
             return false
         }
@@ -305,26 +306,26 @@ class GateBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(Devi
         tag.putBoolean("frameOk", frameOk)
         tag.putLong("closeAt", closeAtTick)
         tag.putBoolean("returnGate", returnGate)
-        slotOwner?.let { tag.putUUID("slotOwner", it) }
+        slotOwner?.let { bpm.platform.putUuid(tag, "slotOwner", it) }
     }
 
     override fun loadSynced(tag: CompoundTag, registries: HolderLookup.Provider) {
-        frameOk = tag.getBoolean("frameOk")
-        closeAtTick = tag.getLong("closeAt")
-        returnGate = tag.getBoolean("returnGate")
-        slotOwner = if (tag.hasUUID("slotOwner")) tag.getUUID("slotOwner") else null
+        frameOk = tag.boolOr("frameOk", false)
+        closeAtTick = tag.longOr("closeAt", 0L)
+        returnGate = tag.boolOr("returnGate", false)
+        slotOwner = bpm.platform.uuidOrNull(tag, "slotOwner")
     }
 
     // ---- geckolib ---------------------------------------------------------------------------------------
 
-    override fun registerControllers(controllers: AnimatableManager.ControllerRegistrar) {
+    override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
         controllers.add(
-            AnimationController(this, "main", 2) { state ->
+            bpm.platform.animController(this, "main", 2) { state ->
                 // Only the projector block renders until the ring is formed; a formed, closed gate shows its clamps.
                 state.setAndContinue(if (isOpen) IDLE else if (frameOk) CLOSED else UNFORMED)
             }.triggerableAnim("open", OPEN_ANIM).triggerableAnim("close", CLOSE_ANIM),
         )
-        controllers.add(AnimationController(this, "overlay", 0) { PlayState.STOP }.triggerableAnim("pulse", PULSE))
+        controllers.add(bpm.platform.animController(this, "overlay", 0) { PlayState.STOP }.triggerableAnim("pulse", PULSE))
     }
 
     companion object {

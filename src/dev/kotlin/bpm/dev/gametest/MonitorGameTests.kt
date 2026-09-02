@@ -26,8 +26,8 @@ class MonitorGameTests {
     /** A 2 x 2 wall on the plot's x/y plane, facing so that the tile at higher plot-x is the viewer's LEFT (the origin's column). */
     private fun wall(helper: GameTestHelper): Direction {
         val d = helper.absolutePos(BlockPos(4, 1, 3)).subtract(helper.absolutePos(BlockPos(3, 1, 3)))
-        val toward = Direction.getNearest(d.x.toDouble(), 0.0, d.z.toDouble())
-        val facing = toward.counterClockWise // facing.clockWise == toward: the viewer's left is the +x tile
+        val toward = bpm.platform.nearestDirection(d.x.toDouble(), 0.0, d.z.toDouble())
+        val facing = toward.getCounterClockWise() // facing.clockWise == toward: the viewer's left is the +x tile
         val state = DeviceBlocks.QUANTUM_MONITOR.get().defaultBlockState().setValue(MonitorBlock.FACING, facing)
         for (p in listOf(BlockPos(3, 1, 3), BlockPos(4, 1, 3), BlockPos(3, 2, 3), BlockPos(4, 2, 3))) helper.setBlock(p, state)
         return facing

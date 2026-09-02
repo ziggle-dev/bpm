@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "AAA",
+    "AAA",
+    "AAA"
+  ],
+  "key": {
+    "A": "bpm:quantum_alloy_ingot"
+  },
+  "result": {
+    "id": "bpm:quantum_alloy_block",
+    "count": 1
+  }
+}

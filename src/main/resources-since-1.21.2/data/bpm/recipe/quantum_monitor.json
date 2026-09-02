@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "pattern": [
+    "GGG",
+    "ACA",
+    "AAA"
+  ],
+  "key": {
+    "G": "minecraft:glass_pane",
+    "A": "bpm:quantum_alloy_ingot",
+    "C": "bpm:entangled_circuit"
+  },
+  "result": {
+    "id": "bpm:quantum_monitor",
+    "count": 4
+  }
+}

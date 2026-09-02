@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "FF",
+    "FL"
+  ],
+  "key": {
+    "F": "bpm:gate_frame",
+    "L": "bpm:coherence_lens"
+  },
+  "result": {
+    "id": "bpm:gate_frame_corner",
+    "count": 4
+  }
+}

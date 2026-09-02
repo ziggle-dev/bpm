@@ -8,21 +8,21 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.chat.Component
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
-import net.minecraft.world.InteractionResultHolder
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.TooltipFlag
 import net.minecraft.world.item.context.UseOnContext
 import net.minecraft.world.level.Level
-import software.bernie.geckolib.animatable.GeoItem
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
-import software.bernie.geckolib.animation.AnimatableManager
-import software.bernie.geckolib.animation.AnimationController
-import software.bernie.geckolib.animation.PlayState
-import software.bernie.geckolib.animation.RawAnimation
-import software.bernie.geckolib.util.GeckoLibUtil
+import bpm.platform.GeoItem
+import bpm.platform.AnimatableInstanceCache
+import bpm.platform.AnimatableManager
+import bpm.platform.AnimationController
+import bpm.platform.PlayState
+import bpm.platform.RawAnimation
+import bpm.platform.GeckoLibUtil
 import java.util.function.Consumer
+import bpm.platform.showMessage
 
 /**
  * The Quantum Linker: names world blocks for a controller.
@@ -34,9 +34,15 @@ import java.util.function.Consumer
  * one dimension and within [RANGE] blocks. The face matters because capabilities are sided; direction does
  * not — it lives in the verb (`items.move(from, to)`), not on the link.
  */
-class LinkerItem(properties: Properties) : Item(properties), GeoItem {
+class LinkerItem(properties: Properties) : bpm.platform.BpmItem(properties), GeoItem {
 
     private val animCache: AnimatableInstanceCache = GeckoLibUtil.createInstanceCache(this)
+
+    init {
+        // This item's overlay animation is triggered from the SERVER (see the `triggerItemAnim`
+        // call below), and that only reaches the client for an animatable the client can look up.
+        bpm.platform.registerSyncedItem(this)
+    }
 
     /**
      * Before the block gets a say — so a chest, a furnace, anything with a screen, links instead of opening.
@@ -66,7 +72,7 @@ class LinkerItem(properties: Properties) : Item(properties), GeoItem {
         if (bpm.chamber.ChamberDimension.isChamber(level)) {
             if (player.isShiftKeyDown) {
                 if (player is net.minecraft.server.level.ServerPlayer) trackingPulse(player, ctx.hand)
-                return InteractionResult.sidedSuccess(level.isClientSide)
+                return bpm.platform.Interact.sided(level.isClientSide)
             }
             return pulse(level, player, ctx.hand)
         }
@@ -126,15 +132,15 @@ class LinkerItem(properties: Properties) : Item(properties), GeoItem {
         return InteractionResult.CONSUME
     }
 
-    override fun use(level: Level, player: Player, hand: InteractionHand): InteractionResultHolder<ItemStack> {
+    override fun use(level: Level, player: Player, hand: InteractionHand): bpm.platform.UseResult {
         val stack = player.getItemInHand(hand)
         if (bpm.chamber.ChamberDimension.isChamber(level)) {
             if (player.isShiftKeyDown) {
                 if (player is net.minecraft.server.level.ServerPlayer) trackingPulse(player, hand)
-                return InteractionResultHolder.sidedSuccess(stack, level.isClientSide)
+                return bpm.platform.Use.sided(stack, level.isClientSide)
             }
             val r = pulse(level, player, hand)
-            return if (r == InteractionResult.PASS) InteractionResultHolder.pass(stack) else InteractionResultHolder.sidedSuccess(stack, level.isClientSide)
+            return if (r == InteractionResult.PASS) bpm.platform.Use.pass(stack) else bpm.platform.Use.sided(stack, level.isClientSide)
         }
         if (player.isShiftKeyDown && stack.has(ModComponents.SELECTED_CONTROLLER.get())) {
             if (!level.isClientSide) {
@@ -151,18 +157,19 @@ class LinkerItem(properties: Properties) : Item(properties), GeoItem {
                 }
                 animate(level, player, stack, "unlink")
             }
-            return InteractionResultHolder.sidedSuccess(stack, level.isClientSide)
+            return bpm.platform.Use.sided(stack, level.isClientSide)
         }
-        return InteractionResultHolder.pass(stack)
+        return bpm.platform.Use.pass(stack)
     }
 
-    override fun appendHoverText(stack: ItemStack, context: TooltipContext, tooltip: MutableList<Component>, flag: TooltipFlag) {
+    override fun lore(stack: ItemStack, add: (Component) -> Unit) {
+        super.lore(stack, add)
         val sel = stack.get(ModComponents.SELECTED_CONTROLLER.get())
-        tooltip.add(
+        add(
             if (sel == null) Component.translatable("item.bpm.quantum_linker.unbound")
             else Component.translatable("item.bpm.quantum_linker.bound", sel.pos().toShortString()),
         )
-        if (stack.getOrDefault(ModComponents.CHARGED.get(), false)) tooltip.add(Component.literal("Specials: ${charges(stack)} / $MAX_CHARGES"))
+        if (stack.getOrDefault(ModComponents.CHARGED.get(), false)) add(Component.literal("Specials: ${charges(stack)} / $MAX_CHARGES"))
     }
 
     private fun selected(level: Level, stack: ItemStack): ControllerBlockEntity? {
@@ -172,7 +179,7 @@ class LinkerItem(properties: Properties) : Item(properties), GeoItem {
         return level.getBlockEntity(sel.pos()) as? ControllerBlockEntity
     }
 
-    private fun say(player: Player, text: String) = player.displayClientMessage(Component.literal("[bpm] $text"), true)
+    private fun say(player: Player, text: String) = player.showMessage(Component.literal("[bpm] $text"), true)
 
     /** Inside a chamber the wand is a weapon of sorts: a decohering pulse, from whichever hand holds it. */
     /** Specials left. */
@@ -192,7 +199,7 @@ class LinkerItem(properties: Properties) : Item(properties), GeoItem {
     /** The pedestal fills the wand again — used with the linker in hand. */
     fun recharge(stack: ItemStack, player: Player) {
         stack.set(ModComponents.CHARGES.get(), MAX_CHARGES)
-        player.cooldowns.addCooldown(this, 10)
+        bpm.platform.addCooldown(player, stack, 10)
         say(player, "the linker hums — $MAX_CHARGES specials")
         (player.level() as? net.minecraft.server.level.ServerLevel)?.let { l ->
             l.sendParticles(net.minecraft.core.particles.ParticleTypes.ELECTRIC_SPARK, player.x, player.y + 1.2, player.z, 24, 0.4, 0.4, 0.4, 0.2)
@@ -201,7 +208,7 @@ class LinkerItem(properties: Properties) : Item(properties), GeoItem {
     }
 
     private fun pulse(level: Level, player: Player, hand: InteractionHand): InteractionResult {
-        if (player.cooldowns.isOnCooldown(this)) return InteractionResult.PASS
+        if (bpm.platform.onCooldown(player, player.getItemInHand(hand))) return InteractionResult.PASS
         if (level.isClientSide) return InteractionResult.SUCCESS
         val server = level as? net.minecraft.server.level.ServerLevel ?: return InteractionResult.PASS
         val stack = player.getItemInHand(hand)
@@ -214,7 +221,7 @@ class LinkerItem(properties: Properties) : Item(properties), GeoItem {
         pulse.launch(from, player.lookAngle)
         server.addFreshEntity(pulse)
         server.playSound(null, player.x, player.y, player.z, net.minecraft.sounds.SoundEvents.BEACON_POWER_SELECT, net.minecraft.sounds.SoundSource.PLAYERS, 0.5f, 1.8f)
-        player.cooldowns.addCooldown(this, PULSE_COOLDOWN)
+        bpm.platform.addCooldown(player, stack, PULSE_COOLDOWN)
         animate(level, player, stack, "link")
         return InteractionResult.CONSUME
     }
@@ -225,7 +232,7 @@ class LinkerItem(properties: Properties) : Item(properties), GeoItem {
      * the stack. Turrets are the quick pulse's business, not this one's.
      */
     fun trackingPulse(player: net.minecraft.server.level.ServerPlayer, hand: InteractionHand): Boolean {
-        val level = player.serverLevel()
+        val level = bpm.platform.levelOf(player)
         if (!bpm.chamber.ChamberDimension.isChamber(level)) return false
         val stack = player.getItemInHand(hand)
         if (stack.item !is LinkerItem) return false
@@ -260,8 +267,7 @@ class LinkerItem(properties: Properties) : Item(properties), GeoItem {
     }
 
     /** The wand hums in a chamber: the glint follows a component the server keeps in step with where the holder is. */
-    override fun inventoryTick(stack: ItemStack, level: Level, entity: net.minecraft.world.entity.Entity, slot: Int, selected: Boolean) {
-        if (level.isClientSide) return
+    override fun carriedTick(stack: ItemStack, level: net.minecraft.server.level.ServerLevel, entity: net.minecraft.world.entity.Entity, inHand: Boolean) {
         val charged = bpm.chamber.ChamberDimension.isChamber(level)
         if (stack.getOrDefault(ModComponents.CHARGED.get(), false) != charged) {
             stack.set(ModComponents.CHARGED.get(), charged)
@@ -285,20 +291,24 @@ class LinkerItem(properties: Properties) : Item(properties), GeoItem {
     /** One of the wand's one-shot animations, for everyone who can see the hand. */
     private fun animate(level: Level, player: Player, stack: ItemStack, anim: String) {
         val server = level as? net.minecraft.server.level.ServerLevel ?: return
-        triggerAnim<Any>(player, GeoItem.getOrAssignId(stack, server), "overlay", anim)
+        bpm.platform.triggerItemAnim(this, player, GeoItem.getOrAssignId(stack, server), "overlay", anim)
     }
 
     // ---- geckolib ---------------------------------------------------------------------------------------
 
-    override fun registerControllers(controllers: AnimatableManager.ControllerRegistrar) {
-        controllers.add(AnimationController(this, "idle", 0) { state -> state.setAndContinue(IDLE) })
+    override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
+        controllers.add(bpm.platform.animController(this, "idle", 0) { state -> state.setAndContinue(IDLE) })
         controllers.add(
-            AnimationController(this, "overlay", 0) { PlayState.STOP }
+            bpm.platform.animController(this, "overlay", 0) { PlayState.STOP }
                 .triggerableAnim("select", SELECT).triggerableAnim("link", LINK).triggerableAnim("unlink", UNLINK),
         )
     }
 
     override fun getAnimatableInstanceCache(): AnimatableInstanceCache = animCache
+
+    /** Drawn by the table in [bpm.client.render.BpmItemRenderers]; GeckoLib asks the item, so the item asks it. */
+    override fun createGeoRenderer(consumer: Consumer<bpm.platform.GeoRenderProvider>) =
+        bpm.client.render.geoItemRenderer(this, consumer)
 
 
     companion object {

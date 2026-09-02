@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "The composited bucket, the same file the 1.21.4 and 1.21.11 nodes carry. `neoforge:fluid_container`",
+    "is no longer a MODEL LOADER on this band -- NeoForge ships only empty, obj and composite, and the",
+    "branch-shared models/item file that asks for one throws `Unknown loader` and takes mod loading with",
+    "it -- but the ITEM model of that name is still here, which is what this is."
+  ],
+  "model": {
+    "type": "neoforge:fluid_container",
+    "textures": {
+      "base": "minecraft:item/bucket",
+      "fluid": "neoforge:item/mask/bucket_fluid"
+    },
+    "fluid": "bpm:experience"
+  }
+}

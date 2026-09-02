@@ -59,7 +59,7 @@ class LuaConsole {
                         server.submit<String> { runChunk(src) }.get(60, TimeUnit.SECONDS)
                     }
                     Where.CLIENT -> {
-                        if (!FMLEnvironment.dist.isClient) return "error: not a client"
+                        if (!bpm.platform.Platform.isClient) return "error: not a client"
                         Minecraft.getInstance().submit<String> { runChunk(src) }.get(60, TimeUnit.SECONDS)
                     }
                 }
@@ -95,7 +95,7 @@ class LuaConsole {
         val server = ServerLifecycleHooks.getCurrentServer()
         pushGlobal(l, "server", server)
         pushGlobal(l, "level", server?.overworld())
-        if (FMLEnvironment.dist.isClient) {
+        if (bpm.platform.Platform.isClient) {
             val mc = runCatching { Minecraft.getInstance() }.getOrNull()
             pushGlobal(l, "mc", mc)
             pushGlobal(l, "player", mc?.player)

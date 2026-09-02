@@ -15,6 +15,7 @@ import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.phys.Vec3
 import kotlin.math.sqrt
+import bpm.platform.keyId
 
 /**
  * `player.*` — reading the people who have tethered themselves to this controller.
@@ -148,7 +149,7 @@ object PlayerNodes {
                 distance set 0.0; lookingAt set null; onGround set false
                 val p = granted(host, player(), Grant.STATE, "state") ?: return@query null
                 pos set BlockPosValue.of(p.blockPosition())
-                dimension set p.level().dimension().location().toString()
+                dimension set p.level().dimension().keyId().toString()
                 yaw set p.yRot.toDouble()
                 pitch set p.xRot.toDouble()
                 distance set sqrt(p.blockPosition().distSqr(host.pos).toDouble())
@@ -188,7 +189,7 @@ object PlayerNodes {
             doc("Which hotbar slot a tethered player has out, 0 to 8. -1 when the tether does not grant `state`.")
             val player = param("Player", McVs.player, "who")
             result("Slot", McVs.int)
-            query { granted(host, player(), Grant.STATE, "state")?.inventory?.selected?.toLong() ?: -1L }
+            query { granted(host, player(), Grant.STATE, "state")?.inventory?.let { bpm.platform.selectedSlot(it).toLong() } ?: -1L }
         }
         func("held") {
             title("Held Stack")
@@ -238,7 +239,7 @@ object PlayerNodes {
             query {
                 has set false; amplifier set 0L; ticks set 0L
                 val p = granted(host, player(), Grant.STATE, "state") ?: return@query null
-                val rl = net.minecraft.resources.ResourceLocation.tryParse(id().trim()) ?: return@query null
+                val rl = bpm.platform.ResourceLocation.tryParse(id().trim()) ?: return@query null
                 val kind = BuiltInRegistries.MOB_EFFECT.getOptional(rl).orElse(null) ?: return@query null
                 val active = p.activeEffects.firstOrNull { it.effect.value() === kind } ?: return@query null
                 has set true

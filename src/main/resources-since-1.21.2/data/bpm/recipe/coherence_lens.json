@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " S ",
+    "SGS",
+    " S "
+  ],
+  "key": {
+    "S": "bpm:entanglium_shard",
+    "G": "minecraft:glass_pane"
+  },
+  "result": {
+    "id": "bpm:coherence_lens",
+    "count": 1
+  }
+}
