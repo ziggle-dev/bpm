@@ -24,7 +24,11 @@ val imguiVersion = property("imgui_version") as String
 val fabricLoaderVersion = property("fabric_loader_version") as String
 val fabricApiVersion = property("fabric_api_version_" + minecraftVersion.replace('.', '_')) as String
 val flkVersion = property("flk_version") as String
-val geckolibVersion = property("geckolib_version_" + minecraftVersion.replace('.', '_')) as String
+// On 26.x this is a Modrinth version id rather than a version number -- see the dependency below.
+val geckolibVersion = property(
+    if (stonecutter.eval(minecraftVersion, ">=26.1")) "geckolib_fabric_version_" + minecraftVersion.replace('.', '_')
+    else "geckolib_version_" + minecraftVersion.replace('.', '_'),
+) as String
 val energyApiVersion = property("energy_api_version_" + minecraftVersion.replace('.', '_')) as String
 /*
  * The optional integrations -- JEI's API and Ponder -- publish for some Minecraft versions and not
@@ -65,12 +69,20 @@ loom {
     }
 }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+/*
+ * JDK 25 from 26.1, and the toolchain and the Kotlin target have to move together.
+ *
+ * Gradle refuses with "Inconsistent JVM Target Compatibility" if only one of them does -- which is the
+ * good outcome; the bad one would be bytecode the game cannot load.
+ */
+val toolchainVersion = if (stonecutter.eval(minecraftVersion, ">=26.1")) 25 else 21
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(toolchainVersion)
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(toolchainVersion)
     compilerOptions {
-        jvmTarget = JvmTarget.JVM_21
+        jvmTarget = if (toolchainVersion == 25) JvmTarget.JVM_25 else JvmTarget.JVM_21
         // Same ceiling as the NeoForge branch: Fabric Language Kotlin supplies the stdlib in a player's
         // game, and it must satisfy both this and the compiler that built vscript.
         apiVersion = KotlinVersion.KOTLIN_2_3
@@ -228,6 +240,14 @@ loom {
 
 dependencies {
     minecraft("com.mojang:minecraft:$minecraftVersion")
+    /*
+     * From 26.1 the game ships DEOBFUSCATED and Mojang publishes no mappings for it at all -- 26.2's
+     * version manifest has `client` and `server` downloads and nothing else -- so this line is what
+     * blocks a Fabric node on that band. It fails with "Failed to find official mojang mappings for
+     * 26.2", and `loom.layered {}`, which is the honest request for a game needing no mapping layer,
+     * NPEs inside Loom instead. Left as it is on purpose: a named error is more use than an NPE, and
+     * whatever Loom offers for the deobfuscated era does not exist yet to be written here.
+     */
     mappings(loom.officialMojangMappings())
     modImplementation("net.fabricmc:fabric-loader:$fabricLoaderVersion")
     modImplementation("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
@@ -235,7 +255,18 @@ dependencies {
     modImplementation("net.fabricmc:fabric-language-kotlin:$flkVersion")
     // GeckoLib publishes per loader from the same source; the model, animation and Molang APIs the mod
     // uses are identical, which is why none of bpm's renderer code is loader-specific.
-    modImplementation("software.bernie.geckolib:geckolib-fabric-$minecraftVersion:$geckolibVersion")
+    /*
+     * GeckoLib, from Modrinth on 26.x.
+     *
+     * The Cloudsmith maven that serves every earlier band has no `geckolib-fabric-26.2` at all -- it
+     * still serves 1.21.11 fine, so this is not a mirror being stale. Modrinth has it, and its maven is
+     * already a repository here, so the 26.x pin is a Modrinth version id rather than a version number.
+     */
+    if (stonecutter.eval(minecraftVersion, ">=26.1")) {
+        modImplementation("maven.modrinth:geckolib:$geckolibVersion")
+    } else {
+        modImplementation("software.bernie.geckolib:geckolib-fabric-$minecraftVersion:$geckolibVersion")
+    }
     /*
      * Team Reborn's Energy API.
      *
