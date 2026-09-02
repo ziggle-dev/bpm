@@ -24,9 +24,9 @@ import net.minecraft.world.item.context.UseOnContext
 import net.minecraft.world.level.Level
 import software.bernie.geckolib.animatable.GeoItem
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
-import software.bernie.geckolib.animation.AnimatableManager
+import bpm.platform.AnimatableManager
 import software.bernie.geckolib.animation.AnimationController
-import software.bernie.geckolib.animation.PlayState
+import bpm.platform.PlayState
 import software.bernie.geckolib.animation.RawAnimation
 import software.bernie.geckolib.util.GeckoLibUtil
 import java.util.UUID
@@ -177,7 +177,7 @@ class QuantumTetherItem(properties: Properties) : TooltipItem(properties), GeoIt
 
     // ---- geckolib ---------------------------------------------------------------------------------------
 
-    override fun registerControllers(controllers: AnimatableManager.ControllerRegistrar) {
+    override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
         controllers.add(AnimationController(this, "idle", 0) { state -> state.setAndContinue(IDLE) })
         controllers.add(
             AnimationController(this, "overlay", 0) { PlayState.STOP }

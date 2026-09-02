@@ -12,7 +12,7 @@ import net.minecraft.client.renderer.LevelRenderer
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.GameRenderer
 import net.minecraft.client.renderer.RenderStateShard
-import net.minecraft.client.renderer.RenderType
+import bpm.platform.RenderType
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.core.BlockPos
 import net.minecraft.world.item.ItemDisplayContext
@@ -20,7 +20,7 @@ import net.minecraft.world.item.ItemStack
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import org.joml.Vector3f
-import software.bernie.geckolib.cache.`object`.GeoBone
+import bpm.platform.GeoBone
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
@@ -236,7 +236,7 @@ class AssemblerRenderer : DeviceRenderer<AssemblerBlockEntity>("quantum_assemble
         /**
          * The beam's own render type.
          *
-         * NOT `RenderType.lightning()`, which is what this used at first and why the beams never appeared:
+         * NOT `bpm.platform.client.lightning()`, which is what this used at first and why the beams never appeared:
          * that one carries `setOutputState(WEATHER_TARGET)`, so it draws into the weather framebuffer for
          * the dedicated lightning pass rather than into the world a block entity renderer is drawing to.
          * It DOES write depth, unlike the rift's. A block entity's buffer is flushed as soon as another
@@ -250,14 +250,14 @@ class AssemblerRenderer : DeviceRenderer<AssemblerBlockEntity>("quantum_assemble
          * them — became indistinguishable. Ordinary alpha blending keeps a beam the colour it was given
          * whatever it is drawn over.
          */
-        private val BEAM: RenderType = RenderType.create(
+        private val BEAM: RenderType = net.minecraft.client.renderer.RenderType.create(
             "bpm_assembler_beam",
             DefaultVertexFormat.POSITION_COLOR,
             VertexFormat.Mode.QUADS,
             256,
             false,
             false,
-            RenderType.CompositeState.builder()
+            net.minecraft.client.renderer.RenderType.CompositeState.builder()
                 .setShaderState(bpm.platform.client.positionColorShader())
                 .setTextureState(RenderStateShard.NO_TEXTURE)
                 .setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY)

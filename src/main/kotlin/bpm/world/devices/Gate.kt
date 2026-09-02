@@ -36,9 +36,9 @@ import net.minecraft.world.level.block.state.properties.EnumProperty
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.Vec3
-import software.bernie.geckolib.animation.AnimatableManager
+import bpm.platform.AnimatableManager
 import software.bernie.geckolib.animation.AnimationController
-import software.bernie.geckolib.animation.PlayState
+import bpm.platform.PlayState
 import software.bernie.geckolib.animation.RawAnimation
 import java.util.UUID
 import kotlin.math.abs
@@ -316,7 +316,7 @@ class GateBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(Devi
 
     // ---- geckolib ---------------------------------------------------------------------------------------
 
-    override fun registerControllers(controllers: AnimatableManager.ControllerRegistrar) {
+    override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
         controllers.add(
             AnimationController(this, "main", 2) { state ->
                 // Only the projector block renders until the ring is formed; a formed, closed gate shows its clamps.

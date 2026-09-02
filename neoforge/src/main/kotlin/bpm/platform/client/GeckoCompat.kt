@@ -1,11 +1,11 @@
 package bpm.platform.client
 
-import net.minecraft.resources.ResourceLocation
+import bpm.platform.ResourceLocation
 import software.bernie.geckolib.animatable.GeoAnimatable
-import software.bernie.geckolib.cache.`object`.BakedGeoModel
+import bpm.platform.BakedGeoModel
 import software.bernie.geckolib.model.GeoModel
-import software.bernie.geckolib.renderer.GeoRenderer
-import software.bernie.geckolib.renderer.layer.AutoGlowingGeoLayer
+import bpm.platform.GeoRenderer
+import bpm.platform.AutoGlowingGeoLayer
 
 /**
  * The two places GeckoLib's own signatures changed between the 4.9 line (1.21.1) and the 4.8 line (1.21.4).
@@ -67,7 +67,7 @@ abstract class GlowLayerBase<T : GeoAnimatable>(renderer: GeoRenderer<T>) : Auto
         poseStack: com.mojang.blaze3d.vertex.PoseStack,
         animatable: T,
         bakedModel: BakedGeoModel,
-        renderType: net.minecraft.client.renderer.RenderType?,
+        renderType: bpm.platform.RenderType?,
         bufferSource: net.minecraft.client.renderer.MultiBufferSource,
         buffer: com.mojang.blaze3d.vertex.VertexConsumer?,
         partialTick: Float,
@@ -83,7 +83,7 @@ abstract class GlowLayerBase<T : GeoAnimatable>(renderer: GeoRenderer<T>) : Auto
         poseStack: com.mojang.blaze3d.vertex.PoseStack,
         animatable: T,
         bakedModel: BakedGeoModel,
-        renderType: net.minecraft.client.renderer.RenderType?,
+        renderType: bpm.platform.RenderType?,
         bufferSource: net.minecraft.client.renderer.MultiBufferSource,
         buffer: com.mojang.blaze3d.vertex.VertexConsumer?,
         partialTick: Float,

@@ -4,7 +4,7 @@ import net.minecraft.world.item.BlockItem
 import net.minecraft.world.level.block.Block
 import software.bernie.geckolib.animatable.GeoItem
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
-import software.bernie.geckolib.animation.AnimatableManager
+import bpm.platform.AnimatableManager
 import software.bernie.geckolib.animation.AnimationController
 import software.bernie.geckolib.util.GeckoLibUtil
 import java.util.function.Consumer
@@ -14,7 +14,7 @@ class ControllerBlockItem(block: Block, properties: Properties) : BlockItem(bloc
 
     private val animCache: AnimatableInstanceCache = GeckoLibUtil.createInstanceCache(this)
 
-    override fun registerControllers(controllers: AnimatableManager.ControllerRegistrar) {
+    override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
         controllers.add(AnimationController(this, "status", 0) { state -> state.setAndContinue(ControllerBlockEntity.OFF) })
     }
 

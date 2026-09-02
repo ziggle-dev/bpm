@@ -4,7 +4,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.codec.StreamCodec
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
-import net.minecraft.resources.ResourceLocation
+import bpm.platform.ResourceLocation
 
 /*
  * The run view: what a controller's VM is doing, streamed to the players watching it in the editor. Deltas

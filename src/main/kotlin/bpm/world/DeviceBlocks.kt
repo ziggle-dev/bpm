@@ -35,7 +35,7 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.material.MapColor
 import software.bernie.geckolib.animatable.GeoItem
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
-import software.bernie.geckolib.animation.AnimatableManager
+import bpm.platform.AnimatableManager
 import software.bernie.geckolib.animation.AnimationController
 import software.bernie.geckolib.animation.RawAnimation
 import software.bernie.geckolib.util.GeckoLibUtil
@@ -88,7 +88,7 @@ class DeviceBlockItem(block: Block, properties: Properties, val model: String, p
     private val animCache: AnimatableInstanceCache = GeckoLibUtil.createInstanceCache(this)
     private val rest: RawAnimation = RawAnimation.begin().thenLoop(restAnimation)
 
-    override fun registerControllers(controllers: AnimatableManager.ControllerRegistrar) {
+    override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
         controllers.add(AnimationController(this, "rest", 0) { state -> state.setAndContinue(rest) })
     }
 

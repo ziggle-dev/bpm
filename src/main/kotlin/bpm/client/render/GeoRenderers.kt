@@ -12,12 +12,12 @@ import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.MultiBufferSource
-import net.minecraft.client.renderer.RenderType
-import net.minecraft.resources.ResourceLocation
+import bpm.platform.RenderType
+import bpm.platform.ResourceLocation
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import org.joml.Vector3f
-import software.bernie.geckolib.cache.`object`.GeoBone
+import bpm.platform.GeoBone
 import bpm.platform.client.RendererSink
 import bpm.platform.client.ClientRenderers
 import software.bernie.geckolib.animatable.GeoAnimatable
@@ -77,7 +77,7 @@ class ControllerRenderer : GeoBlockRenderer<ControllerBlockEntity>(ControllerMod
     override fun shouldRenderOffScreen(blockEntity: ControllerBlockEntity): Boolean = true
 
     override fun getRenderType(animatable: ControllerBlockEntity, texture: ResourceLocation, bufferSource: MultiBufferSource?, partialTick: Float): RenderType =
-        RenderType.entityTranslucent(texture)
+        bpm.platform.client.entityTranslucent(texture)
 
     /**
      * Publish where the core actually is, for the effects that hang off it.
@@ -112,7 +112,7 @@ class ControllerItemRenderer : GeoItemRenderer<ControllerBlockItem>(ControllerMo
     }
 
     override fun getRenderType(animatable: ControllerBlockItem, texture: ResourceLocation, bufferSource: MultiBufferSource?, partialTick: Float): RenderType =
-        RenderType.entityTranslucent(texture)
+        bpm.platform.client.entityTranslucent(texture)
 }
 
 class LinkerRenderer : GeoItemRenderer<LinkerItem>(LinkerModel()) {

@@ -26,7 +26,7 @@ import net.minecraft.world.level.block.state.properties.BooleanProperty
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.shapes.CollisionContext
 import net.minecraft.world.phys.shapes.VoxelShape
-import software.bernie.geckolib.animation.AnimatableManager
+import bpm.platform.AnimatableManager
 import software.bernie.geckolib.animation.AnimationController
 import software.bernie.geckolib.animation.RawAnimation
 
@@ -226,7 +226,7 @@ class MonitorBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(D
         widgets = tag.getWidgets("widgets", registries)
     }
 
-    override fun registerControllers(controllers: AnimatableManager.ControllerRegistrar) {
+    override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
         controllers.add(AnimationController(this, "main", 0) { state -> state.setAndContinue(IDLE) })
     }
 

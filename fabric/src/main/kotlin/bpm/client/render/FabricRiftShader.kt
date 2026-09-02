@@ -4,8 +4,8 @@ import bpm.Bpm
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.VertexFormat
 import net.minecraft.client.renderer.RenderStateShard
-import net.minecraft.client.renderer.RenderType
-import net.minecraft.resources.ResourceLocation
+import bpm.platform.RenderType
+import bpm.platform.ResourceLocation
 
 /**
  * The rift's two core shaders on Fabric.
@@ -96,14 +96,14 @@ object FabricRiftShader : bpm.platform.client.RiftLook {
      * fragment shaders `discard` transparent fragments, so only the visible mouth writes depth, never the
      * quad it is cut from.
      */
-    private fun type(name: String, shader: RenderStateShard.ShaderStateShard): RenderType = RenderType.create(
+    private fun type(name: String, shader: RenderStateShard.ShaderStateShard): RenderType = net.minecraft.client.renderer.RenderType.create(
         name,
         FORMAT,
         com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS,
         256,
         false,
         false,
-        RenderType.CompositeState.builder()
+        net.minecraft.client.renderer.RenderType.CompositeState.builder()
             .setShaderState(shader)
             .setTextureState(RenderStateShard.NO_TEXTURE)
             .setTransparencyState(RenderStateShard.ADDITIVE_TRANSPARENCY)

@@ -6,7 +6,7 @@ import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
 import com.mojang.math.Axis
 import net.minecraft.client.renderer.MultiBufferSource
-import net.minecraft.client.renderer.RenderType
+import bpm.platform.RenderType
 import net.minecraft.client.renderer.entity.EntityRendererProvider
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.phys.Vec3
@@ -35,7 +35,7 @@ fun drawBolt(pose: PoseStack, buffers: MultiBufferSource, motion: Vec3, style: B
     val pitchDeg = (-Math.toDegrees(atan2(motion.y, sqrt(motion.x * motion.x + motion.z * motion.z)))).toFloat()
     pose.mulPose(Axis.YP.rotationDegrees(yawDeg))
     pose.mulPose(Axis.XP.rotationDegrees(pitchDeg))
-    val c = buffers.getBuffer(RenderType.lightning())
+    val c = buffers.getBuffer(bpm.platform.client.lightning())
     box(c, pose, style.radius, style.length, style.coreR, style.coreG, style.coreB, 1f)
     box(c, pose, style.radius * 2.4f, style.length * 1.15f, style.sheathR, style.sheathG, style.sheathB, 0.3f)
     pose.popPose()

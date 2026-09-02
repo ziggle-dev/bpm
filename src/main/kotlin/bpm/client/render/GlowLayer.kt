@@ -3,9 +3,9 @@ package bpm.client.render
 import bpm.Bpm
 import com.mojang.blaze3d.platform.NativeImage
 import net.minecraft.client.Minecraft
-import net.minecraft.resources.ResourceLocation
+import bpm.platform.ResourceLocation
 import software.bernie.geckolib.animatable.GeoAnimatable
-import software.bernie.geckolib.renderer.GeoRenderer
+import bpm.platform.GeoRenderer
 
 /**
  * GeckoLib's glow layer, minus its one sharp edge: a `_glowmask` with no visible pixel (an "off" texture with

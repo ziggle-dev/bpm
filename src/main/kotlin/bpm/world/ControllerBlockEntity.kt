@@ -24,9 +24,9 @@ import bpm.platform.ports.MultiTank
 import bpm.platform.ports.SlotStore
 import software.bernie.geckolib.animatable.GeoBlockEntity
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
-import software.bernie.geckolib.animation.AnimatableManager
+import bpm.platform.AnimatableManager
 import software.bernie.geckolib.animation.AnimationController
-import software.bernie.geckolib.animation.PlayState
+import bpm.platform.PlayState
 import software.bernie.geckolib.animation.RawAnimation
 import software.bernie.geckolib.util.GeckoLibUtil
 import java.util.UUID
@@ -426,7 +426,7 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
 
     // ---- geckolib ---------------------------------------------------------------------------------------
 
-    override fun registerControllers(controllers: AnimatableManager.ControllerRegistrar) {
+    override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
         controllers.add(
             AnimationController(this, "status", 5) { state ->
                 val on = blockState.takeIf { it.hasProperty(ControllerBlock.STATUS) }?.getValue(ControllerBlock.STATUS)?.isOn ?: false

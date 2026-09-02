@@ -238,7 +238,7 @@ object PlayerNodes {
             query {
                 has set false; amplifier set 0L; ticks set 0L
                 val p = granted(host, player(), Grant.STATE, "state") ?: return@query null
-                val rl = net.minecraft.resources.ResourceLocation.tryParse(id().trim()) ?: return@query null
+                val rl = bpm.platform.ResourceLocation.tryParse(id().trim()) ?: return@query null
                 val kind = BuiltInRegistries.MOB_EFFECT.getOptional(rl).orElse(null) ?: return@query null
                 val active = p.activeEffects.firstOrNull { it.effect.value() === kind } ?: return@query null
                 has set true

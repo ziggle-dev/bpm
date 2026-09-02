@@ -11,13 +11,13 @@ import com.mojang.math.Axis
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.LevelRenderer
 import net.minecraft.client.renderer.MultiBufferSource
-import net.minecraft.client.renderer.RenderType
+import bpm.platform.RenderType
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.particles.DustParticleOptions
 import net.minecraft.core.registries.BuiltInRegistries
-import net.minecraft.resources.ResourceLocation
+import bpm.platform.ResourceLocation
 import net.minecraft.world.item.ItemDisplayContext
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.item.ItemStack
@@ -819,18 +819,18 @@ object EffectManager {
     /**
      * The energy arc's own type.
      *
-     * NOT `RenderType.lightning()`, whose `WEATHER_TARGET` output state sends it to the weather framebuffer
+     * NOT `bpm.platform.client.lightning()`, whose `WEATHER_TARGET` output state sends it to the weather framebuffer
      * for the dedicated lightning pass. Additive on purpose here: an arc IS light added to the scene, and
      * effects are drawn after translucent blocks, so it glows over whatever is behind it.
      */
-    private val ARC: RenderType = RenderType.create(
+    private val ARC: RenderType = net.minecraft.client.renderer.RenderType.create(
         "bpm_energy_arc",
         com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_COLOR,
         com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS,
         256,
         false,
         false,
-        RenderType.CompositeState.builder()
+        net.minecraft.client.renderer.RenderType.CompositeState.builder()
             .setShaderState(bpm.platform.client.positionColorShader())
             .setTextureState(net.minecraft.client.renderer.RenderStateShard.NO_TEXTURE)
             .setTransparencyState(net.minecraft.client.renderer.RenderStateShard.ADDITIVE_TRANSPARENCY)

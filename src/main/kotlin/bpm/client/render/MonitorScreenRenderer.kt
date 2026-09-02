@@ -9,11 +9,11 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
 import net.minecraft.client.renderer.LightTexture
 import net.minecraft.client.renderer.MultiBufferSource
-import net.minecraft.client.renderer.RenderType
+import bpm.platform.RenderType
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.core.Direction
 import net.minecraft.core.registries.BuiltInRegistries
-import net.minecraft.resources.ResourceLocation
+import bpm.platform.ResourceLocation
 import net.minecraft.world.inventory.InventoryMenu
 import net.minecraft.world.item.ItemDisplayContext
 import kotlin.math.atan2
@@ -276,7 +276,7 @@ object MonitorScreenRenderer {
 
     private fun quad(pose: PoseStack, buffers: MultiBufferSource, x0: Float, y0: Float, x1: Float, y1: Float, argb: Int) {
         val m = pose.last().pose()
-        val b = buffers.getBuffer(RenderType.gui())
+        val b = buffers.getBuffer(bpm.platform.client.gui())
         b.addVertex(m, x0, y0, 0f).setColor(argb)
         b.addVertex(m, x0, y1, 0f).setColor(argb)
         b.addVertex(m, x1, y1, 0f).setColor(argb)

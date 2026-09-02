@@ -14,12 +14,12 @@ import bpm.world.devices.VentBlockEntity
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.math.Axis
 import net.minecraft.client.renderer.MultiBufferSource
-import net.minecraft.client.renderer.RenderType
+import bpm.platform.RenderType
 import net.minecraft.core.Direction
-import net.minecraft.resources.ResourceLocation
+import bpm.platform.ResourceLocation
 import net.minecraft.world.phys.AABB
 import software.bernie.geckolib.animatable.GeoAnimatable
-import software.bernie.geckolib.cache.`object`.GeoBone
+import bpm.platform.GeoBone
 import software.bernie.geckolib.renderer.GeoBlockRenderer
 import software.bernie.geckolib.renderer.GeoItemRenderer
 
@@ -50,7 +50,7 @@ open class DeviceRenderer<T : DeviceBlockEntity>(name: String, private val box: 
     override fun shouldRenderOffScreen(blockEntity: T): Boolean = true
 
     override fun getRenderType(animatable: T, texture: ResourceLocation, bufferSource: MultiBufferSource?, partialTick: Float): RenderType =
-        RenderType.entityTranslucent(texture)
+        bpm.platform.client.entityTranslucent(texture)
 }
 
 /** The gate's plane follows its axis: the model's ring lies in XY, so a Z-axis gate is the model turned a quarter. */
@@ -231,7 +231,7 @@ object DeviceItemExtensions {
                     }
 
                     override fun getRenderType(animatable: DeviceBlockItem, texture: ResourceLocation, bufferSource: MultiBufferSource?, partialTick: Float): RenderType =
-                        RenderType.entityTranslucent(texture)
+                        bpm.platform.client.entityTranslucent(texture)
 
                     /** As an item the gate is just its projector: the rift, its rim and the clamps only exist in the world. */
                     override fun renderRecursively(

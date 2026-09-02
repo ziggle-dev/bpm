@@ -1,7 +1,7 @@
 package bpm.platform.client
 
 import bpm.client.render.RiftStyle
-import net.minecraft.client.renderer.RenderType
+import bpm.platform.RenderType
 
 /**
  * How a rift is drawn, which is the one piece of this mod's rendering that needs a real shader.

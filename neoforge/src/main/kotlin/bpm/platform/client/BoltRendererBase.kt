@@ -64,7 +64,7 @@ open class BoltRendererBase<T : Entity>(
 ) : EntityRenderer<T>(context) {
 
     /** Never sampled -- the lightning render type is plain colour -- but the base class demands one. */
-    override fun getTextureLocation(entity: T): net.minecraft.resources.ResourceLocation =
+    override fun getTextureLocation(entity: T): bpm.platform.ResourceLocation =
         net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS
 
     override fun render(entity: T, yaw: Float, partialTick: Float, pose: PoseStack, buffers: MultiBufferSource, light: Int) {

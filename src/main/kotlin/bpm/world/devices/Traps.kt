@@ -40,7 +40,7 @@ import net.minecraft.world.phys.shapes.CollisionContext
 import net.minecraft.world.phys.shapes.Shapes
 import net.minecraft.world.phys.shapes.VoxelShape
 import org.joml.Vector3f
-import software.bernie.geckolib.animation.AnimatableManager
+import bpm.platform.AnimatableManager
 import software.bernie.geckolib.animation.AnimationController
 import software.bernie.geckolib.animation.RawAnimation
 import java.util.UUID
@@ -248,7 +248,7 @@ class SpikeBlockEntity(pos: BlockPos, state: BlockState) : TrapBlockEntity(Devic
         }
     }
 
-    override fun registerControllers(controllers: AnimatableManager.ControllerRegistrar) {
+    override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
         controllers.add(
             AnimationController(this, "main", 2) { s -> s.setAndContinue(IDLE) }
                 .triggerableAnim("arm", ARM).triggerableAnim("extend", EXTEND).triggerableAnim("retract", RETRACT),
@@ -349,7 +349,7 @@ class VentBlockEntity(pos: BlockPos, state: BlockState) : TrapBlockEntity(Device
         for (i in 0 until a.size / 3) peers += BlockPos(a[i * 3], a[i * 3 + 1], a[i * 3 + 2])
     }
 
-    override fun registerControllers(controllers: AnimatableManager.ControllerRegistrar) {
+    override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
         controllers.add(
             AnimationController(this, "main", 2) { s -> s.setAndContinue(IDLE) }
                 .triggerableAnim("charge", CHARGE).triggerableAnim("erupt", ERUPT),
@@ -683,7 +683,7 @@ class TurretBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(De
         disabledUntil = tag.getLong("darkUntil")
     }
 
-    override fun registerControllers(controllers: AnimatableManager.ControllerRegistrar) {
+    override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
         controllers.add(
             AnimationController(this, "main", 4) { s -> s.setAndContinue(if (off) OFF else if (tracking) TRACK else IDLE) }
                 .triggerableAnim("fire", FIRE).triggerableAnim("powerdown", POWERDOWN).triggerableAnim("powerup", POWERUP),
@@ -873,7 +873,7 @@ class PhaseBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(Dev
         original = if (tag.contains("original")) net.minecraft.nbt.NbtUtils.readBlockState(bpm.platform.blockLookup(), tag.getCompound("original")) else null
     }
 
-    override fun registerControllers(controllers: AnimatableManager.ControllerRegistrar) {
+    override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
         controllers.add(
             AnimationController(this, "main", 2) { s -> s.setAndContinue(if (solid) SOLID_ANIM else GHOST) }
                 .triggerableAnim("phase_out", PHASE_OUT).triggerableAnim("phase_in", PHASE_IN),

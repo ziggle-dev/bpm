@@ -1,0 +1,49 @@
+package bpm.platform
+
+/**
+ * The GeckoLib types whose PACKAGE moved at 5.x, and the one that was renamed.
+ *
+ * GeckoLib 5 reorganised its packages without changing what most of these types do: an
+ * `AnimatableManager` is still an animatable manager, a `GeoBone` still a bone. Six of them moved and
+ * one was renamed, and nothing else the mod names did either -- so this is the whole of the 5.x surface
+ * as far as bpm is concerned, which is a much smaller thing than "the GeoRenderState rewrite" suggests.
+ *
+ * Aliased rather than imported directly for the same reason as [ResourceLocation]: the shared tree is
+ * not entitled to know which package this version keeps a type in, and a typealias is checked where a
+ * find-and-replace across a hundred imports is not.
+ *
+ * `AnimationState` became `AnimationTest` and is NOT aliased, because nothing names it: every handler
+ * takes it as an inferred lambda parameter and calls `setAndContinue` on it, which survived the rename
+ * unchanged. A type nobody writes down costs nothing to rename.
+ */
+//? if >=1.21.9 {
+/*typealias AnimatableManager<T> = software.bernie.geckolib.animatable.manager.AnimatableManager<T>
+typealias ControllerRegistrar = software.bernie.geckolib.animatable.manager.AnimatableManager.ControllerRegistrar
+typealias PlayState = software.bernie.geckolib.animation.`object`.PlayState
+typealias GeoBone = software.bernie.geckolib.cache.model.GeoBone
+typealias GeoRenderer<T> = software.bernie.geckolib.renderer.base.GeoRenderer<T>
+typealias BakedGeoModel = software.bernie.geckolib.cache.model.BakedGeoModel
+typealias AutoGlowingGeoLayer<T> = software.bernie.geckolib.renderer.layer.builtin.AutoGlowingGeoLayer<T>
+*///?} else {
+typealias AnimatableManager<T> = software.bernie.geckolib.animation.AnimatableManager<T>
+typealias ControllerRegistrar = software.bernie.geckolib.animation.AnimatableManager.ControllerRegistrar
+typealias PlayState = software.bernie.geckolib.animation.PlayState
+typealias GeoBone = software.bernie.geckolib.cache.`object`.GeoBone
+typealias GeoRenderer<T> = software.bernie.geckolib.renderer.GeoRenderer<T>
+typealias BakedGeoModel = software.bernie.geckolib.cache.`object`.BakedGeoModel
+typealias AutoGlowingGeoLayer<T> = software.bernie.geckolib.renderer.layer.AutoGlowingGeoLayer<T>
+//?}
+
+/**
+ * A render type, under whichever package this version keeps it in.
+ *
+ * 1.21.9 moved `RenderType` into its own `rendertype` package and split the FACTORIES out into a
+ * separate `RenderTypes` class. The two halves are aliased differently on purpose: the type is a name
+ * the shared tree passes around and can alias, while the factories are calls and live in
+ * [bpm.platform.client] with the other "name the effect, not the type" helpers.
+ */
+//? if >=1.21.9 {
+/*typealias RenderType = net.minecraft.client.renderer.rendertype.RenderType
+*///?} else {
+typealias RenderType = net.minecraft.client.renderer.RenderType
+//?}

@@ -14,7 +14,7 @@ import net.minecraft.world.entity.MobCategory
 object ModEntities {
     val REG: Registrar<EntityType<*>> = Registrars.of(Registries.ENTITY_TYPE, Bpm.ID)
 
-    private fun id(name: String) = net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(Bpm.ID, name)
+    private fun id(name: String) = bpm.platform.ResourceLocation.fromNamespaceAndPath(Bpm.ID, name)
 
     val WARDEN: RegistryRef<EntityType<QuantumWardenEntity>> = REG.register("quantum_warden") { ->
         bpm.platform.entityType(

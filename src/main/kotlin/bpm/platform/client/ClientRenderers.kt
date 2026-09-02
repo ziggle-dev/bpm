@@ -102,8 +102,8 @@ fun interface HudLayer {
  * readout wants to be last.
  */
 interface HudRegistry {
-    fun aboveCrosshair(id: net.minecraft.resources.ResourceLocation, layer: HudLayer)
-    fun onTop(id: net.minecraft.resources.ResourceLocation, layer: HudLayer)
+    fun aboveCrosshair(id: bpm.platform.ResourceLocation, layer: HudLayer)
+    fun onTop(id: bpm.platform.ResourceLocation, layer: HudLayer)
 }
 
 object Hud {
@@ -113,7 +113,7 @@ object Hud {
         backend = impl
     }
 
-    fun aboveCrosshair(id: net.minecraft.resources.ResourceLocation, layer: HudLayer) = backend.aboveCrosshair(id, layer)
+    fun aboveCrosshair(id: bpm.platform.ResourceLocation, layer: HudLayer) = backend.aboveCrosshair(id, layer)
 
-    fun onTop(id: net.minecraft.resources.ResourceLocation, layer: HudLayer) = backend.onTop(id, layer)
+    fun onTop(id: bpm.platform.ResourceLocation, layer: HudLayer) = backend.onTop(id, layer)
 }

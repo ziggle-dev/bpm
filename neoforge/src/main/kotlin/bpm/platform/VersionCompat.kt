@@ -72,7 +72,7 @@ fun pixel(image: com.mojang.blaze3d.platform.NativeImage, x: Int, y: Int): Int =
  * not redundant on either: these are DEFAULTED registries, so an unknown item id answers AIR rather
  * than nothing, and the scripting language has to be able to tell "minecraft:air" from a typo.
  */
-fun <T : Any> valueOf(registry: net.minecraft.core.Registry<T>, id: net.minecraft.resources.ResourceLocation): T? =
+fun <T : Any> valueOf(registry: net.minecraft.core.Registry<T>, id: bpm.platform.ResourceLocation): T? =
     if (registry.containsKey(id)) registry.getValue(id) else null
 
 /** `Registry.asLookup()` went away when `Registry` itself became a `HolderLookup.RegistryLookup`. */
@@ -89,7 +89,7 @@ fun <T : net.minecraft.world.level.block.entity.BlockEntity> blockEntityType(
 /** `EntityType.Builder.build` takes the registry key rather than a bare name. */
 fun <T : net.minecraft.world.entity.Entity> entityType(
     builder: net.minecraft.world.entity.EntityType.Builder<T>,
-    id: net.minecraft.resources.ResourceLocation,
+    id: bpm.platform.ResourceLocation,
 ): net.minecraft.world.entity.EntityType<T> =
     builder.build(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.ENTITY_TYPE, id))
 
@@ -150,13 +150,13 @@ fun <I : net.minecraft.world.item.crafting.RecipeInput, T : net.minecraft.world.
 
 fun recipeById(
     level: net.minecraft.world.level.Level,
-    id: net.minecraft.resources.ResourceLocation,
+    id: bpm.platform.ResourceLocation,
 ): net.minecraft.world.item.crafting.RecipeHolder<*>? =
     (level as? net.minecraft.server.level.ServerLevel)?.recipeAccess()
         ?.byKey(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.RECIPE, id))
         ?.orElse(null)
 
-fun recipeIdOf(holder: net.minecraft.world.item.crafting.RecipeHolder<*>): net.minecraft.resources.ResourceLocation =
+fun recipeIdOf(holder: net.minecraft.world.item.crafting.RecipeHolder<*>): bpm.platform.ResourceLocation =
     holder.id().location()
 
 /**
@@ -189,7 +189,7 @@ fun <T> holderOrThrow(
 
 fun pixel(image: com.mojang.blaze3d.platform.NativeImage, x: Int, y: Int): Int = image.getPixelRGBA(x, y)
 
-fun <T : Any> valueOf(registry: net.minecraft.core.Registry<T>, id: net.minecraft.resources.ResourceLocation): T? =
+fun <T : Any> valueOf(registry: net.minecraft.core.Registry<T>, id: bpm.platform.ResourceLocation): T? =
     if (registry.containsKey(id)) registry.get(id) else null
 
 fun blockLookup(): net.minecraft.core.HolderGetter<net.minecraft.world.level.block.Block> =
@@ -204,7 +204,7 @@ fun <T : net.minecraft.world.level.block.entity.BlockEntity> blockEntityType(
 
 fun <T : net.minecraft.world.entity.Entity> entityType(
     builder: net.minecraft.world.entity.EntityType.Builder<T>,
-    id: net.minecraft.resources.ResourceLocation,
+    id: bpm.platform.ResourceLocation,
 ): net.minecraft.world.entity.EntityType<T> = builder.build(id.path)
 
 fun nearestDirection(x: Double, y: Double, z: Double): Direction = Direction.getNearest(x, y, z)
@@ -247,10 +247,10 @@ fun <I : net.minecraft.world.item.crafting.RecipeInput, T : net.minecraft.world.
 
 fun recipeById(
     level: net.minecraft.world.level.Level,
-    id: net.minecraft.resources.ResourceLocation,
+    id: bpm.platform.ResourceLocation,
 ): net.minecraft.world.item.crafting.RecipeHolder<*>? = level.recipeManager.byKey(id).orElse(null)
 
-fun recipeIdOf(holder: net.minecraft.world.item.crafting.RecipeHolder<*>): net.minecraft.resources.ResourceLocation =
+fun recipeIdOf(holder: net.minecraft.world.item.crafting.RecipeHolder<*>): bpm.platform.ResourceLocation =
     holder.id()
 
 val INGREDIENT_CODEC: com.mojang.serialization.Codec<net.minecraft.world.item.crafting.Ingredient> =

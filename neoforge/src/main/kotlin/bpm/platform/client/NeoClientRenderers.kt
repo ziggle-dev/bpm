@@ -63,13 +63,13 @@ object NeoKeyRegistry : KeyRegistry {
 object NeoHudRegistry : HudRegistry {
     private val pending = ArrayList<(net.neoforged.neoforge.client.event.RegisterGuiLayersEvent) -> Unit>()
 
-    override fun aboveCrosshair(id: net.minecraft.resources.ResourceLocation, layer: HudLayer) {
+    override fun aboveCrosshair(id: bpm.platform.ResourceLocation, layer: HudLayer) {
         pending += { e ->
             e.registerAbove(net.neoforged.neoforge.client.gui.VanillaGuiLayers.CROSSHAIR, id, wrap(layer))
         }
     }
 
-    override fun onTop(id: net.minecraft.resources.ResourceLocation, layer: HudLayer) {
+    override fun onTop(id: bpm.platform.ResourceLocation, layer: HudLayer) {
         pending += { e -> e.registerAboveAll(id, wrap(layer)) }
     }
 

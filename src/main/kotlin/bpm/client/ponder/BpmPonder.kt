@@ -7,7 +7,7 @@ import net.createmod.ponder.api.scene.SceneBuilder
 import net.createmod.ponder.api.scene.SceneBuildingUtil
 import net.createmod.ponder.foundation.PonderIndex
 import net.minecraft.core.Direction
-import net.minecraft.resources.ResourceLocation
+import bpm.platform.ResourceLocation
 
 /**
  * bpm's in-game scene tutorials, on Create's Ponder.

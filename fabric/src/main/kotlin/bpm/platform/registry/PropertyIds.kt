@@ -1,6 +1,6 @@
 package bpm.platform.registry
 
-import net.minecraft.resources.ResourceLocation
+import bpm.platform.ResourceLocation
 import net.minecraft.world.item.Item
 import net.minecraft.world.level.block.state.BlockBehaviour
 

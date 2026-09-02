@@ -6,13 +6,13 @@ import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.MultiBufferSource
-import net.minecraft.client.renderer.RenderType
+import bpm.platform.RenderType
 import net.minecraft.client.renderer.entity.EntityRendererProvider
 import net.minecraft.core.particles.ParticleTypes
-import net.minecraft.resources.ResourceLocation
+import bpm.platform.ResourceLocation
 import net.minecraft.world.phys.Vec3
 import org.joml.Vector3f
-import software.bernie.geckolib.cache.`object`.GeoBone
+import bpm.platform.GeoBone
 import software.bernie.geckolib.renderer.GeoEntityRenderer
 
 private fun rl(path: String) = ResourceLocation.fromNamespaceAndPath(Bpm.ID, path)
@@ -31,7 +31,7 @@ class WardenRenderer(context: EntityRendererProvider.Context) : GeoEntityRendere
     }
 
     override fun getRenderType(animatable: QuantumWardenEntity, texture: ResourceLocation, bufferSource: MultiBufferSource?, partialTick: Float): RenderType =
-        RenderType.entityTranslucent(texture)
+        bpm.platform.client.entityTranslucent(texture)
 
     /**
      * Publish the two beam roots, and spark at them.

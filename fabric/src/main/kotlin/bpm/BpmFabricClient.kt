@@ -47,5 +47,5 @@ object BpmFabricClient : ClientModInitializer {
     }
 
     /** The panel readout, drawn last so it sits over everything else on the HUD. */
-    private val HUD_PANELS = net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(Bpm.ID, "panels")
+    private val HUD_PANELS = bpm.platform.ResourceLocation.fromNamespaceAndPath(Bpm.ID, "panels")
 }

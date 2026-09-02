@@ -1,8 +1,8 @@
 package bpm.platform.client
 
 import net.minecraft.client.renderer.RenderStateShard
-import net.minecraft.client.renderer.RenderType
-import net.minecraft.resources.ResourceLocation
+import bpm.platform.RenderType
+import bpm.platform.ResourceLocation
 
 /**
  * Rendering by EFFECT, not by name.
@@ -38,7 +38,7 @@ fun translucentCull(texture: ResourceLocation): RenderType = translucentCullCach
         1536,
         true,
         true,
-        RenderType.CompositeState.builder()
+        net.minecraft.client.renderer.RenderType.CompositeState.builder()
             .setShaderState(RenderStateShard.RENDERTYPE_ENTITY_TRANSLUCENT_SHADER)
             .setTextureState(RenderStateShard.TextureStateShard(texture, net.minecraft.util.TriState.FALSE, false))
             .setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY)
@@ -129,4 +129,31 @@ fun clearTarget(target: com.mojang.blaze3d.pipeline.RenderTarget) =
 
 fun offscreenTarget(width: Int, height: Int): com.mojang.blaze3d.pipeline.TextureTarget =
     com.mojang.blaze3d.pipeline.TextureTarget(width, height, true, net.minecraft.client.Minecraft.ON_OSX)
+//?}
+
+/**
+ * The stock render types this mod asks for.
+ *
+ * 1.21.9 moved `RenderType` into its own package AND split the factories out into a separate
+ * `RenderTypes`. The type is aliased in [bpm.platform.RenderType]; these are the calls, and there are
+ * only four of them because everything else the mod draws is one of its own composites.
+ */
+//? if >=1.21.9 {
+/*fun entityTranslucent(texture: ResourceLocation): RenderType =
+    net.minecraft.client.renderer.rendertype.RenderTypes.entityTranslucent(texture)
+
+fun lightning(): RenderType = net.minecraft.client.renderer.rendertype.RenderTypes.lightning()
+
+fun translucent(): RenderType = net.minecraft.client.renderer.rendertype.RenderTypes.translucent()
+
+fun gui(): RenderType = net.minecraft.client.renderer.rendertype.RenderTypes.gui()
+*///?} else {
+fun entityTranslucent(texture: ResourceLocation): RenderType =
+    net.minecraft.client.renderer.RenderType.entityTranslucent(texture)
+
+fun lightning(): RenderType = net.minecraft.client.renderer.RenderType.lightning()
+
+fun translucent(): RenderType = net.minecraft.client.renderer.RenderType.translucent()
+
+fun gui(): RenderType = net.minecraft.client.renderer.RenderType.gui()
 //?}

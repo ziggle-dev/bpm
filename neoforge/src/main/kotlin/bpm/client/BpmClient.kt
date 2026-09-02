@@ -25,13 +25,13 @@ import java.util.function.Consumer
  */
 object BpmClient {
     /** The panel readout, drawn last so it sits over everything else on the HUD. */
-    private val HUD_PANELS = net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(bpm.Bpm.ID, "panels")
+    private val HUD_PANELS = bpm.platform.ResourceLocation.fromNamespaceAndPath(bpm.Bpm.ID, "panels")
 
     fun init(modBus: IEventBus) {
         bpm.platform.events.NeoClientEventBridge.install(modBus, NeoForge.EVENT_BUS)
         BpmEvents.clientSetup.listen {
-            net.minecraft.client.renderer.ItemBlockRenderTypes.setRenderLayer(bpm.world.ModFluids.EXPERIENCE.get(), net.minecraft.client.renderer.RenderType.translucent())
-            net.minecraft.client.renderer.ItemBlockRenderTypes.setRenderLayer(bpm.world.ModFluids.EXPERIENCE_FLOWING.get(), net.minecraft.client.renderer.RenderType.translucent())
+            net.minecraft.client.renderer.ItemBlockRenderTypes.setRenderLayer(bpm.world.ModFluids.EXPERIENCE.get(), bpm.platform.client.translucent())
+            net.minecraft.client.renderer.ItemBlockRenderTypes.setRenderLayer(bpm.world.ModFluids.EXPERIENCE_FLOWING.get(), bpm.platform.client.translucent())
             GeoRenderers.installMolang()
             /*
              * Ponder scenes exist only where Create's Ponder does, which today is 1.21.1. The build
@@ -57,7 +57,7 @@ object BpmClient {
         //? if >=1.21.2 {
         /*modBus.addListener(net.neoforged.neoforge.client.event.AddClientReloadListenersEvent::class.java, Consumer { e ->
             e.addListener(
-                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(Bpm.ID, "glowmasks"),
+                bpm.platform.ResourceLocation.fromNamespaceAndPath(Bpm.ID, "glowmasks"),
                 net.minecraft.server.packs.resources.ResourceManagerReloadListener { bpm.client.render.Glowmasks.invalidate() },
             )
         })
