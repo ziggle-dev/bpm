@@ -120,14 +120,28 @@ configure<net.fabricmc.loom.api.LoomGradleExtensionAPI> {
  * Gradle refuses with "Inconsistent JVM Target Compatibility" if only one of them does -- which is the
  * good outcome; the bad one would be bytecode the game cannot load.
  */
-val toolchainVersion = if (stonecutter.eval(minecraftVersion, ">=26.1")) 25 else 21
+/*
+ * Three Javas now, not two.
+ *
+ * 1.20.1 runs on 17 and will not accept 21 bytecode; 26.1 demands 25; everything between is 21. The
+ * bound is written `<1.20.2` rather than `<=1.20.1` so a 1.20.1 patch release would still match.
+ */
+val toolchainVersion = when {
+    stonecutter.eval(minecraftVersion, ">=26.1") -> 25
+    stonecutter.eval(minecraftVersion, "<1.20.2") -> 17
+    else -> 21
+}
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(toolchainVersion)
 
 kotlin {
     jvmToolchain(toolchainVersion)
     compilerOptions {
-        jvmTarget = if (toolchainVersion == 25) JvmTarget.JVM_25 else JvmTarget.JVM_21
+        jvmTarget = when (toolchainVersion) {
+            25 -> JvmTarget.JVM_25
+            17 -> JvmTarget.JVM_17
+            else -> JvmTarget.JVM_21
+        }
         // Same ceiling as the NeoForge branch: Fabric Language Kotlin supplies the stdlib in a player's
         // game, and it must satisfy both this and the compiler that built vscript.
         apiVersion = KotlinVersion.KOTLIN_2_3
@@ -149,7 +163,17 @@ repositories {
     maven {
         name = "GeckoLib"
         url = uri("https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/")
-        content { includeGroupByRegex("software\\.bernie.*") }
+        /*
+         * McLib as well as GeckoLib's own group. GeckoLib 4.x -- which is what 1.20.1 gets, since 5.x
+         * does not go back that far -- depends on `com.eliotlash.mclib:mclib` for Molang, and this maven
+         * serves it (the 5.x line every later band uses does not need it). Without this the node fails
+         * at configuration with "Could not find com.eliotlash.mclib:mclib", naming a repository list the
+         * filter had already excluded it from.
+         */
+        content {
+            includeGroupByRegex("software\\.bernie.*")
+            includeGroupByRegex("com\\.eliotlash.*")
+        }
     }
     /*
      * GeckoLib's 26.x builds are only here -- the Cloudsmith maven above still serves every earlier band
