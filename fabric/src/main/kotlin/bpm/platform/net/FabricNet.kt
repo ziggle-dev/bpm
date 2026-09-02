@@ -23,6 +23,24 @@ import net.minecraft.server.level.ServerPlayer
  * never loads `ClientPlayNetworking`. The lambdas naming it never run there, but a class is loaded when
  * it is first *referenced*, not when it is called, so the reference has to be behind a check too.
  */
+/*
+ * The two play-phase registries, under whichever name this band gives them.
+ *
+ * 26.1 renamed all four by direction rather than by endpoint: `playC2S` became `serverboundPlay` and
+ * `playS2C` became `clientboundPlay` (and the configuration pair likewise). Only the name moved -- both
+ * still answer a `PayloadTypeRegistry` and `register` is unchanged -- so a pair of accessors covers it
+ * and the four call sites below read the same on every band.
+ */
+//? if >=26.1 {
+/*private fun toServerTypes(): PayloadTypeRegistry<RegistryFriendlyByteBuf> = PayloadTypeRegistry.serverboundPlay()
+
+private fun toClientTypes(): PayloadTypeRegistry<RegistryFriendlyByteBuf> = PayloadTypeRegistry.clientboundPlay()
+*///?} else {
+private fun toServerTypes(): PayloadTypeRegistry<RegistryFriendlyByteBuf> = PayloadTypeRegistry.playC2S()
+
+private fun toClientTypes(): PayloadTypeRegistry<RegistryFriendlyByteBuf> = PayloadTypeRegistry.playS2C()
+//?}
+
 object FabricNet : PlatformNet {
 
     override fun <P : CustomPacketPayload> toServer(
@@ -30,7 +48,7 @@ object FabricNet : PlatformNet {
         codec: StreamCodec<in RegistryFriendlyByteBuf, P>,
         handler: (P, ServerPlayer) -> Unit,
     ) {
-        PayloadTypeRegistry.playC2S().register(type, codec)
+        toServerTypes().register(type, codec)
         ServerPlayNetworking.registerGlobalReceiver(type) { payload, context ->
             // Fabric hands the payload to the netty thread; the game thread is where our handlers belong.
             context.server().execute { handler(payload, context.player()) }
@@ -42,7 +60,7 @@ object FabricNet : PlatformNet {
         codec: StreamCodec<in RegistryFriendlyByteBuf, P>,
         handler: (P) -> Unit,
     ) {
-        PayloadTypeRegistry.playS2C().register(type, codec)
+        toClientTypes().register(type, codec)
         if (bpm.platform.Platform.isClient) FabricClientNet.receive(type, handler)
     }
 
@@ -52,8 +70,8 @@ object FabricNet : PlatformNet {
         onServer: (P, ServerPlayer) -> Unit,
         onClient: (P) -> Unit,
     ) {
-        PayloadTypeRegistry.playC2S().register(type, codec)
-        PayloadTypeRegistry.playS2C().register(type, codec)
+        toServerTypes().register(type, codec)
+        toClientTypes().register(type, codec)
         ServerPlayNetworking.registerGlobalReceiver(type) { payload, context ->
             context.server().execute { onServer(payload, context.player()) }
         }

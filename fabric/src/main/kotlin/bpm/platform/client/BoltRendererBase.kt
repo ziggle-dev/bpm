@@ -64,15 +64,15 @@ typealias BlockEntityRendererOf<T> = net.minecraft.client.renderer.blockentity.B
     // GeckoLib's mixin turns two of them into class methods over its own field while the third stays an
     // interface default reading this map, so implementing only one leaves reads and writes on different
     // maps and the first lookup dies on a requireNonNull.
-    private val geckolib = HashMap<software.bernie.geckolib.constant.dataticket.DataTicket<*>, Any>()
+    private val geckolib = HashMap<bpm.platform.DataTicket<*>, Any>()
 
-    override fun getDataMap(): MutableMap<software.bernie.geckolib.constant.dataticket.DataTicket<*>, Any> = geckolib
+    override fun getDataMap(): MutableMap<bpm.platform.DataTicket<*>, Any> = geckolib
 
-    override fun <D : Any> addGeckolibData(ticket: software.bernie.geckolib.constant.dataticket.DataTicket<D>, value: D) {
+    override fun <D : Any> addGeckolibData(ticket: bpm.platform.DataTicket<D>, value: D) {
         geckolib[ticket] = value
     }
 
-    override fun hasGeckolibData(ticket: software.bernie.geckolib.constant.dataticket.DataTicket<*>): Boolean =
+    override fun hasGeckolibData(ticket: bpm.platform.DataTicket<*>): Boolean =
         geckolib.containsKey(ticket)
 }
 

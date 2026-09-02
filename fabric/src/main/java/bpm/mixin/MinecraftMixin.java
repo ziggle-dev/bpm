@@ -17,7 +17,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  *
  * <ul>
  *   <li>{@code setScreen} — NeoForge's {@code ScreenEvent.Init.Post}. The editor uses it to know a screen
- *       opened, and the smoke-run harness uses it to notice the title screen.</li>
+ *       opened, and the smoke-run harness uses it to notice the title screen. Called
+ *       {@code setScreenAndShow} from 26.1, and a mixin whose target has moved is not a warning: the
+ *       game refuses to start with "could not find any targets matching".</li>
  *   <li>{@code startAttack} — NeoForge's {@code PlayerInteractEvent.LeftClickEmpty}. A left click at
  *       nothing, which is how the linker fires at range.</li>
  *   <li>{@code startUseItem} — NeoForge's {@code InteractionKeyMappingTriggered}, vetoable. Ctrl+use on a
@@ -34,12 +36,21 @@ public abstract class MinecraftMixin {
     @Shadow
     public HitResult hitResult;
 
+    //? if >=26.1 {
+    /*@Inject(method = "setScreenAndShow", at = @At("RETURN"))
+    private void bpm$onSetScreen(Screen screen, CallbackInfo ci) {
+        if (screen != null) {
+            BpmEvents.INSTANCE.getScreenOpened().fire(screen);
+        }
+    }
+    *///?} else {
     @Inject(method = "setScreen", at = @At("RETURN"))
     private void bpm$onSetScreen(Screen screen, CallbackInfo ci) {
         if (screen != null) {
             BpmEvents.INSTANCE.getScreenOpened().fire(screen);
         }
     }
+    //?}
 
     @Inject(method = "startAttack", at = @At("HEAD"))
     private void bpm$onStartAttack(CallbackInfoReturnable<Boolean> cir) {

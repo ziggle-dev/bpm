@@ -15,6 +15,23 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.item.ItemStack
 
 /**
+ * The component PATCH on a transfer variant, under whichever name this band gives it.
+ *
+ * 26.1 made `TransferVariant` a `DataComponentHolder`, which brought a `getComponents()` of its own
+ * returning a `DataComponentMap`. The patch it used to return moved aside to `getComponentsPatch()`.
+ * Kotlin spells the old one `.components` and the new one `.componentsPatch`, and the compiler catches
+ * the difference as a type mismatch rather than a missing member -- so this names the patch explicitly
+ * and the call sites stop caring. `FluidVolume` wants the patch, as it always did.
+ */
+//? if >=26.1 {
+/*internal val net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant.patch: net.minecraft.core.component.DataComponentPatch
+    get() = componentsPatch
+*///?} else {
+internal val net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant.patch: net.minecraft.core.component.DataComponentPatch
+    get() = components
+//?}
+
+/**
  * Fabric's transfer API, behind the mod's ports.
  *
  * The two models differ in shape, not just in spelling. NeoForge hands you a handler with numbered slots
@@ -156,7 +173,7 @@ private class StorageFluidPort(private val storage: Storage<FluidVariant>) : Flu
     override fun inTank(tank: Int): FluidVolume {
         val view = views.getOrNull(tank) ?: return FluidVolume.EMPTY
         if (view.isResourceBlank) return FluidVolume.EMPTY
-        return FluidVolume(view.resource.fluid, view.amount, view.resource.components)
+        return FluidVolume(view.resource.fluid, view.amount, view.resource.patch)
     }
 
     override fun tankCapacity(tank: Int): Long = views.getOrNull(tank)?.capacity ?: 0L
@@ -186,7 +203,7 @@ private class StorageFluidPort(private val storage: Storage<FluidVariant>) : Flu
         Transaction.openOuter().use { tx ->
             val moved = view.extract(resource, maxDroplets, tx)
             if (!simulate) tx.commit()
-            return if (moved <= 0) FluidVolume.EMPTY else FluidVolume(resource.fluid, moved, resource.components)
+            return if (moved <= 0) FluidVolume.EMPTY else FluidVolume(resource.fluid, moved, resource.patch)
         }
     }
 }

@@ -40,7 +40,29 @@ object FabricClientEventBridge {
             // FABRIC TODO: bridge if a client-only command is ever added.
         }
 
-        //? if >=1.21.9 {
+        //? if >=26.1 {
+        /*// Same moment as the arm below, one package over: `rendering.v1.world` became `rendering.v1.level`
+        // and `WorldRenderEvents` became `LevelRenderEvents`, matching the game's own rename of world to
+        // level. `matrices()` is `poseStack()` here.
+        //
+        // The projection comes back for free on this band. 1.21.9 hid it in a GPU uniform and left the arm
+        // below to rebuild it from the camera's near plane; 26.1 puts the real `projectionMatrix` on
+        // `CameraRenderState`, along with the camera position, so the reconstruction is not just
+        // unnecessary here, it would be less accurate than what is being handed over.
+        net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents.END_MAIN.register { ctx ->
+            val pose = ctx.poseStack()
+            val camera = ctx.levelState().cameraRenderState
+            BpmEvents.worldRenderTranslucent.fire(
+                WorldRender(
+                    pose,
+                    camera.pos,
+                    org.joml.Matrix4f(camera.projectionMatrix),
+                    org.joml.Matrix4f(pose.last().pose()),
+                    Minecraft.getInstance().deltaTracker,
+                ),
+            )
+        }
+        *///?} elif >=1.21.9 <26.1 {
         /*// `AFTER_TRANSLUCENT` is gone with the rest of the old world-render callbacks; `END_MAIN` is the
         // same moment under the new names -- the end of the main pass, after translucent terrain, which is
         // what NeoForge still calls AfterTranslucentBlocks.
@@ -75,9 +97,11 @@ object FabricClientEventBridge {
         ClientLifecycleEvents.CLIENT_STARTED.register { _: Minecraft -> }
     }
 
-    //? if >=1.21.9 {
+    //? if >=1.21.9 <26.1 {
     /*/**
      * The frame's projection, recovered from the camera.
+     *
+     * One band only: 26.1 hands the matrix back on `CameraRenderState` and this is not compiled there.
      *
      * From 1.21.9 the projection lives in a GPU uniform buffer and is never handed back as a matrix, and
      * Fabric's render context does not carry one either. The camera's near plane does carry it: the

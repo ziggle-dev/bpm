@@ -2,7 +2,6 @@ package bpm.platform.ports
 
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorage
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant
-import net.fabricmc.fabric.api.transfer.v1.item.InventoryStorage
 import net.fabricmc.fabric.api.transfer.v1.storage.base.SingleVariantStorage
 import net.fabricmc.fabric.api.transfer.v1.item.ItemStorage
 import net.fabricmc.fabric.api.transfer.v1.transaction.TransactionContext
@@ -12,6 +11,26 @@ import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.entity.BlockEntityType
+
+/**
+ * A `Container` seen as an item storage.
+ *
+ * `InventoryStorage` became `ContainerStorage` at 26.1 -- the same `of(Container, Direction)`, named
+ * after the thing it wraps. Both are `SlottedStorage<ItemVariant>`, so only the name moved.
+ */
+//? if >=26.1 {
+/*private fun containerStorage(
+    container: net.minecraft.world.Container,
+    side: Direction?,
+): net.fabricmc.fabric.api.transfer.v1.storage.Storage<net.fabricmc.fabric.api.transfer.v1.item.ItemVariant> =
+    net.fabricmc.fabric.api.transfer.v1.item.ContainerStorage.of(container, side)
+*///?} else {
+private fun containerStorage(
+    container: net.minecraft.world.Container,
+    side: Direction?,
+): net.fabricmc.fabric.api.transfer.v1.storage.Storage<net.fabricmc.fabric.api.transfer.v1.item.ItemVariant> =
+    net.fabricmc.fabric.api.transfer.v1.item.InventoryStorage.of(container, side)
+//?}
 
 /**
  * Telling Fabric what our own blocks offer.
@@ -39,7 +58,7 @@ object FabricPortProviders : PortProviders {
         val sink = object : PortSink {
             override fun <T : BlockEntity> items(type: BlockEntityType<T>, port: (T, Direction?) -> ItemPort?) {
                 ItemStorage.SIDED.registerForBlockEntity({ be, side ->
-                    port(be, side)?.let { InventoryStorage.of(PortContainer(it), side) }
+                    port(be, side)?.let { containerStorage(PortContainer(it), side) }
                 }, type)
             }
 
@@ -102,7 +121,7 @@ private class PortFluidStorage(private val port: FluidPort) :
     override fun supportsExtraction(): Boolean = true
 
     override fun insert(resource: FluidVariant, maxAmount: Long, transaction: TransactionContext): Long {
-        val volume = FluidVolume(resource.fluid, maxAmount, resource.components)
+        val volume = FluidVolume(resource.fluid, maxAmount, resource.patch)
         // Simulate first, then let the transaction decide: a participant that commits does the real work
         // when the outer transaction closes, and Fabric gives us no cheaper way to be honest about that.
         val room = port.fill(volume, true)
@@ -114,7 +133,7 @@ private class PortFluidStorage(private val port: FluidPort) :
     }
 
     override fun extract(resource: FluidVariant, maxAmount: Long, transaction: TransactionContext): Long {
-        val volume = FluidVolume(resource.fluid, maxAmount, resource.components)
+        val volume = FluidVolume(resource.fluid, maxAmount, resource.patch)
         val available = port.drain(volume, true)
         if (available.isEmpty) return 0
         transaction.addCloseCallback { _, result ->
@@ -133,7 +152,7 @@ private class TankView(private val port: FluidPort, private val tank: Int) :
     net.fabricmc.fabric.api.transfer.v1.storage.StorageView<FluidVariant> {
 
     override fun extract(resource: FluidVariant, maxAmount: Long, transaction: TransactionContext): Long {
-        val volume = FluidVolume(resource.fluid, maxAmount, resource.components)
+        val volume = FluidVolume(resource.fluid, maxAmount, resource.patch)
         val available = port.drain(volume, true)
         if (available.isEmpty) return 0
         transaction.addCloseCallback { _, result ->

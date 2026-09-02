@@ -796,9 +796,14 @@ fun blockSprite(texture: ResourceLocation): net.minecraft.client.renderer.textur
  * the sense the rest of this file uses the word. The seam is the instruction rather than the value.
  */
 fun drawFluidTranslucent(fluid: net.minecraft.world.level.material.Fluid) {
-    //? if >=1.21.6 {
+    // From 26.1 there is nothing to say: a fluid's layer is part of its `FluidModel`, and
+    // `FluidModel.Unbaked.bake` derives it from the transparency of the sprites themselves. Fabric
+    // dropped `BlockRenderLayerMap` outright rather than renaming it -- there is no class of that name
+    // left in fabric-api -- which is the same conclusion the NeoForge branch reached when
+    // `ItemBlockRenderTypes` disappeared from the game. Deliberately empty on that band.
+    //? if >=1.21.6 <26.1 {
     /*net.fabricmc.fabric.api.client.rendering.v1.BlockRenderLayerMap.putFluid(fluid, net.minecraft.client.renderer.chunk.ChunkSectionLayer.TRANSLUCENT)
-    *///?} else {
+    *///?} elif <1.21.6 {
     net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap.INSTANCE.putFluid(fluid, net.minecraft.client.renderer.RenderType.translucent())
     //?}
 }

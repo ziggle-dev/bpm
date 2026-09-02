@@ -4,8 +4,6 @@ import net.fabricmc.api.EnvType
 import net.fabricmc.api.Environment
 import net.fabricmc.fabric.api.client.rendering.v1.BlockEntityRendererRegistry
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant
 import net.fabricmc.fabric.api.transfer.v1.client.fluid.FluidVariantRendering
 import net.minecraft.client.KeyMapping
@@ -68,7 +66,19 @@ object FabricKeyRegistry : KeyRegistry {
     }
 
     fun register() {
-        for (block in pending) block { mapping -> KeyBindingHelper.registerKeyBinding(mapping) }
+        // 26.1 renamed the module, the class and the method together -- `fabric-key-binding-api-v1`'s
+        // `KeyBindingHelper.registerKeyBinding` is `fabric-key-mapping-api-v1`'s
+        // `KeyMappingHelper.registerKeyMapping` -- catching up with the game, which has called these
+        // `KeyMapping` since long before. Same argument, same return.
+        //? if >=26.1 {
+        /*for (block in pending) block { mapping ->
+            net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper.registerKeyMapping(mapping)
+        }
+        *///?} else {
+        for (block in pending) block { mapping ->
+            net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper.registerKeyBinding(mapping)
+        }
+        //?}
         pending.clear()
     }
 }
@@ -85,37 +95,76 @@ object FabricKeyRegistry : KeyRegistry {
 @Environment(EnvType.CLIENT)
 object FabricHudRegistry : HudRegistry {
 
-    private val layers = ArrayList<HudLayer>()
+    // Kept with their ids, and kept apart, because from 26.1 both are meaningful: the HUD is a list of
+    // named elements a mod can splice into, so `aboveCrosshair` really can go above the crosshair.
+    private val aboveCrosshairLayers = ArrayList<Pair<ResourceLocation, HudLayer>>()
+    private val topLayers = ArrayList<Pair<ResourceLocation, HudLayer>>()
 
     override fun aboveCrosshair(id: ResourceLocation, layer: HudLayer) {
-        layers += layer
+        aboveCrosshairLayers += id to layer
     }
 
     override fun onTop(id: ResourceLocation, layer: HudLayer) {
-        layers += layer
+        topLayers += id to layer
     }
 
     fun register() {
-        HudRenderCallback.EVENT.register { graphics, delta ->
-            for (layer in layers) layer.draw(graphics, delta)
+        //? if >=26.1 {
+        /*// `HudRenderCallback` is gone, replaced by a registry of named elements. Each layer becomes one,
+        // and `attachElementAfter` puts the linker overlay exactly where NeoForge's
+        // `RegisterGuiLayersEvent` puts it -- so the ordering caveat in the note above does not apply on
+        // this band. `HudElement.extractRenderState` takes the same pair the old callback did, which is
+        // why `HudLayer.draw` is unchanged.
+        for ((id, layer) in aboveCrosshairLayers) {
+            net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry.attachElementAfter(
+                net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements.CROSSHAIR,
+                id,
+                { graphics, delta -> layer.draw(graphics, delta) },
+            )
         }
+        for ((id, layer) in topLayers) {
+            net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry.addLast(
+                id,
+                { graphics, delta -> layer.draw(graphics, delta) },
+            )
+        }
+        *///?} else {
+        net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback.EVENT.register { graphics, delta ->
+            for ((_, layer) in aboveCrosshairLayers) layer.draw(graphics, delta)
+            for ((_, layer) in topLayers) layer.draw(graphics, delta)
+        }
+        //?}
     }
 }
 
 /**
  * A fluid's textures and tint, from the transfer API's rendering half.
  *
- * `getSprites` gives the still and flowing sprites in that order — the same pair NeoForge hands back
- * from `IClientFluidTypeExtensions` — and the seam wants their names rather than the sprites, which the
- * contents carry.
+ * Below 26.1 `getSprites` gives the still and flowing sprites in that order — the same pair NeoForge
+ * hands back from `IClientFluidTypeExtensions` — and the seam wants their names rather than the sprites,
+ * which the contents carry. From 26.1 the appearance is baked game data instead; see the body.
  */
 @Environment(EnvType.CLIENT)
 object FabricFluidAppearance : FluidAppearance {
     override fun of(fluid: Fluid): FluidLook {
         val variant = FluidVariant.of(fluid)
+        // From 26.1 a fluid's appearance is the game's own baked data rather than something the transfer
+        // API answers: `FluidVariantRenderHandler` lost `getSprites` entirely, and the still, flowing and
+        // overlay materials live on `FluidModel`, reached through the model manager. This is the same
+        // move the NeoForge branch made when `IClientFluidTypeExtensions` lost its texture methods -- and
+        // it means both loaders now read the appearance from one place. The tint is still Fabric's, since
+        // `FluidVariantRendering.getColor` survived.
+        //? if >=26.1 {
+        /*val model = net.minecraft.client.Minecraft.getInstance().modelManager
+            .getFluidStateModelSet()
+            .get(fluid.defaultFluidState())
+        val still = model.stillMaterial().sprite().contents().name()
+        val flowing = model.flowingMaterial().sprite().contents().name()
+        *///?} else {
         val sprites = FluidVariantRendering.getSprites(variant)
         val still = sprites?.getOrNull(0)?.contents()?.name() ?: WATER_STILL
         val flowing = sprites?.getOrNull(1)?.contents()?.name() ?: still
+        //?}
         // Fabric returns the tint without an alpha channel; the seam and its callers expect ARGB.
         return FluidLook(still, flowing, FluidVariantRendering.getColor(variant) or (0xFF shl 24))
     }

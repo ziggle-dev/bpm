@@ -1,3 +1,11 @@
+/*
+ * Loom's `runDir` and `vmArg` are deprecated with nothing to replace them -- 1.17 marks every String
+ * accessor on `RunConfigSettings` deprecated and offers no Property-based equivalent (checked with
+ * javap; there is no `getRunDirectory`). Gradle compiles script deprecations as errors, so the choice is
+ * this or no run configurations at all. Scoped to the file because both sites are in `loom.runs`.
+ */
+@file:Suppress("DEPRECATION")
+
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
@@ -13,22 +21,49 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 plugins {
     id("dev.kikugie.stonecutter")
     /*
-     * Upstream Fabric Loom, not Architectury's fork.
+     * TWO Loom plugins, neither applied here -- the band chooses between them further down.
      *
-     * This branch only builds Fabric -- the NeoForge branch is on ModDevGradle -- so the fork bought
-     * nothing, and it cannot set up 26.x: Architectury Loom stops at 1.17.491 with no support for a
-     * deobfuscated Minecraft. Nothing Architectury-specific was in use here; the switch is this id.
+     * They ship in one jar and are genuinely different plugins:
      *
-     * A SNAPSHOT, which is not a choice: 26.x support landed on the 1.17 line after 1.17.20 and there is
-     * no release carrying it. This is the version Fabric's own 26.2 example mod uses.
+     *     fabric-loom                 -> LoomGradlePlugin        (remaps; the obfuscated era)
+     *     net.fabricmc.fabric-loom    -> LoomNoRemapGradlePlugin (does not; 26.x, deobfuscated)
+     *
+     * The no-remap one sets `disableObfuscation` and FINALIZES it, so on an older node
+     * `officialMojangMappings()` throws "Cannot use Mojang mappings in a non-obfuscated environment".
+     * It also creates no `mappings` or `mod*` configurations, because it has nothing to remap. Applying
+     * one to every node cannot work; each band needs its own.
+     *
+     * Architectury's fork, which used to be here, has neither -- it stops at 1.17.491 and has no support
+     * for a deobfuscated game. Nothing Architectury-specific was in use, so this is a clean swap.
      */
-    id("net.fabricmc.fabric-loom") version "1.17-SNAPSHOT"
+    id("fabric-loom") version "1.17.20" apply false
+    id("net.fabricmc.fabric-loom") version "1.17.20" apply false
     kotlin("jvm") version "2.3.21"
 }
 
 val modId = property("mod_id") as String
 val modVersion = property("mod_version") as String
 val minecraftVersion: String = stonecutter.current.version
+
+/*
+ * The game ships DEOBFUSCATED from 26.1: Mojang publishes no mappings for it and Fabric publishes neither
+ * intermediary nor yarn, because the classes already carry the names this mod is written against. That is
+ * the whole reason there are two Loom plugins, and this is the line that picks between them.
+ *
+ * Applied here rather than in `plugins {}` because that block cannot branch. The cost is Gradle's
+ * generated Kotlin accessors -- `loom { }`, `minecraft(...)`, `include(...)` -- which are only produced
+ * for plugins applied there. They are spelled out longhand below instead, which has the side benefit of
+ * reading the same on every band.
+ */
+val deobfuscatedGame = stonecutter.eval(minecraftVersion, ">=26.1")
+apply(plugin = if (deobfuscatedGame) "net.fabricmc.fabric-loom" else "fabric-loom")
+
+/*
+ * Held at project scope because `dependencies { }` has an extension container of its own -- inside it
+ * `the<LoomGradleExtensionAPI>()` searches the DependencyHandler's extensions and reports the type "does
+ * not exist" while the project's copy is sitting right there.
+ */
+val loomExtension = extensions.getByType(net.fabricmc.loom.api.LoomGradleExtensionAPI::class.java)
 val vscriptVersion = property("vscript_version") as String
 val imguiVersion = property("imgui_version") as String
 val fabricLoaderVersion = property("fabric_loader_version") as String
@@ -69,7 +104,7 @@ base { archivesName = "$modId-fabric" }
  */
 val widensAccess = stonecutter.eval(minecraftVersion, ">=1.21.5 <1.21.9")
 
-loom {
+configure<net.fabricmc.loom.api.LoomGradleExtensionAPI> {
     if (widensAccess) {
         // OUTSIDE the resources tree on purpose. Stonecutter shares `fabric/src/main/resources` across
         // every node, and Loom picks up a widener sitting there whether or not this points at it -- so a
@@ -116,6 +151,16 @@ repositories {
         url = uri("https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/")
         content { includeGroupByRegex("software\\.bernie.*") }
     }
+    /*
+     * GeckoLib's 26.x builds are only here -- the Cloudsmith maven above still serves every earlier band
+     * but has no `geckolib-fabric-26.2` at all. A Modrinth coordinate is `maven.modrinth:<slug>:<version
+     * id>`, which is why that pin looks nothing like a version number.
+     */
+    maven {
+        name = "Modrinth"
+        url = uri("https://api.modrinth.com/maven")
+        content { includeGroup("maven.modrinth") }
+    }
     maven {
         name = "BlameJared"
         url = uri("https://maven.blamejared.com/")
@@ -136,7 +181,7 @@ repositories {
  * The core has no Minecraft on its classpath at all, which is why it needs no porting: these
  * twenty-seven files are already correct on both loaders, and this branch compiles the very same ones.
  */
-val core by sourceSets.creating
+val core = sourceSets.create("core")
 
 sourceSets {
     main {
@@ -234,7 +279,7 @@ tasks.named<ProcessResources>("processResources") {
  * branch that is `fabric/versions/<version>/`. Two levels lands in `fabric/`, which is how this was
  * first written and why the server could not find the eula.txt sitting at the repository root.
  */
-loom {
+configure<net.fabricmc.loom.api.LoomGradleExtensionAPI> {
     runs {
         named("server") { runDir("../../../run-fabric") }
         named("client") {
@@ -254,20 +299,18 @@ loom {
  * which is what Fabric's own 26.2 example does. `deobf` names the right one per band so the dependency
  * list below reads the same on all of them.
  */
-val deobf = if (stonecutter.eval(minecraftVersion, ">=26.1")) "implementation" else "modImplementation"
+val deobf = if (deobfuscatedGame) "implementation" else "modImplementation"
 
 dependencies {
-    minecraft("com.mojang:minecraft:$minecraftVersion")
+    add("minecraft", "com.mojang:minecraft:$minecraftVersion")
     /*
-     * NOTHING is declared here on 26.x, and the silence is the configuration.
-     *
-     * The game ships DEOBFUSCATED from 26.1: Mojang publishes no mappings, and Fabric publishes neither
-     * intermediary nor yarn, because the classes already carry the names this mod is written against.
-     * Declaring none is how a build says so. Asking for Mojang mappings there fails with "Failed to find
-     * official mojang mappings for 26.2".
+     * `add("mappings", ...)` rather than `mappings(...)`: upstream Loom does not generate a Kotlin DSL
+     * accessor for this configuration the way Architectury's fork did -- the name is still
+     * `Constants.Configurations.MAPPINGS`, it is just not visible to the script compiler, which reports
+     * "Unresolved reference 'mappings'". Naming the configuration directly works on every band.
      */
-    if (!stonecutter.eval(minecraftVersion, ">=26.1")) {
-        mappings(loom.officialMojangMappings())
+    if (!deobfuscatedGame) {
+        add("mappings", loomExtension.officialMojangMappings())
     }
     add(deobf, "net.fabricmc:fabric-loader:$fabricLoaderVersion")
     add(deobf, "net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
@@ -279,8 +322,8 @@ dependencies {
      * GeckoLib, from Modrinth on 26.x.
      *
      * The Cloudsmith maven that serves every earlier band has no `geckolib-fabric-26.2` at all -- it
-     * still serves 1.21.11 fine, so this is not a mirror being stale. Modrinth has it, and its maven is
-     * already a repository here, so the 26.x pin is a Modrinth version id rather than a version number.
+     * still serves 1.21.11 fine, so this is not a mirror being stale. Modrinth has it, which is why the
+     * 26.x pin is a Modrinth version id rather than a version number.
      */
     if (stonecutter.eval(minecraftVersion, ">=26.1")) {
         add(deobf, "maven.modrinth:geckolib:$geckolibVersion")
@@ -299,24 +342,26 @@ dependencies {
      * work is a bad trade.
      */
     add(deobf, "teamreborn:energy:$energyApiVersion")
-    include("teamreborn:energy:$energyApiVersion")
+    add("include", "teamreborn:energy:$energyApiVersion")
     // JEI's API on the compile path only, exactly as on NeoForge: a pack without JEI never loads the
     // plugin class, because @JeiPlugin is read by JEI itself.
-    if (hasDevMods) modCompileOnly("mezz.jei:jei-$minecraftVersion-fabric-api:$jeiVersion")
+    if (hasDevMods) add("modCompileOnly", "mezz.jei:jei-$minecraftVersion-fabric-api:$jeiVersion")
     // Ponder, for the in-game scene tutorials. Compile path only, as on NeoForge.
     //
     // NOT Ponder-Common as well: that jar carries a second copy of catnip's PlatformHelper interface,
     // and having both on a runtime classpath is what made the NeoForge client hang on the loading bar.
     // One jar, the platform one, on both loaders.
-    if (hasDevMods) modCompileOnly("net.createmod.ponder:Ponder-Fabric-$minecraftVersion:$ponderVersion") { isTransitive = false }
+    if (hasDevMods) add("modCompileOnly", "net.createmod.ponder:Ponder-Fabric-$minecraftVersion:$ponderVersion") {
+        (this as org.gradle.api.artifacts.ModuleDependency).isTransitive = false
+    }
 
     for (m in listOf("vscript", "vscript-runtime", "vscript-ui", "vscript-runview", "editor-host", "editor-graph")) {
         implementation("dev.ziggle:$m:$vscriptVersion")
         "coreImplementation"("dev.ziggle:$m:$vscriptVersion")
         // Loom's `include` is this loader's jar-in-jar, the counterpart of NeoForge's `jarJar`.
-        include("dev.ziggle:$m:$vscriptVersion")
+        add("include", "dev.ziggle:$m:$vscriptVersion")
     }
-    include("org.commonmark:commonmark:0.22.0")
+    add("include", "org.commonmark:commonmark:0.22.0")
     /*
      * Dear ImGui, and this is the whole list on purpose.
      *
@@ -334,10 +379,10 @@ dependencies {
         "imgui-java-natives-macos",
     )) {
         implementation("io.github.spair:$m:$imguiVersion")
-        include("io.github.spair:$m:$imguiVersion")
+        add("include", "io.github.spair:$m:$imguiVersion")
     }
     implementation("io.github.spair:imgui-java-lwjgl3:$imguiVersion") { exclude(group = "org.lwjgl") }
-    include("io.github.spair:imgui-java-lwjgl3:$imguiVersion") { exclude(group = "org.lwjgl") }
+    add("include", "io.github.spair:imgui-java-lwjgl3:$imguiVersion") { exclude(group = "org.lwjgl") }
     "coreImplementation"("io.github.spair:imgui-java-binding:$imguiVersion")
     "coreCompileOnly"("com.google.code.gson:gson:2.10.1")
 }
