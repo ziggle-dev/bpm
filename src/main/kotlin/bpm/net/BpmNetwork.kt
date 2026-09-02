@@ -24,7 +24,7 @@ object BpmNetwork {
     }
 
     /** Server-bound, and only from a client whose catalogue we have checked. */
-    private inline fun <P : net.minecraft.network.protocol.common.custom.CustomPacketPayload> guarded(
+    private inline fun <P : bpm.platform.net.BpmPayload> guarded(
         crossinline handler: (P, net.minecraft.server.level.ServerPlayer) -> Unit,
     ): (P, net.minecraft.server.level.ServerPlayer) -> Unit = { p, player ->
         if (CatalogHandshake.isVerified(player)) handler(p, player)
