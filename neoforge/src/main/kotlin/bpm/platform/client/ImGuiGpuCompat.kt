@@ -275,17 +275,37 @@ internal inline fun imguiRenderPass(
     body: (com.mojang.blaze3d.systems.RenderPass) -> Unit,
 ): Boolean {
     val colour = net.minecraft.client.Minecraft.getInstance().mainRenderTarget.colorTexture ?: return false
-    // Top-left origin, matching the coordinates ImGui was told to lay out in.
-    val ortho = org.joml.Matrix4f().setOrtho(0f, displayWidth, displayHeight, 0f, -1000f, 1000f)
-    com.mojang.blaze3d.systems.RenderSystem.getDevice().createCommandEncoder().createRenderPass(
-        colour,
-        java.util.OptionalInt.empty(),
-    ).use { pass ->
-        pass.setPipeline(pipeline)
-        pass.setUniform("ModelViewMat", org.joml.Matrix4f())
-        pass.setUniform("ProjMat", ortho)
-        pass.setUniform("ColorModulator", 1f, 1f, 1f, 1f)
-        body(pass)
+
+    // The matrices are RenderSystem's on this band, not the pass's. Setting ProjMat and ModelViewMat as
+    // pass uniforms looks right and does nothing: the shader reads the managed state, and what is in it
+    // when a screen draws is the GUI's own -- an ortho over the GUI-SCALED size, and a model-view
+    // carrying the GUI scale. ImGui lays out in window pixels, so the editor came out scaled by exactly
+    // the GUI scale factor and anchored to the top-left corner. Which is what it did.
+    //
+    // So both are set the way vanilla sets them, and both are put back afterwards.
+    com.mojang.blaze3d.systems.RenderSystem.backupProjectionMatrix()
+    com.mojang.blaze3d.systems.RenderSystem.setProjectionMatrix(
+        // Top-left origin, matching the coordinates ImGui was told to lay out in.
+        org.joml.Matrix4f().setOrtho(0f, displayWidth, displayHeight, 0f, -1000f, 1000f),
+        com.mojang.blaze3d.ProjectionType.ORTHOGRAPHIC,
+    )
+    val modelView = com.mojang.blaze3d.systems.RenderSystem.getModelViewStack()
+    modelView.pushMatrix()
+    modelView.identity()
+    val colour0 = com.mojang.blaze3d.systems.RenderSystem.getShaderColor().clone()
+    com.mojang.blaze3d.systems.RenderSystem.setShaderColor(1f, 1f, 1f, 1f)
+    try {
+        com.mojang.blaze3d.systems.RenderSystem.getDevice().createCommandEncoder().createRenderPass(
+            colour,
+            java.util.OptionalInt.empty(),
+        ).use { pass ->
+            pass.setPipeline(pipeline)
+            body(pass)
+        }
+    } finally {
+        com.mojang.blaze3d.systems.RenderSystem.setShaderColor(colour0[0], colour0[1], colour0[2], colour0[3])
+        modelView.popMatrix()
+        com.mojang.blaze3d.systems.RenderSystem.restoreProjectionMatrix()
     }
     return true
 }
