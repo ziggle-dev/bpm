@@ -66,6 +66,26 @@ internal fun com.mojang.blaze3d.pipeline.RenderPipeline.Builder.withDepthWriting
         com.mojang.blaze3d.pipeline.DepthStencilState(com.mojang.blaze3d.platform.CompareOp.LESS_THAN_OR_EQUAL, write)
     )
 
+/**
+ * Declare the `Globals` block, for a shader that reads `GameTime` or the screen size.
+ *
+ * Vanilla's own pipelines get this from `GLOBALS_SNIPPET`, which is private at 26.1 along with the rest
+ * of them -- so a mod pipeline whose GLSL says `#moj_import <minecraft:globals.glsl>` has to declare the
+ * block itself or the uniform is simply never bound. That failure is SILENT: the pipeline registers, the
+ * geometry is submitted, and nothing appears. It is what stopped the rift drawing while the transfer
+ * items beside it drew fine.
+ *
+ * Separate from [matricesBuilder] rather than folded into it, because the beam and the arc use vanilla's
+ * `core/position_color` and read no globals; declaring a block they never sample would be describing
+ * their shaders wrongly.
+ */
+internal fun com.mojang.blaze3d.pipeline.RenderPipeline.Builder.withGlobals(): com.mojang.blaze3d.pipeline.RenderPipeline.Builder =
+    withBindGroupLayout(
+        com.mojang.blaze3d.pipeline.BindGroupLayout.builder()
+            .withUniform("Globals", com.mojang.blaze3d.shaders.UniformType.UNIFORM_BUFFER)
+            .build()
+    )
+
 internal fun quadRenderSetup(
     pipeline: com.mojang.blaze3d.pipeline.RenderPipeline,
 ): net.minecraft.client.renderer.rendertype.RenderSetup =
@@ -96,6 +116,9 @@ internal fun com.mojang.blaze3d.pipeline.RenderPipeline.Builder.withDepthWriting
     write: Boolean,
 ): com.mojang.blaze3d.pipeline.RenderPipeline.Builder = withDepthWrite(write)
 
+/** Vanilla's snippets already declare the globals on this band, so there is nothing to add. */
+internal fun com.mojang.blaze3d.pipeline.RenderPipeline.Builder.withGlobals(): com.mojang.blaze3d.pipeline.RenderPipeline.Builder = this
+
 internal fun com.mojang.blaze3d.pipeline.RenderPipeline.Builder.withoutDepth(): com.mojang.blaze3d.pipeline.RenderPipeline.Builder =
     withDepthTestFunction(com.mojang.blaze3d.platform.DepthTestFunction.NO_DEPTH_TEST).withDepthWrite(false)
 
@@ -123,6 +146,9 @@ internal fun com.mojang.blaze3d.pipeline.RenderPipeline.Builder.withDepthWriting
     write: Boolean,
 ): com.mojang.blaze3d.pipeline.RenderPipeline.Builder = withDepthWrite(write)
 
+/** Vanilla's snippets already declare the globals on this band, so there is nothing to add. */
+internal fun com.mojang.blaze3d.pipeline.RenderPipeline.Builder.withGlobals(): com.mojang.blaze3d.pipeline.RenderPipeline.Builder = this
+
 internal fun offscreenColourTarget(width: Int, height: Int): com.mojang.blaze3d.pipeline.TextureTarget =
     com.mojang.blaze3d.pipeline.TextureTarget(null, width, height, true)
 *///?} elif >=1.21.5 {
@@ -141,6 +167,9 @@ internal fun com.mojang.blaze3d.pipeline.RenderPipeline.Builder.withBlending(
 internal fun com.mojang.blaze3d.pipeline.RenderPipeline.Builder.withDepthWriting(
     write: Boolean,
 ): com.mojang.blaze3d.pipeline.RenderPipeline.Builder = withDepthWrite(write)
+
+/** Vanilla's snippets already declare the globals on this band, so there is nothing to add. */
+internal fun com.mojang.blaze3d.pipeline.RenderPipeline.Builder.withGlobals(): com.mojang.blaze3d.pipeline.RenderPipeline.Builder = this
 
 internal fun offscreenColourTarget(width: Int, height: Int): com.mojang.blaze3d.pipeline.TextureTarget =
     com.mojang.blaze3d.pipeline.TextureTarget(null, width, height, true)

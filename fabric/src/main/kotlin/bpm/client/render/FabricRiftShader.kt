@@ -4,6 +4,7 @@ package bpm.client.render
 /*import bpm.platform.client.withQuads
 import bpm.platform.client.withBlending
 import bpm.platform.client.withDepthWriting
+import bpm.platform.client.withGlobals
 *///?}
 
 import bpm.Bpm
@@ -50,6 +51,8 @@ object FabricRiftShader : bpm.platform.client.RiftLook {
     // from the 1.21.1 originals so the two cannot drift.
     private fun pipeline(name: String, shader: String): com.mojang.blaze3d.pipeline.RenderPipeline =
         bpm.platform.client.matricesBuilder()
+            // These shaders read GameTime; see the note on `withGlobals`.
+            .withGlobals()
             .withLocation("pipeline/" + name)
             .withVertexShader(rl(shader))
             .withFragmentShader(rl(shader))
@@ -77,6 +80,8 @@ object FabricRiftShader : bpm.platform.client.RiftLook {
     // compromise: Fabric has never had a pipeline registration event.
     private fun pipeline(name: String, shader: String): com.mojang.blaze3d.pipeline.RenderPipeline =
         bpm.platform.client.matricesBuilder()
+            // These shaders read GameTime; see the note on `withGlobals`.
+            .withGlobals()
             .withLocation("pipeline/" + name)
             .withVertexShader(rl(shader))
             .withFragmentShader(rl(shader))

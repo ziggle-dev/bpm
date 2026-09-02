@@ -138,7 +138,7 @@ class AssemblyRecipe(
                 Codec.INT.optionalFieldOf("energy", 0).forGetter { r -> r.energy },
                 Codec.INT.optionalFieldOf("experience", 0).forGetter { r -> r.experience },
                 Codec.INT.optionalFieldOf("ticks", 200).forGetter { r -> r.ticks },
-                ItemStack.CODEC.fieldOf("result").forGetter { r -> r.result },
+                bpm.platform.RECIPE_RESULT_CODEC.fieldOf("result").forGetter { r -> r.result },
                 Codec.STRING.listOf().optionalFieldOf("requires", listOf()).forGetter { r -> r.requires },
             ).apply(it) { ingredients, catalyst, energy, experience, ticks, result, requires ->
                 AssemblyRecipe(list(ingredients), catalyst, energy, experience, ticks.coerceAtLeast(1), result, requires)

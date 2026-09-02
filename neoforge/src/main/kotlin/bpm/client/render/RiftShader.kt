@@ -4,6 +4,7 @@ package bpm.client.render
 /*import bpm.platform.client.withQuads
 import bpm.platform.client.withBlending
 import bpm.platform.client.withDepthWriting
+import bpm.platform.client.withGlobals
 *///?}
 
 import bpm.Bpm
@@ -70,6 +71,8 @@ object RiftShader : bpm.platform.client.RiftLook {
      */
     private fun pipeline(name: String, shader: String): com.mojang.blaze3d.pipeline.RenderPipeline =
         bpm.platform.client.matricesBuilder()
+            // These shaders read GameTime; see the note on `withGlobals`.
+            .withGlobals()
             .withLocation("pipeline/" + name)
             .withVertexShader(rl(shader))
             .withFragmentShader(rl(shader))
@@ -100,6 +103,8 @@ object RiftShader : bpm.platform.client.RiftLook {
     // thing FabricRiftShader relies on, where no such event exists on any band.
     private fun pipeline(name: String, shader: String): com.mojang.blaze3d.pipeline.RenderPipeline =
         bpm.platform.client.matricesBuilder()
+            // These shaders read GameTime; see the note on `withGlobals`.
+            .withGlobals()
             .withLocation("pipeline/" + name)
             .withVertexShader(rl(shader))
             .withFragmentShader(rl(shader))
