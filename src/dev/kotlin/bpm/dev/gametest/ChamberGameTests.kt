@@ -101,8 +101,20 @@ class ChamberGameTests {
 
     @GameTest(template = "empty7", timeoutTicks = 60)
     fun remainsGoInAChestBesideTheReturnPoint(helper: GameTestHelper) {
-        // The plot's three layers are air; its ground is the floor under y = 0, where a returning player stands.
-        val at = helper.absolutePos(BlockPos(3, 0, 3))
+        /*
+         * Lay the floor rather than assume one.
+         *
+         * This used to take the plot's own ground as read -- "its three layers are air; the floor is under
+         * y = 0" -- and that stopped being true at 1.21.2, which moved where a test structure sits relative
+         * to the floor beneath it. The chest then went a block low and the test failed, reporting a
+         * PRODUCT bug that was not one: `stash` prefers a cell with something solid under it, there was no
+         * such cell at the return point's own level, and going down to find one is exactly what it should
+         * do. The premise was wrong, not the behaviour.
+         *
+         * So the premise is stated here now, in the plot's own terms, and holds on any version.
+         */
+        for (dx in 0..6) for (dz in 0..6) helper.setBlock(BlockPos(dx, 0, dz), Blocks.STONE)
+        val at = helper.absolutePos(BlockPos(3, 1, 3))
         val first = Chambers.stash(helper.level, at, null, Component.literal("test"), listOf(ItemStack(Items.DIAMOND, 5)))
         helper.assertTrue(first != null, "nothing was stashed")
         helper.assertTrue(first != at && first!!.distManhattan(at) <= 3 && first.y == at.y, "the chest went to $first, the return point being $at")
