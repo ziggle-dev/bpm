@@ -30,7 +30,7 @@ package bpm.platform.client
 interface RendererSink {
     fun <T : net.minecraft.world.level.block.entity.BlockEntity> blockEntity(
         type: net.minecraft.world.level.block.entity.BlockEntityType<out T>,
-        renderer: (net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider.Context) -> net.minecraft.client.renderer.blockentity.BlockEntityRenderer<T>,
+        renderer: (net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider.Context) -> BlockEntityRendererOf<T>,
     )
 
     fun <T : net.minecraft.world.entity.Entity> entity(

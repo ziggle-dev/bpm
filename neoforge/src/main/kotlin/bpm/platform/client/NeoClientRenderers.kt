@@ -27,7 +27,7 @@ object NeoRendererRegistry : RendererRegistry {
         val sink = object : RendererSink {
             override fun <T : net.minecraft.world.level.block.entity.BlockEntity> blockEntity(
                 type: net.minecraft.world.level.block.entity.BlockEntityType<out T>,
-                renderer: (net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider.Context) -> net.minecraft.client.renderer.blockentity.BlockEntityRenderer<T>,
+                renderer: (net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider.Context) -> BlockEntityRendererOf<T>,
             ) = event.registerBlockEntityRenderer(type) { ctx -> renderer(ctx) }
 
             override fun <T : net.minecraft.world.entity.Entity> entity(
@@ -73,8 +73,17 @@ object NeoHudRegistry : HudRegistry {
         pending += { e -> e.registerAboveAll(id, wrap(layer)) }
     }
 
+    /**
+     * `LayeredDraw` was deleted with the GUI rewrite and NeoForge's `GuiLayer` took its place. Same two
+     * arguments, same moment; only the name of the thing being handed over changed.
+     */
+    //? if >=1.21.9 {
+    /*private fun wrap(layer: HudLayer) =
+        net.neoforged.neoforge.client.gui.GuiLayer { g, delta -> layer.draw(g, delta) }
+    *///?} else {
     private fun wrap(layer: HudLayer) =
         net.minecraft.client.gui.LayeredDraw.Layer { g, delta -> layer.draw(g, delta) }
+    //?}
 
     fun onRegisterGuiLayers(event: net.neoforged.neoforge.client.event.RegisterGuiLayersEvent) {
         for (block in pending) block(event)

@@ -2,16 +2,11 @@ package bpm.client.render
 
 import bpm.world.devices.AssemblerBlockEntity
 import bpm.world.devices.PedestalBlockEntity
-import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
-import com.mojang.blaze3d.vertex.VertexFormat
 import com.mojang.math.Axis
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.LevelRenderer
-import net.minecraft.client.renderer.MultiBufferSource
-import net.minecraft.client.renderer.GameRenderer
-import net.minecraft.client.renderer.RenderStateShard
 import bpm.platform.RenderType
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.core.BlockPos
@@ -19,8 +14,6 @@ import net.minecraft.world.item.ItemDisplayContext
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
-import org.joml.Vector3f
-import bpm.platform.GeoBone
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
@@ -40,23 +33,14 @@ class AssemblerRenderer : DeviceRenderer<AssemblerBlockEntity>("quantum_assemble
     /**
      * Where the model's focus bone actually is this frame, so the item and the beams sit in the middle of
      * the gyroscope while it bobs rather than at a guessed height. Same trick the controller's core uses —
-     * see [BoneAnchors] for why the pose stack is read instead of `GeoBone.getWorldPosition`.
+     * see [BoneAnchors] for why a position is asked for rather than read off the bone.
      */
-    override fun renderRecursively(
-        poseStack: PoseStack, animatable: AssemblerBlockEntity, bone: GeoBone, renderType: RenderType,
-        bufferSource: MultiBufferSource, buffer: VertexConsumer, isReRender: Boolean, partialTick: Float,
-        packedLight: Int, packedOverlay: Int, colour: Int,
-    ) {
-        if (!isReRender && bone.name == FOCUS) {
-            val local = poseStack.last().pose().transformPosition(Vector3f(0f, 0f, 0f))
-            val cam = Minecraft.getInstance().gameRenderer.mainCamera.position
-            BoneAnchors.capture(animatable.blockPos, FOCUS, Vec3(local.x + cam.x, local.y + cam.y, local.z + cam.z))
-        }
-        super.renderRecursively(poseStack, animatable, bone, renderType, bufferSource, buffer, isReRender, partialTick, packedLight, packedOverlay, colour)
+    override fun onBones(bones: bpm.platform.client.BoneAccess, pos: BlockPos, state: net.minecraft.world.level.block.state.BlockState) {
+        bones.watch(FOCUS) { world -> BoneAnchors.capture(pos, FOCUS, world) }
     }
 
-    override fun render(animatable: AssemblerBlockEntity, partialTick: Float, poseStack: PoseStack, bufferSource: MultiBufferSource, packedLight: Int, packedOverlay: Int) {
-        super.render(animatable, partialTick, poseStack, bufferSource, packedLight, packedOverlay)
+    override fun afterModel(blockEntity: AssemblerBlockEntity, poseStack: PoseStack, draw: bpm.platform.client.WorldDraw, partialTick: Float, packedLight: Int) {
+        val animatable = blockEntity
         if (!animatable.running) return
         val level = animatable.level ?: return
 
@@ -87,11 +71,11 @@ class AssemblerRenderer : DeviceRenderer<AssemblerBlockEntity>("quantum_assemble
         val at = home.add(jitter)
 
         // The camera in the same block-local frame the beams are drawn in, so they can turn to face it.
-        val eye = Minecraft.getInstance().gameRenderer.mainCamera.position
+        val eye = bpm.platform.client.cameraPos()
         val camLocal = Vec3(eye.x - here.x, eye.y - here.y, eye.z - here.z)
 
-        if (beat.up) beams(animatable, here, focus, at, camLocal, poseStack, bufferSource, time, coherence, tint, beat.pop)
-        forming(animatable, at, poseStack, bufferSource, time, coherence, beat.pop)
+        if (beat.up) beams(animatable, here, focus, at, camLocal, poseStack, draw, time, coherence, tint, beat.pop)
+        forming(animatable, at, poseStack, draw, time, coherence, beat.pop)
     }
 
     /**
@@ -102,14 +86,16 @@ class AssemblerRenderer : DeviceRenderer<AssemblerBlockEntity>("quantum_assemble
      */
     private fun beams(
         be: AssemblerBlockEntity, here: BlockPos, focus: Vec3, target: Vec3, camLocal: Vec3,
-        pose: PoseStack, buffers: MultiBufferSource, time: Double, coherence: Float, tint: FloatArray, pop: Float,
-    ) {
-        val buffer = buffers.getBuffer(BEAM)
+        pose: PoseStack, draw: bpm.platform.client.WorldDraw, time: Double, coherence: Float, tint: FloatArray, pop: Float,
+    ) = draw.into(pose, BEAM) { p, buffer ->
+        // Every beam in one submission: they share a render type, and from 1.21.9 a submission is a unit
+        // of deferred work rather than a buffer handed over, so batching them is what keeps them one draw.
+        val m = p.pose()
 
         // The spine: the machine's own core up to the result it is holding. Its LENGTH is the progress bar,
         // and anchoring it to the focus bone means it rides the gyroscope's bob rather than a constant.
         val spine = ((time * 0.06) % 1.0).toFloat()
-        beam(pose, buffer, focus, target, camLocal, tint, (0.80f + coherence * 0.2f) * pop, HALF_WIDTH * 1.35f, spine)
+        beam(m, buffer, focus, target, camLocal, tint, (0.80f + coherence * 0.2f) * pop, HALF_WIDTH * 1.35f, spine)
         for (pedestal in be.pedestals()) {
             if (pedestal.held.isEmpty) continue
             val p = pedestal.blockPos
@@ -123,7 +109,7 @@ class AssemblerRenderer : DeviceRenderer<AssemblerBlockEntity>("quantum_assemble
             // per-pedestal offset keeps eight beams from pulsing in lockstep, which reads as one flash.
             val travel = ((time * 0.09 + (p.x * 0.31 + p.z * 0.17)) % 1.0).toFloat()
             val alpha = (0.72f + coherence * 0.28f) * pop
-            beam(pose, buffer, from, target, camLocal, tint, alpha, HALF_WIDTH + coherence * 0.02f, travel)
+            beam(m, buffer, from, target, camLocal, tint, alpha, HALF_WIDTH + coherence * 0.02f, travel)
 
             // The pedestal's own gathering: each prong throws to a point on the axis, and that point throws
             // up into the ingredient. It is the same shape the machine makes at a larger scale — four
@@ -134,9 +120,9 @@ class AssemblerRenderer : DeviceRenderer<AssemblerBlockEntity>("quantum_assemble
             for (k in 0 until 4) {
                 val a = k * Math.PI / 2
                 val tip = foot.add(cos(a) * PRONG_R, PRONG_Y, sin(a) * PRONG_R)
-                beam(pose, buffer, tip, hub, camLocal, tint, alpha * 0.8f, PRONG_WIDTH, travel)
+                beam(m, buffer, tip, hub, camLocal, tint, alpha * 0.8f, PRONG_WIDTH, travel)
             }
-            beam(pose, buffer, hub, held, camLocal, tint, alpha, PRONG_WIDTH * 1.4f, travel)
+            beam(m, buffer, hub, held, camLocal, tint, alpha, PRONG_WIDTH * 1.4f, travel)
         }
     }
 
@@ -148,9 +134,8 @@ class AssemblerRenderer : DeviceRenderer<AssemblerBlockEntity>("quantum_assemble
      * ribbon vanishes, and there are angles where both are near enough edge-on that the beam disappears
      * entirely. Turning a single ribbon to face the viewer is both cheaper and correct from everywhere.
      */
-    private fun beam(pose: PoseStack, buffer: VertexConsumer, from: Vec3, to: Vec3, camLocal: Vec3, rgb: FloatArray, alpha: Float, width: Float, travel: Float) {
+    private fun beam(m: org.joml.Matrix4f, buffer: VertexConsumer, from: Vec3, to: Vec3, camLocal: Vec3, rgb: FloatArray, alpha: Float, width: Float, travel: Float) {
         val steps = 8
-        val m = pose.last().pose()
         val axis = to.subtract(from)
         if (axis.lengthSqr() < 1e-8) return
         val dir = axis.normalize()
@@ -196,7 +181,7 @@ class AssemblerRenderer : DeviceRenderer<AssemblerBlockEntity>("quantum_assemble
      * far along a job is — you can tell across the room.
      */
     private fun forming(
-        be: AssemblerBlockEntity, at: Vec3, pose: PoseStack, buffers: MultiBufferSource,
+        be: AssemblerBlockEntity, at: Vec3, pose: PoseStack, draw: bpm.platform.client.WorldDraw,
         time: Double, coherence: Float, pop: Float,
     ) {
         val stack: ItemStack = be.forming
@@ -211,11 +196,7 @@ class AssemblerRenderer : DeviceRenderer<AssemblerBlockEntity>("quantum_assemble
         pose.mulPose(Axis.YP.rotationDegrees((time * 2.4).toFloat()))
         pose.mulPose(Axis.XP.rotationDegrees(sin(time * 0.09).toFloat() * 18f * wobble))
         pose.scale(grow, grow, grow)
-        Minecraft.getInstance().itemRenderer.renderStatic(
-            stack, ItemDisplayContext.GROUND,
-            LevelRenderer.getLightColor(level, be.blockPos.above()), OverlayTexture.NO_OVERLAY,
-            pose, buffers, level, be.blockPos.hashCode(),
-        )
+        draw.item(pose, stack, ItemDisplayContext.GROUND, LevelRenderer.getLightColor(level, be.blockPos.above()), OverlayTexture.NO_OVERLAY)
         pose.popPose()
     }
 
@@ -364,17 +345,12 @@ class PedestalRenderer : DeviceRenderer<PedestalBlockEntity>("core_pedestal", { 
      * four prongs that are already pointing at the item. Hidden rather than deleted from the model so the
      * chamber's altar geometry and its animations are untouched and it can come back by removing one line.
      */
-    override fun renderRecursively(
-        poseStack: PoseStack, animatable: PedestalBlockEntity, bone: GeoBone, renderType: RenderType,
-        bufferSource: MultiBufferSource, buffer: VertexConsumer, isReRender: Boolean, partialTick: Float,
-        packedLight: Int, packedOverlay: Int, colour: Int,
-    ) {
-        if (bone.name == SOCKET_RING) return
-        super.renderRecursively(poseStack, animatable, bone, renderType, bufferSource, buffer, isReRender, partialTick, packedLight, packedOverlay, colour)
+    override fun onBones(bones: bpm.platform.client.BoneAccess, pos: BlockPos, state: net.minecraft.world.level.block.state.BlockState) {
+        bones.hide(setOf(SOCKET_RING))
     }
 
-    override fun render(animatable: PedestalBlockEntity, partialTick: Float, poseStack: PoseStack, bufferSource: MultiBufferSource, packedLight: Int, packedOverlay: Int) {
-        super.render(animatable, partialTick, poseStack, bufferSource, packedLight, packedOverlay)
+    override fun afterModel(blockEntity: PedestalBlockEntity, poseStack: PoseStack, draw: bpm.platform.client.WorldDraw, partialTick: Float, packedLight: Int) {
+        val animatable = blockEntity
         val stack = animatable.held
         if (stack.isEmpty) return
         val level = animatable.level ?: return
@@ -383,11 +359,7 @@ class PedestalRenderer : DeviceRenderer<PedestalBlockEntity>("core_pedestal", { 
         poseStack.translate(0.5, AssemblerRenderer.PEDESTAL_SOCKET + sin(time * 0.05) * 0.03, 0.5)
         poseStack.mulPose(Axis.YP.rotationDegrees((time * 1.6).toFloat()))
         poseStack.scale(0.5f, 0.5f, 0.5f)
-        Minecraft.getInstance().itemRenderer.renderStatic(
-            stack, ItemDisplayContext.GROUND,
-            LevelRenderer.getLightColor(level, animatable.blockPos.above()), OverlayTexture.NO_OVERLAY,
-            poseStack, bufferSource, level, animatable.blockPos.hashCode(),
-        )
+        draw.item(poseStack, stack, ItemDisplayContext.GROUND, LevelRenderer.getLightColor(level, animatable.blockPos.above()), OverlayTexture.NO_OVERLAY)
         poseStack.popPose()
     }
 }

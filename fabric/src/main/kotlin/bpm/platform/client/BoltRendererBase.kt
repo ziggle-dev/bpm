@@ -25,6 +25,20 @@ typealias EntityRendererOf<T> = EntityRenderer<T>
 //?}
 
 /**
+ * A block entity renderer, likewise.
+ *
+ * 1.21.9 did to block entities what 1.21.2 did to entities: `BlockEntityRenderer` gained a render-state
+ * type parameter. Unlike the entity case this one is NOT star-projected, because NeoForge's registration
+ * has to infer it and a star gives it nothing to infer from. Naming it costs nothing, because every
+ * block entity renderer in this mod is a [GeoBlockRendererBase] and they all share one state class.
+ */
+//? if >=1.21.9 {
+/*typealias BlockEntityRendererOf<T> = net.minecraft.client.renderer.blockentity.BlockEntityRenderer<T, BpmBlockRenderState>
+*///?} else {
+typealias BlockEntityRendererOf<T> = net.minecraft.client.renderer.blockentity.BlockEntityRenderer<T>
+//?}
+
+/**
  * A bolt drawn as an energy spear laid along its velocity.
  *
  * The one thing this renderer needs from the entity is its motion, and the split above is exactly about
