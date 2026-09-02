@@ -4,7 +4,9 @@ import net.minecraft.core.HolderLookup
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.crafting.Ingredient
 import net.minecraft.world.item.crafting.Recipe
+//? if >=1.20.5 {
 import net.minecraft.world.item.crafting.RecipeInput
+//?}
 
 /**
  * The parts of `Recipe` that stopped being the same question.
@@ -121,7 +123,7 @@ fun <R : net.minecraft.world.item.crafting.Recipe<*>> recipeSerializer(
         codec,
         streamCodec as net.minecraft.network.codec.StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, R>,
     )
-    *///?} else {
+    *///?} elif >=1.20.5 {
     object : net.minecraft.world.item.crafting.RecipeSerializer<R> {
         override fun codec(): com.mojang.serialization.MapCodec<R> = codec
         @Suppress("UNCHECKED_CAST")
