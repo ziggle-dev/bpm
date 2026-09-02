@@ -28,7 +28,7 @@ class ControllerBlockItem(block: Block, properties: Properties) : bpm.platform.B
      * the one route that works on both loaders and on both sides of 1.21.4's
      * `BlockEntityWithoutLevelRenderer` deletion.
      */
-    override fun createGeoRenderer(consumer: Consumer<software.bernie.geckolib.animatable.client.GeoRenderProvider>) =
+    override fun createGeoRenderer(consumer: Consumer<bpm.platform.GeoRenderProvider>) =
         bpm.client.render.geoItemRenderer(this, consumer)
 
     override fun lore(stack: net.minecraft.world.item.ItemStack, add: (net.minecraft.network.chat.Component) -> Unit) {

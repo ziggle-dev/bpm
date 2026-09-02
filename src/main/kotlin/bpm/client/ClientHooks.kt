@@ -11,6 +11,6 @@ object ClientHooks {
         val mc = Minecraft.getInstance()
         // Nothing to edit without a world and a connection to speak to.
         if (mc.level == null || mc.player == null || mc.connection == null) return
-        mc.execute { mc.setScreen(WorkbenchScreen(pos)) }
+        mc.execute { bpm.platform.client.openScreen(WorkbenchScreen(pos)) }
     }
 }

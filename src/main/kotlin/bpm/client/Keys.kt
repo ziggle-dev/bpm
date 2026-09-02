@@ -78,7 +78,7 @@ object Keys {
     fun onKey(event: bpm.platform.events.RawKey): Boolean {
         if (watched.isEmpty()) return true
         val mc = Minecraft.getInstance()
-        if (mc.screen != null || mc.player == null || mc.connection == null) return true
+        if (bpm.platform.client.currentScreen() != null || mc.player == null || mc.connection == null) return true
         if (event.action == GLFW.GLFW_REPEAT) return true
         val name = resolved.entries.firstOrNull { (_, k) -> k.type == InputConstants.Type.KEYSYM && k.value == event.key }?.key ?: return true
         if (!carryingBoundTether()) return true
@@ -102,10 +102,10 @@ object Keys {
         // The focus key is a tap, not a hold: it opens the panels with the cursor free.
         if (::focus.isInitialized) {
             while (focus.consumeClick()) {
-                if (mc.screen == null) bpm.client.mc.PanelScreen.open()
+                if (bpm.platform.client.currentScreen() == null) bpm.client.mc.PanelScreen.open()
             }
         }
-        if (down.isEmpty() || mc.screen != null) return
+        if (down.isEmpty() || bpm.platform.client.currentScreen() != null) return
         val mod = modifierHeld
         for (name in down) {
             val watch = watched[name] ?: continue

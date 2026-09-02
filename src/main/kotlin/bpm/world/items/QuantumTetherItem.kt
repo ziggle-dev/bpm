@@ -189,7 +189,7 @@ class QuantumTetherItem(properties: Properties) : TooltipItem(properties), GeoIt
     override fun getAnimatableInstanceCache(): AnimatableInstanceCache = animCache
 
     /** Drawn by the table in [bpm.client.render.BpmItemRenderers]; GeckoLib asks the item, so the item asks it. */
-    override fun createGeoRenderer(consumer: Consumer<software.bernie.geckolib.animatable.client.GeoRenderProvider>) =
+    override fun createGeoRenderer(consumer: Consumer<bpm.platform.GeoRenderProvider>) =
         bpm.client.render.geoItemRenderer(this, consumer)
 
 

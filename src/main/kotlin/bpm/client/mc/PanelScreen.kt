@@ -78,7 +78,7 @@ class PanelScreen : bpm.platform.client.InputScreen(Component.literal("bpm")) {
 
         fun open() {
             if (!hasPanels()) return
-            Minecraft.getInstance().setScreen(PanelScreen())
+            bpm.platform.client.openScreen(PanelScreen())
         }
     }
 }

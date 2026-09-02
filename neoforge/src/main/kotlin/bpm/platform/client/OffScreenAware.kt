@@ -1,7 +1,7 @@
 package bpm.platform.client
 
-import software.bernie.geckolib.animatable.GeoAnimatable
-import software.bernie.geckolib.model.GeoModel
+import bpm.platform.GeoAnimatable
+import bpm.platform.GeoModel
 
 /*
  * One method, two signatures, and the reason this is a file of its own.

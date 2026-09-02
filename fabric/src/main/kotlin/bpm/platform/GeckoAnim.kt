@@ -8,7 +8,7 @@ package bpm.platform
  * explicit `<Any>` that the newer one rejects. Nothing else about the call differs.
  */
 fun triggerItemAnim(
-    animatable: software.bernie.geckolib.animatable.SingletonGeoAnimatable,
+    animatable: SingletonGeoAnimatable,
     entity: net.minecraft.world.entity.Entity,
     id: Long,
     controller: String,

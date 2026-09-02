@@ -31,7 +31,7 @@ object SmokeRun {
 
     fun start() {
         Bpm.LOGGER.info("bpm smoke run: {} frames", frames)
-        Minecraft.getInstance().setScreen(
+        bpm.platform.client.openScreen(
             BpmEditorScreen(DemoBody::draw, onFrame = { n -> if (n >= frames) finish(n) }),
         )
     }

@@ -22,8 +22,15 @@ package bpm.platform
 typealias ResourceLocation = net.minecraft.resources.ResourceLocation
 //?}
 
-/** `ItemPredicate` moved from `advancements.critereon` to `advancements.criterion` at 1.21.9. */
-//? if >=1.21.9 {
+/**
+ * `ItemPredicate` has moved twice: `advancements.critereon` to `advancements.criterion` at 1.21.9, and
+ * on to `advancements.predicates` at 26.1. The type itself is unchanged -- the same record, the same
+ * `CODEC`, the same `test` -- so an alias carries all three. What it tests is now spelled `ItemInstance`
+ * rather than `ItemStack`, which costs nothing here because `ItemStack` implements it.
+ */
+//? if >=26.1 {
+/*typealias ItemPredicate = net.minecraft.advancements.predicates.ItemPredicate
+*///?} elif >=1.21.9 {
 /*typealias ItemPredicate = net.minecraft.advancements.criterion.ItemPredicate
 *///?} else {
 typealias ItemPredicate = net.minecraft.advancements.critereon.ItemPredicate

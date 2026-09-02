@@ -131,6 +131,7 @@ typealias DataTickets = com.geckolib.constant.DataTickets
 typealias DataTicket<D> = com.geckolib.constant.dataticket.DataTicket<D>
 typealias GeoRenderProvider = com.geckolib.animatable.client.GeoRenderProvider
 typealias GeoModel<T> = com.geckolib.model.GeoModel<T>
+typealias SingletonGeoAnimatable = com.geckolib.animatable.SingletonGeoAnimatable
 *///?} else {
 typealias RawAnimation = software.bernie.geckolib.animation.RawAnimation
 typealias GeckoLibUtil = software.bernie.geckolib.util.GeckoLibUtil
@@ -144,6 +145,7 @@ typealias DataTickets = software.bernie.geckolib.constant.DataTickets
 typealias DataTicket<D> = software.bernie.geckolib.constant.dataticket.DataTicket<D>
 typealias GeoRenderProvider = software.bernie.geckolib.animatable.client.GeoRenderProvider
 typealias GeoModel<T> = software.bernie.geckolib.model.GeoModel<T>
+typealias SingletonGeoAnimatable = software.bernie.geckolib.animatable.SingletonGeoAnimatable
 //?}
 
 /*

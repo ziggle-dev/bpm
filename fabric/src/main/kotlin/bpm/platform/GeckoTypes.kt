@@ -61,6 +61,16 @@ typealias AnimationController<T> = software.bernie.geckolib.animation.AnimationC
 typealias AnimationStateHandler<T> = software.bernie.geckolib.animation.AnimationController.AnimationStateHandler<T>
 //?}
 
+/*
+ * `GeoRenderer` and `AutoGlowingGeoLayer` are deliberately NOT aliased on this band.
+ *
+ * Both went from one type parameter to three, and a one-parameter alias cannot stand in for a
+ * three-parameter type without inventing the other two. Nothing here needs them either: the only code
+ * that named them was the glow layer, and [bpm.platform.client.BpmGlowLayer] now writes the full name
+ * on each band because its own shape differs anyway. An alias that would have to lie is worse than no
+ * alias -- see [BakedGeoModel], which moved package but kept its arity and so is still aliased.
+ */
+
 /**
  * A render type, under whichever package this version keeps it in.
  *
@@ -121,6 +131,7 @@ typealias DataTickets = com.geckolib.constant.DataTickets
 typealias DataTicket<D> = com.geckolib.constant.dataticket.DataTicket<D>
 typealias GeoRenderProvider = com.geckolib.animatable.client.GeoRenderProvider
 typealias GeoModel<T> = com.geckolib.model.GeoModel<T>
+typealias SingletonGeoAnimatable = com.geckolib.animatable.SingletonGeoAnimatable
 *///?} else {
 typealias RawAnimation = software.bernie.geckolib.animation.RawAnimation
 typealias GeckoLibUtil = software.bernie.geckolib.util.GeckoLibUtil
@@ -134,6 +145,7 @@ typealias DataTickets = software.bernie.geckolib.constant.DataTickets
 typealias DataTicket<D> = software.bernie.geckolib.constant.dataticket.DataTicket<D>
 typealias GeoRenderProvider = software.bernie.geckolib.animatable.client.GeoRenderProvider
 typealias GeoModel<T> = software.bernie.geckolib.model.GeoModel<T>
+typealias SingletonGeoAnimatable = software.bernie.geckolib.animatable.SingletonGeoAnimatable
 //?}
 
 /*

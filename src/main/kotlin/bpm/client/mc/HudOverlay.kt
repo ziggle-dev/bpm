@@ -69,7 +69,7 @@ object HudOverlay {
         if (panels.isEmpty() || hidden) return
         val mc = Minecraft.getInstance()
         // A screen draws its own copy, with a cursor; the HUD would only be a second one underneath.
-        if (mc.screen != null || mc.level == null) return
+        if (bpm.platform.client.currentScreen() != null || mc.level == null) return
         val w = mc.window
         // -1 for the mouse: the HUD is a readout, and nothing on it can be pressed.
         PanelDraw.drawAll(g, all, w.guiScaledWidth, w.guiScaledHeight, -1, -1)
