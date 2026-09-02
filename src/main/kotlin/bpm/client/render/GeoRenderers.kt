@@ -23,9 +23,7 @@ import bpm.platform.client.ClientRenderers
 import software.bernie.geckolib.animatable.GeoAnimatable
 import software.bernie.geckolib.constant.DataTickets
 import software.bernie.geckolib.loading.math.MolangQueries
-import software.bernie.geckolib.renderer.GeoBlockRenderer
 import software.bernie.geckolib.animatable.client.GeoRenderProvider
-import software.bernie.geckolib.renderer.GeoItemRenderer
 
 /**
  * A GeckoLib model at fixed asset paths, so one model file can serve a block entity and its item.
@@ -59,7 +57,7 @@ class TetherModel : PathGeoModel<bpm.world.items.QuantumTetherItem>(
 )
 
 /** The controller block. Beams carry alpha, so the whole model draws translucent; the glow mask rides on top. */
-class ControllerRenderer : GeoBlockRenderer<ControllerBlockEntity>(ControllerModel()) {
+class ControllerRenderer : bpm.platform.client.GeoBlockRendererBase<ControllerBlockEntity>(ControllerModel()) {
     init {
         addRenderLayer(GlowLayer(this))
     }
@@ -106,7 +104,7 @@ class ControllerRenderer : GeoBlockRenderer<ControllerBlockEntity>(ControllerMod
     }
 }
 
-class ControllerItemRenderer : GeoItemRenderer<ControllerBlockItem>(ControllerModel()) {
+class ControllerItemRenderer : bpm.platform.client.GeoItemRendererBase<ControllerBlockItem>(ControllerModel()) {
     init {
         addRenderLayer(GlowLayer(this))
     }
@@ -115,13 +113,13 @@ class ControllerItemRenderer : GeoItemRenderer<ControllerBlockItem>(ControllerMo
         bpm.platform.client.entityTranslucent(texture)
 }
 
-class LinkerRenderer : GeoItemRenderer<LinkerItem>(LinkerModel()) {
+class LinkerRenderer : bpm.platform.client.GeoItemRendererBase<LinkerItem>(LinkerModel()) {
     init {
         addRenderLayer(GlowLayer(this))
     }
 }
 
-class TetherRenderer : GeoItemRenderer<bpm.world.items.QuantumTetherItem>(TetherModel())
+class TetherRenderer : bpm.platform.client.GeoItemRendererBase<bpm.world.items.QuantumTetherItem>(TetherModel())
 
 /**
  * Which item draws with which renderer.
@@ -140,7 +138,7 @@ class TetherRenderer : GeoItemRenderer<bpm.world.items.QuantumTetherItem>(Tether
 object BpmItemRenderers {
 
     /** Null for any item that is not drawn by a model of ours -- GeckoLib then leaves it to its own item model. */
-    fun rendererFor(item: net.minecraft.world.item.Item): GeoItemRenderer<*>? = when {
+    fun rendererFor(item: net.minecraft.world.item.Item): bpm.platform.client.GeoItemRendererBase<*>? = when {
         item === bpm.world.ModItems.CONTROLLER.get() -> ControllerItemRenderer()
         item === bpm.world.ModItems.LINKER.get() -> LinkerRenderer()
         item === bpm.world.ContentItems.QUANTUM_TETHER.get() -> TetherRenderer()
@@ -162,7 +160,7 @@ fun geoItemRenderer(item: net.minecraft.world.item.Item, consumer: java.util.fun
         object : GeoRenderProvider {
             private val renderer by lazy { BpmItemRenderers.rendererFor(item) }
 
-            override fun getGeoItemRenderer(): GeoItemRenderer<*>? = renderer
+            override fun getGeoItemRenderer(): bpm.platform.client.GeoItemRendererBase<*>? = renderer
         },
     )
 }

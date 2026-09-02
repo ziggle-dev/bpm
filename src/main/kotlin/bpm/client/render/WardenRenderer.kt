@@ -13,7 +13,6 @@ import bpm.platform.ResourceLocation
 import net.minecraft.world.phys.Vec3
 import org.joml.Vector3f
 import bpm.platform.GeoBone
-import software.bernie.geckolib.renderer.GeoEntityRenderer
 
 private fun rl(path: String) = ResourceLocation.fromNamespaceAndPath(Bpm.ID, path)
 
@@ -24,7 +23,7 @@ class WardenModel : PathGeoModel<QuantumWardenEntity>(
 )
 
 /** The Warden: translucent for the bolts' alpha, the glow mask on top, a wide shadow for a wide boss. */
-class WardenRenderer(context: EntityRendererProvider.Context) : GeoEntityRenderer<QuantumWardenEntity>(context, WardenModel()) {
+class WardenRenderer(context: EntityRendererProvider.Context) : bpm.platform.client.GeoEntityRendererBase<QuantumWardenEntity>(context, WardenModel()) {
     init {
         addRenderLayer(GlowLayer(this))
         shadowRadius = 1.4f

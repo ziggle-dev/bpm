@@ -20,8 +20,6 @@ import bpm.platform.ResourceLocation
 import net.minecraft.world.phys.AABB
 import software.bernie.geckolib.animatable.GeoAnimatable
 import bpm.platform.GeoBone
-import software.bernie.geckolib.renderer.GeoBlockRenderer
-import software.bernie.geckolib.renderer.GeoItemRenderer
 
 private fun rl(path: String) = ResourceLocation.fromNamespaceAndPath(Bpm.ID, path)
 
@@ -33,7 +31,7 @@ class DeviceModel<T : GeoAnimatable>(name: String) : PathGeoModel<T>(
 )
 
 /** A device block: translucent (columns, halos and bolts carry alpha), glow mask on top, its own render box. */
-open class DeviceRenderer<T : DeviceBlockEntity>(name: String, private val box: (T) -> AABB) : GeoBlockRenderer<T>(DeviceModel(name)) {
+open class DeviceRenderer<T : DeviceBlockEntity>(name: String, private val box: (T) -> AABB) : bpm.platform.client.GeoBlockRendererBase<T>(DeviceModel(name)) {
     init {
         addRenderLayer(GlowLayer(this))
     }
@@ -157,7 +155,7 @@ class MonitorModel : PathGeoModel<bpm.world.devices.MonitorBlockEntity>(
  * that side is outer, its end pieces where the neighbouring side is NOT outer (the strip runs on to the
  * tile boundary and the next tile's bezel), a corner where both are.
  */
-class MonitorRenderer : GeoBlockRenderer<bpm.world.devices.MonitorBlockEntity>(MonitorModel()) {
+class MonitorRenderer : bpm.platform.client.GeoBlockRendererBase<bpm.world.devices.MonitorBlockEntity>(MonitorModel()) {
     init {
         addRenderLayer(GlowLayer(this))
     }
@@ -213,7 +211,7 @@ class MonitorRenderer : GeoBlockRenderer<bpm.world.devices.MonitorBlockEntity>(M
 
 /** Device items drawn with their block's model at rest, one renderer per model, made on first use. */
 object DeviceItemExtensions {
-    private val cache = HashMap<String, GeoItemRenderer<DeviceBlockItem>>()
+    private val cache = HashMap<String, bpm.platform.client.GeoItemRendererBase<DeviceBlockItem>>()
 
     /** Bones a model leaves out when drawn as an item (world-only parts that would dwarf the block). */
     private val HIDDEN_IN_ITEM: Map<String, Set<String>> = mapOf(
@@ -222,10 +220,10 @@ object DeviceItemExtensions {
         "quantum_monitor" to setOf("bezel_up_l", "bezel_up_r", "bezel_down_l", "bezel_down_r", "bezel_left_u", "bezel_left_d", "bezel_right_u", "bezel_right_d"),
     )
 
-    fun of(model: String): GeoItemRenderer<DeviceBlockItem> = cache.getOrPut(model) {
+    fun of(model: String): bpm.platform.client.GeoItemRendererBase<DeviceBlockItem> = cache.getOrPut(model) {
         run {
             run {
-                object : GeoItemRenderer<DeviceBlockItem>(DeviceModel(model)) {
+                object : bpm.platform.client.GeoItemRendererBase<DeviceBlockItem>(DeviceModel(model)) {
                     init {
                         addRenderLayer(GlowLayer(this))
                     }
