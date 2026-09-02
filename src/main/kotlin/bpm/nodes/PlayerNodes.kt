@@ -222,7 +222,7 @@ object PlayerNodes {
                 val p = granted(host, player(), Grant.STATE, "state") ?: return@query LinkedHashMap<Any?, Any?>()
                 val out = LinkedHashMap<Any?, Any?>()
                 for (e in p.activeEffects) {
-                    val id = BuiltInRegistries.MOB_EFFECT.getKey(e.effect.value())?.toString() ?: continue
+                    val id = BuiltInRegistries.MOB_EFFECT.getKey(bpm.platform.effectOf(e))?.toString() ?: continue
                     out[id] = e.amplifier.toLong()
                 }
                 out
@@ -241,7 +241,7 @@ object PlayerNodes {
                 val p = granted(host, player(), Grant.STATE, "state") ?: return@query null
                 val rl = bpm.platform.ResourceLocation.tryParse(id().trim()) ?: return@query null
                 val kind = BuiltInRegistries.MOB_EFFECT.getOptional(rl).orElse(null) ?: return@query null
-                val active = p.activeEffects.firstOrNull { it.effect.value() === kind } ?: return@query null
+                val active = p.activeEffects.firstOrNull { bpm.platform.effectOf(it) === kind } ?: return@query null
                 has set true
                 amplifier set active.amplifier.toLong()
                 ticks set active.duration.toLong()

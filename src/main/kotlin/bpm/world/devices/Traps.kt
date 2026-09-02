@@ -423,7 +423,7 @@ class TurretBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(De
         l.sendParticles(ParticleTypes.EXPLOSION, c.x, c.y, c.z, 2, 0.2, 0.2, 0.2, 0.0)
         l.sendParticles(ParticleTypes.ELECTRIC_SPARK, c.x, c.y, c.z, 40, 0.4, 0.4, 0.4, 0.3)
         l.sendParticles(ParticleTypes.LARGE_SMOKE, c.x, c.y, c.z, 12, 0.3, 0.3, 0.3, 0.02)
-        l.playSound(null, worldPosition, net.minecraft.sounds.SoundEvents.GENERIC_EXPLODE.value(), net.minecraft.sounds.SoundSource.BLOCKS, 0.6f, 1.4f)
+        l.playSound(null, worldPosition, bpm.platform.soundOf(net.minecraft.sounds.SoundEvents.GENERIC_EXPLODE), net.minecraft.sounds.SoundSource.BLOCKS, 0.6f, 1.4f)
         triggerAnim("main", "powerdown")
         sync()
     }

@@ -21,7 +21,8 @@ import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.context.BlockPlaceContext
-import net.minecraft.world.item.crafting.RecipeHolder
+import bpm.platform.RecipeEntry
+import bpm.platform.recipeOf
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.EntityBlock
@@ -208,7 +209,7 @@ class AssemblerBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity
         if (running) return "already assembling"
         if (catalyst.isEmpty) return "no catalyst in the assembler"
         val found = recipeFor(catalyst) ?: return "the pedestals do not spell out a recipe for that"
-        val recipe = found.value()
+        val recipe = recipeOf(found)
         // Spent on starting, not on finishing: the lens is what sets the process going.
         items.extract(CATALYST, 1, false)
         recipeId = bpm.platform.recipeIdOf(found)
@@ -295,12 +296,12 @@ class AssemblerBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity
     }
 
     /** The recipe these pedestals make with [withCatalyst], or null — the capstone aside, which cannot run yet. */
-    private fun recipeFor(withCatalyst: ItemStack): RecipeHolder<AssemblyRecipe>? {
+    private fun recipeFor(withCatalyst: ItemStack): RecipeEntry<AssemblyRecipe>? {
         val l = level ?: return null
         if (withCatalyst.isEmpty) return null
         val input = AssemblyInput(pedestals().map { it.held }, withCatalyst)
         val found = bpm.platform.findRecipe(l, ModRecipes.ASSEMBLY.get(), input) ?: return null
-        return if (found.value().paired) null else found
+        return if (recipeOf(found).paired) null else found
     }
 
     /**
@@ -386,7 +387,7 @@ class AssemblerBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity
         // The VALUE is type-checked, not the holder: an unchecked cast of the holder proves nothing at
         // runtime and would let a datapack that reused the id hand us some other recipe entirely.
         val holder = bpm.platform.recipeById(l, id) ?: return null
-        return holder.value() as? AssemblyRecipe
+        return bpm.platform.recipeAny(holder) as? AssemblyRecipe
     }
 
     /** How far through, 0…1 — the bar, and how far the focus has pulled itself together. */

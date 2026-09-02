@@ -239,20 +239,43 @@ fun dust(colour: Int, scale: Float): net.minecraft.core.particles.DustParticleOp
         scale,
     )
 
+/*
+ * A recipe lookup, and what it hands back.
+ *
+ * From 1.20.5 the manager returns a `RecipeHolder` -- the recipe paired with its id -- and takes a
+ * `RecipeInput`. Below it the manager returns the RECIPE, which carries its own id, and takes a
+ * `Container`. [bpm.platform.RecipeEntry] is whichever of those two this band means.
+ */
+//? if >=1.20.5 {
 fun <I : net.minecraft.world.item.crafting.RecipeInput, T : net.minecraft.world.item.crafting.Recipe<I>> findRecipe(
     level: net.minecraft.world.level.Level,
     type: net.minecraft.world.item.crafting.RecipeType<T>,
     input: I,
-): net.minecraft.world.item.crafting.RecipeHolder<T>? =
+): bpm.platform.RecipeEntry<T>? =
     level.recipeManager.getRecipeFor(type, input, level).orElse(null)
 
 fun recipeById(
     level: net.minecraft.world.level.Level,
     id: bpm.platform.ResourceLocation,
-): net.minecraft.world.item.crafting.RecipeHolder<*>? = level.recipeManager.byKey(id).orElse(null)
+): bpm.platform.RecipeEntry<*>? = level.recipeManager.byKey(id).orElse(null)
 
-fun recipeIdOf(holder: net.minecraft.world.item.crafting.RecipeHolder<*>): bpm.platform.ResourceLocation =
-    holder.id()
+fun recipeIdOf(entry: bpm.platform.RecipeEntry<*>): bpm.platform.ResourceLocation = entry.id()
+//?} else {
+/*fun <I : net.minecraft.world.Container, T : net.minecraft.world.item.crafting.Recipe<I>> findRecipe(
+    level: net.minecraft.world.level.Level,
+    type: net.minecraft.world.item.crafting.RecipeType<T>,
+    input: I,
+): bpm.platform.RecipeEntry<T>? =
+    level.recipeManager.getRecipeFor(type, input, level).orElse(null)
+
+fun recipeById(
+    level: net.minecraft.world.level.Level,
+    id: bpm.platform.ResourceLocation,
+): bpm.platform.RecipeEntry<*>? = level.recipeManager.byKey(id).orElse(null)
+
+/** The recipe carries its own id on this band, which is where getId() went at 1.20.5. */
+fun recipeIdOf(entry: bpm.platform.RecipeEntry<*>): bpm.platform.ResourceLocation = entry.id
+*///?}
 
 val INGREDIENT_CODEC: com.mojang.serialization.Codec<net.minecraft.world.item.crafting.Ingredient> =
     net.minecraft.world.item.crafting.Ingredient.CODEC_NONEMPTY
