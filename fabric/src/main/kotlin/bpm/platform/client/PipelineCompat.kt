@@ -56,14 +56,21 @@ internal fun com.mojang.blaze3d.pipeline.RenderPipeline.Builder.withBlending(
 /**
  * Depth writing, which is the other half of the same state record.
  *
- * `withDepthWrite` is gone with `withBlend`. The compare op is vanilla's own default -- what
- * `DepthStencilState.DEFAULT` uses -- so only the write flag is actually being chosen here.
+ * `withDepthWrite` is gone with `withBlend`, and the compare op has to be supplied with it.
+ *
+ * GREATER_THAN_OR_EQUAL, because 26.x uses REVERSED-Z: near is 1.0, far is 0.0, and the buffer clears to
+ * far. That is what `DepthStencilState.DEFAULT` is built with. An earlier version of this said
+ * LESS_THAN_OR_EQUAL and claimed it was vanilla's default; it is the exact opposite, and the effect was
+ * that every world effect drawn through here vanished against the sky while still appearing in front of
+ * a block -- depth 0.7 <= 0.0 fails against cleared sky, but 0.7 <= 0.8 passes against a nearer block.
+ *
+ * Read it off `DepthStencilState.DEFAULT` rather than assuming, if this ever needs revisiting.
  */
 internal fun com.mojang.blaze3d.pipeline.RenderPipeline.Builder.withDepthWriting(
     write: Boolean,
 ): com.mojang.blaze3d.pipeline.RenderPipeline.Builder =
     withDepthStencilState(
-        com.mojang.blaze3d.pipeline.DepthStencilState(com.mojang.blaze3d.platform.CompareOp.LESS_THAN_OR_EQUAL, write)
+        com.mojang.blaze3d.pipeline.DepthStencilState(com.mojang.blaze3d.platform.CompareOp.GREATER_THAN_OR_EQUAL, write)
     )
 
 /**
