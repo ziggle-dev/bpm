@@ -30,8 +30,8 @@ object BpmClient {
     fun init(modBus: IEventBus) {
         bpm.platform.events.NeoClientEventBridge.install(modBus, NeoForge.EVENT_BUS)
         BpmEvents.clientSetup.listen {
-            net.minecraft.client.renderer.ItemBlockRenderTypes.setRenderLayer(bpm.world.ModFluids.EXPERIENCE.get(), bpm.platform.client.translucent())
-            net.minecraft.client.renderer.ItemBlockRenderTypes.setRenderLayer(bpm.world.ModFluids.EXPERIENCE_FLOWING.get(), bpm.platform.client.translucent())
+            bpm.platform.client.drawFluidTranslucent(bpm.world.ModFluids.EXPERIENCE.get())
+            bpm.platform.client.drawFluidTranslucent(bpm.world.ModFluids.EXPERIENCE_FLOWING.get())
             GeoRenderers.installMolang()
             /*
              * Ponder scenes exist only where Create's Ponder does, which today is 1.21.1. The build

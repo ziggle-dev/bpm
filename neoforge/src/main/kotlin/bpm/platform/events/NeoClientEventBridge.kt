@@ -22,6 +22,11 @@ import java.util.function.Consumer
  */
 object NeoClientEventBridge {
 
+    //? if >=1.21.9 {
+    /*/** The field of view NeoForge last computed, in degrees. Only read to rebuild the projection. */
+    private var fov: Float = 70f
+    *///?}
+
     fun install(modBus: IEventBus, gameBus: IEventBus) {
         modBus.addListener(FMLClientSetupEvent::class.java, Consumer { e ->
             // enqueueWork because some of what runs here touches the game's own state.
@@ -37,12 +42,44 @@ object NeoClientEventBridge {
             BpmEvents.registerClientCommands.fire(CommandRegistration(e.dispatcher, e.buildContext))
         })
 
+        /*
+         * The translucent stage of the level render.
+         *
+         * 1.21.9 split the one event with a `stage` field into a subclass per stage, and took three of its
+         * accessors with it: there is no camera (the level render state carries one), no partial tick (the
+         * game's own DeltaTracker is the same value), and no projection matrix at all -- the projection
+         * lives in a GPU buffer now and is never handed back as a Matrix4f.
+         *
+         * The projection is rebuilt from the field of view instead, which NeoForge still reports through
+         * `ViewportEvent.ComputeFov` every frame. That is exact for what this mod does with it: the only
+         * consumer projects a world point onto the window, and x/w and y/w depend on the field of view and
+         * the aspect ratio alone -- the near and far planes cancel.
+         */
+        //? if >=1.21.9 {
+        /*gameBus.addListener(net.neoforged.neoforge.client.event.ViewportEvent.ComputeFov::class.java, Consumer { fov = it.fov.toFloat() })
+
+        gameBus.addListener(net.neoforged.neoforge.client.event.RenderLevelStageEvent.AfterTranslucentBlocks::class.java, Consumer { e ->
+            val pose = e.poseStack ?: return@Consumer
+            val mc = net.minecraft.client.Minecraft.getInstance()
+            val window = mc.window
+            val projection = org.joml.Matrix4f().perspective(
+                Math.toRadians(fov.toDouble()).toFloat(),
+                window.width.toFloat() / window.height.toFloat().coerceAtLeast(1f),
+                0.05f,
+                1024f,
+            )
+            BpmEvents.worldRenderTranslucent.fire(
+                WorldRender(pose, e.levelRenderState.cameraRenderState.pos, projection, e.modelViewMatrix, mc.deltaTracker)
+            )
+        })
+        *///?} else {
         gameBus.addListener(net.neoforged.neoforge.client.event.RenderLevelStageEvent::class.java, Consumer { e ->
             if (e.stage != net.neoforged.neoforge.client.event.RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) return@Consumer
             BpmEvents.worldRenderTranslucent.fire(
                 WorldRender(e.poseStack, e.camera.position, e.projectionMatrix, e.modelViewMatrix, e.partialTick)
             )
         })
+        //?}
 
         gameBus.addListener(InputEvent.InteractionKeyMappingTriggered::class.java, Consumer { e ->
             if (!e.isUseItem) return@Consumer

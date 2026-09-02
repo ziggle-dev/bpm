@@ -568,3 +568,18 @@ fun blockSprite(texture: ResourceLocation): net.minecraft.client.renderer.textur
         .getTextureAtlas(net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS)
         .apply(texture)
 //?}
+
+/**
+ * Draw this fluid in the translucent chunk layer.
+ *
+ * `RenderType.translucent()` was one of the chunk layers until 1.21.9, when the layers became their own
+ * `ChunkSectionLayer` enum -- which is the honest shape, since a chunk layer was never a render type in
+ * the sense the rest of this file uses the word. The seam is the instruction rather than the value.
+ */
+fun drawFluidTranslucent(fluid: net.minecraft.world.level.material.Fluid) {
+    //? if >=1.21.9 {
+    /*net.minecraft.client.renderer.ItemBlockRenderTypes.setRenderLayer(fluid, net.minecraft.client.renderer.chunk.ChunkSectionLayer.TRANSLUCENT)
+    *///?} else {
+    net.minecraft.client.renderer.ItemBlockRenderTypes.setRenderLayer(fluid, net.minecraft.client.renderer.RenderType.translucent())
+    //?}
+}
