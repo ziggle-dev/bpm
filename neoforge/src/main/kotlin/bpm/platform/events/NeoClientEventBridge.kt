@@ -33,7 +33,7 @@ object NeoClientEventBridge {
             e.enqueueWork { BpmEvents.clientSetup.fire(Unit) }
         })
 
-        //? if >=1.21.9 {
+        //? if >=1.21.6 {
         /*// The end of the frame, after the GUI has been painted -- see bpm.platform.client.deferGuiDraw.
         gameBus.addListener(net.neoforged.neoforge.client.event.RenderFrameEvent.Post::class.java, Consumer { bpm.platform.client.drawDeferredGui() })
         *///?}

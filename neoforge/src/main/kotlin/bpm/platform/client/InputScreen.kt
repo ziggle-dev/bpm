@@ -259,7 +259,7 @@ val screenRendersOwnBackground: Boolean
  * is what an ImGui backend does -- happens BEFORE the GUI is painted and is covered by it. The editor
  * was drawing every frame and being painted over every frame.
  *
- * So on that band the frame is stashed and run from `RenderFrameEvent.Post`, after everything else. That
+ * So from 1.21.6 the frame is stashed and run after everything else. That
  * is the same move the plan calls for -- "move the ImGui frame out of Screen#render to the end of
  * Minecraft's frame" -- and NeoForge offers the moment as an event, so it costs no mixin.
  *
@@ -269,7 +269,7 @@ val screenRendersOwnBackground: Boolean
 private var pendingFrame: (() -> Unit)? = null
 
 fun deferGuiDraw(draw: () -> Unit) {
-    //? if >=1.21.9 {
+    //? if >=1.21.6 {
     /*pendingFrame = draw
     *///?} else {
     draw()
