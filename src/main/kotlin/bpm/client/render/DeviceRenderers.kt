@@ -18,7 +18,7 @@ import bpm.platform.RenderType
 import net.minecraft.core.Direction
 import bpm.platform.ResourceLocation
 import net.minecraft.world.phys.AABB
-import software.bernie.geckolib.animatable.GeoAnimatable
+import bpm.platform.GeoAnimatable
 import bpm.platform.GeoBone
 
 private fun rl(path: String) = ResourceLocation.fromNamespaceAndPath(Bpm.ID, path)

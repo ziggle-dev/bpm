@@ -42,7 +42,7 @@ import net.minecraft.world.phys.shapes.VoxelShape
 import org.joml.Vector3f
 import bpm.platform.AnimatableManager
 import bpm.platform.AnimationController
-import software.bernie.geckolib.animation.RawAnimation
+import bpm.platform.RawAnimation
 import java.util.UUID
 import kotlin.math.atan2
 import kotlin.math.sqrt

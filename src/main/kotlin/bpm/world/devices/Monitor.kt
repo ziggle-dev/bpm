@@ -28,7 +28,7 @@ import net.minecraft.world.phys.shapes.CollisionContext
 import net.minecraft.world.phys.shapes.VoxelShape
 import bpm.platform.AnimatableManager
 import bpm.platform.AnimationController
-import software.bernie.geckolib.animation.RawAnimation
+import bpm.platform.RawAnimation
 
 /**
  * The Quantum Monitor: a 6 px panel against the back of its cell whose screen faces [FACING]. Tiles that touch

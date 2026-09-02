@@ -22,13 +22,13 @@ import bpm.platform.ports.Droplets
 import bpm.platform.ports.EnergyCell
 import bpm.platform.ports.MultiTank
 import bpm.platform.ports.SlotStore
-import software.bernie.geckolib.animatable.GeoBlockEntity
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
+import bpm.platform.GeoBlockEntity
+import bpm.platform.AnimatableInstanceCache
 import bpm.platform.AnimatableManager
 import bpm.platform.AnimationController
 import bpm.platform.PlayState
-import software.bernie.geckolib.animation.RawAnimation
-import software.bernie.geckolib.util.GeckoLibUtil
+import bpm.platform.RawAnimation
+import bpm.platform.GeckoLibUtil
 import java.util.UUID
 import bpm.platform.intOr
 import bpm.platform.stringOr

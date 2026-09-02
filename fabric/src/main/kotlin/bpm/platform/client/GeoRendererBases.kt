@@ -1,8 +1,8 @@
 package bpm.platform.client
 
 import net.minecraft.world.phys.Vec3
-import software.bernie.geckolib.animatable.GeoAnimatable
-import software.bernie.geckolib.model.GeoModel
+import bpm.platform.GeoAnimatable
+import bpm.platform.GeoModel
 
 /*
  * What GeckoLib hands an item renderer alongside the animatable.
@@ -119,17 +119,17 @@ interface WorldDraw {
  */
 class BpmBlockRenderState :
     net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState(),
-    software.bernie.geckolib.renderer.base.GeoRenderState {
+    bpm.platform.GeoRenderState {
 
-    private val data = HashMap<software.bernie.geckolib.constant.dataticket.DataTicket<*>, Any>()
+    private val data = HashMap<bpm.platform.DataTicket<*>, Any>()
 
-    override fun getDataMap(): MutableMap<software.bernie.geckolib.constant.dataticket.DataTicket<*>, Any> = data
+    override fun getDataMap(): MutableMap<bpm.platform.DataTicket<*>, Any> = data
 
-    override fun <D : Any> addGeckolibData(ticket: software.bernie.geckolib.constant.dataticket.DataTicket<D>, value: D) {
+    override fun <D : Any> addGeckolibData(ticket: bpm.platform.DataTicket<D>, value: D) {
         data[ticket] = value
     }
 
-    override fun hasGeckolibData(ticket: software.bernie.geckolib.constant.dataticket.DataTicket<*>): Boolean =
+    override fun hasGeckolibData(ticket: bpm.platform.DataTicket<*>): Boolean =
         data.containsKey(ticket)
 }
 
@@ -144,27 +144,27 @@ class BpmBlockRenderState :
  */
 class BpmEntityRenderState :
     net.minecraft.client.renderer.entity.state.EntityRenderState(),
-    software.bernie.geckolib.renderer.base.GeoRenderState {
+    bpm.platform.GeoRenderState {
 
     var entityId: Int = 0
 
-    private val data = HashMap<software.bernie.geckolib.constant.dataticket.DataTicket<*>, Any>()
+    private val data = HashMap<bpm.platform.DataTicket<*>, Any>()
 
-    override fun getDataMap(): MutableMap<software.bernie.geckolib.constant.dataticket.DataTicket<*>, Any> = data
+    override fun getDataMap(): MutableMap<bpm.platform.DataTicket<*>, Any> = data
 
-    override fun <D : Any> addGeckolibData(ticket: software.bernie.geckolib.constant.dataticket.DataTicket<D>, value: D) {
+    override fun <D : Any> addGeckolibData(ticket: bpm.platform.DataTicket<D>, value: D) {
         data[ticket] = value
     }
 
-    override fun hasGeckolibData(ticket: software.bernie.geckolib.constant.dataticket.DataTicket<*>): Boolean =
+    override fun hasGeckolibData(ticket: bpm.platform.DataTicket<*>): Boolean =
         data.containsKey(ticket)
 }
 
 
 
 /** [BoneAccess] over a render pass: listeners for the watches, one updater for the hides. */
-private class PassBones<R : software.bernie.geckolib.renderer.base.GeoRenderState>(
-    private val pass: software.bernie.geckolib.renderer.base.RenderPassInfo<R>,
+private class PassBones<R : bpm.platform.GeoRenderState>(
+    private val pass: bpm.platform.RenderPassInfo<R>,
 ) : BoneAccess {
 
     override fun watch(bone: String, onWorldPosition: (Vec3) -> Unit) {
@@ -248,7 +248,7 @@ abstract class GeoBlockRendererBase<T>(model: GeoModel<T>) :
     protected open fun onBones(bones: BoneAccess, pos: net.minecraft.core.BlockPos, state: net.minecraft.world.level.block.state.BlockState) {}
 
     override fun preRenderPass(
-        pass: software.bernie.geckolib.renderer.base.RenderPassInfo<BpmBlockRenderState>,
+        pass: bpm.platform.RenderPassInfo<BpmBlockRenderState>,
         collector: net.minecraft.client.renderer.SubmitNodeCollector,
     ) {
         onBones(PassBones(pass), pass.renderState().blockPos, pass.renderState().blockState)
@@ -289,11 +289,11 @@ abstract class GeoBlockRendererBase<T>(model: GeoModel<T>) :
     protected open fun rotateFor(facing: net.minecraft.core.Direction, poseStack: com.mojang.blaze3d.vertex.PoseStack): Boolean = false
 
     override fun tryRotateByBlockstate(
-        pass: software.bernie.geckolib.renderer.base.RenderPassInfo<BpmBlockRenderState>,
+        pass: bpm.platform.RenderPassInfo<BpmBlockRenderState>,
         poseStack: com.mojang.blaze3d.vertex.PoseStack,
     ) {
         val facing = pass.renderState()
-            .getOrDefaultGeckolibData(software.bernie.geckolib.constant.DataTickets.BLOCK_FACING, net.minecraft.core.Direction.NORTH)
+            .getOrDefaultGeckolibData(bpm.platform.DataTickets.BLOCK_FACING, net.minecraft.core.Direction.NORTH)
         if (facing != null && rotateFor(facing, poseStack)) return
         super.tryRotateByBlockstate(pass, poseStack)
     }
@@ -343,7 +343,7 @@ abstract class GeoEntityRendererBase<T>(
     protected open fun onBones(bones: BoneAccess, entityId: Int) {}
 
     override fun preRenderPass(
-        pass: software.bernie.geckolib.renderer.base.RenderPassInfo<BpmEntityRenderState>,
+        pass: bpm.platform.RenderPassInfo<BpmEntityRenderState>,
         collector: net.minecraft.client.renderer.SubmitNodeCollector,
     ) {
         onBones(PassBones(pass), pass.renderState().entityId)
@@ -369,7 +369,7 @@ abstract class GeoItemRendererBase<T>(model: GeoModel<T>) :
     protected open fun onBones(bones: BoneAccess) {}
 
     override fun preRenderPass(
-        pass: software.bernie.geckolib.renderer.base.RenderPassInfo<software.bernie.geckolib.renderer.base.GeoRenderState>,
+        pass: bpm.platform.RenderPassInfo<bpm.platform.GeoRenderState>,
         collector: net.minecraft.client.renderer.SubmitNodeCollector,
     ) {
         onBones(PassBones(pass))
@@ -383,7 +383,7 @@ abstract class GeoItemRendererBase<T>(model: GeoModel<T>) :
     protected open fun renderTypeFor(texture: bpm.platform.ResourceLocation): bpm.platform.RenderType =
         entityTranslucent(texture)
 
-    override fun getRenderType(state: software.bernie.geckolib.renderer.base.GeoRenderState, texture: bpm.platform.ResourceLocation): bpm.platform.RenderType =
+    override fun getRenderType(state: bpm.platform.GeoRenderState, texture: bpm.platform.ResourceLocation): bpm.platform.RenderType =
         renderTypeFor(texture)
 
     /**
@@ -396,7 +396,7 @@ abstract class GeoItemRendererBase<T>(model: GeoModel<T>) :
     override fun captureDefaultRenderState(
         animatable: T,
         renderData: software.bernie.geckolib.renderer.GeoItemRenderer.RenderData,
-        state: software.bernie.geckolib.renderer.base.GeoRenderState,
+        state: bpm.platform.GeoRenderState,
         partialTick: Float,
     ) {
         super.captureDefaultRenderState(animatable, renderData, state, partialTick)
@@ -495,26 +495,26 @@ internal class BufferedDraw(private val bufferSource: net.minecraft.client.rende
 // writes looking at different maps.
 class BpmEntityRenderState :
     net.minecraft.client.renderer.entity.state.EntityRenderState(),
-    software.bernie.geckolib.renderer.base.GeoRenderState {
+    bpm.platform.GeoRenderState {
 
     var entityId: Int = 0
 
-    private val data = HashMap<software.bernie.geckolib.constant.dataticket.DataTicket<*>, Any>()
+    private val data = HashMap<bpm.platform.DataTicket<*>, Any>()
 
-    override fun getDataMap(): MutableMap<software.bernie.geckolib.constant.dataticket.DataTicket<*>, Any> = data
+    override fun getDataMap(): MutableMap<bpm.platform.DataTicket<*>, Any> = data
 
     // FOUR accessors on this band, not three: `getGeckolibData` is still abstract here, where 5.4 made
     // it an interface default over `getDataMap`. The value is nullable in both directions, so a null
     // write is a removal rather than a stored null -- the map itself cannot hold one.
-    override fun <D : Any> addGeckolibData(ticket: software.bernie.geckolib.constant.dataticket.DataTicket<D>, value: D?) {
+    override fun <D : Any> addGeckolibData(ticket: bpm.platform.DataTicket<D>, value: D?) {
         if (value == null) data.remove(ticket) else data[ticket] = value
     }
 
     @Suppress("UNCHECKED_CAST")
-    override fun <D : Any> getGeckolibData(ticket: software.bernie.geckolib.constant.dataticket.DataTicket<D>): D? =
+    override fun <D : Any> getGeckolibData(ticket: bpm.platform.DataTicket<D>): D? =
         data[ticket] as D?
 
-    override fun hasGeckolibData(ticket: software.bernie.geckolib.constant.dataticket.DataTicket<*>): Boolean =
+    override fun hasGeckolibData(ticket: bpm.platform.DataTicket<*>): Boolean =
         data.containsKey(ticket)
 }
 
@@ -528,7 +528,7 @@ abstract class GeoBlockRendererBase<T>(model: GeoModel<T>) :
     protected open fun onBones(bones: BoneAccess, pos: net.minecraft.core.BlockPos, state: net.minecraft.world.level.block.state.BlockState) {}
 
     override fun renderRecursively(
-        renderState: software.bernie.geckolib.renderer.base.GeoRenderState,
+        renderState: bpm.platform.GeoRenderState,
         poseStack: com.mojang.blaze3d.vertex.PoseStack,
         bone: bpm.platform.GeoBone,
         renderType: bpm.platform.RenderType,
@@ -543,10 +543,10 @@ abstract class GeoBlockRendererBase<T>(model: GeoModel<T>) :
         // into the render state on this band, so they are read back rather than asked for -- and read
         // with a default, because a renderer whose model never asked for them would otherwise throw.
         val pos = renderState.getOrDefaultGeckolibData(
-            software.bernie.geckolib.constant.DataTickets.BLOCKPOS, net.minecraft.core.BlockPos.ZERO,
+            bpm.platform.DataTickets.BLOCKPOS, net.minecraft.core.BlockPos.ZERO,
         ) ?: net.minecraft.core.BlockPos.ZERO
         val state = renderState.getOrDefaultGeckolibData(
-            software.bernie.geckolib.constant.DataTickets.BLOCKSTATE,
+            bpm.platform.DataTickets.BLOCKSTATE,
             net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(),
         ) ?: net.minecraft.world.level.block.Blocks.AIR.defaultBlockState()
         onBones(bones, pos, state)
@@ -563,7 +563,7 @@ abstract class GeoBlockRendererBase<T>(model: GeoModel<T>) :
         entityTranslucent(texture)
 
     override fun getRenderType(
-        renderState: software.bernie.geckolib.renderer.base.GeoRenderState,
+        renderState: bpm.platform.GeoRenderState,
         texture: bpm.platform.ResourceLocation,
     ): bpm.platform.RenderType = renderTypeFor(texture)
 
@@ -668,16 +668,16 @@ abstract class GeoItemRendererBase<T>(model: GeoModel<T>) :
     override fun captureDefaultRenderState(
         animatable: T,
         renderData: ItemRenderData,
-        state: software.bernie.geckolib.renderer.base.GeoRenderState,
+        state: bpm.platform.GeoRenderState,
         partialTick: Float,
-    ): software.bernie.geckolib.renderer.base.GeoRenderState {
+    ): bpm.platform.GeoRenderState {
         val captured = super.captureDefaultRenderState(animatable, renderData, state, partialTick)
         captured.addGeckolibData(ITEM_STACK, stackOf(renderData))
         return captured
     }
 
     override fun renderRecursively(
-        renderState: software.bernie.geckolib.renderer.base.GeoRenderState,
+        renderState: bpm.platform.GeoRenderState,
         poseStack: com.mojang.blaze3d.vertex.PoseStack,
         bone: bpm.platform.GeoBone,
         renderType: bpm.platform.RenderType,
@@ -701,7 +701,7 @@ abstract class GeoItemRendererBase<T>(model: GeoModel<T>) :
         entityTranslucent(texture)
 
     override fun getRenderType(
-        renderState: software.bernie.geckolib.renderer.base.GeoRenderState,
+        renderState: bpm.platform.GeoRenderState,
         texture: bpm.platform.ResourceLocation,
     ): bpm.platform.RenderType = renderTypeFor(texture)
 }

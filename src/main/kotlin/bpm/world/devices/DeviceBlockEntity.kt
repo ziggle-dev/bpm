@@ -12,9 +12,9 @@ import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.entity.BlockEntityTicker
 import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.level.block.state.BlockState
-import software.bernie.geckolib.animatable.GeoBlockEntity
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
-import software.bernie.geckolib.util.GeckoLibUtil
+import bpm.platform.GeoBlockEntity
+import bpm.platform.AnimatableInstanceCache
+import bpm.platform.GeckoLibUtil
 
 /**
  * What every device block entity shares: a GeckoLib instance cache, a per-block Molang phase, and a small

@@ -20,10 +20,10 @@ import org.joml.Vector3f
 import bpm.platform.GeoBone
 import bpm.platform.client.RendererSink
 import bpm.platform.client.ClientRenderers
-import software.bernie.geckolib.animatable.GeoAnimatable
-import software.bernie.geckolib.constant.DataTickets
-import software.bernie.geckolib.loading.math.MolangQueries
-import software.bernie.geckolib.animatable.client.GeoRenderProvider
+import bpm.platform.GeoAnimatable
+import bpm.platform.DataTickets
+import bpm.platform.MolangQueries
+import bpm.platform.GeoRenderProvider
 
 /**
  * A GeckoLib model at fixed asset paths, so one model file can serve a block entity and its item.

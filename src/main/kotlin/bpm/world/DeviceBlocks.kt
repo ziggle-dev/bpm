@@ -33,12 +33,12 @@ import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.material.MapColor
-import software.bernie.geckolib.animatable.GeoItem
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
+import bpm.platform.GeoItem
+import bpm.platform.AnimatableInstanceCache
 import bpm.platform.AnimatableManager
 import bpm.platform.AnimationController
-import software.bernie.geckolib.animation.RawAnimation
-import software.bernie.geckolib.util.GeckoLibUtil
+import bpm.platform.RawAnimation
+import bpm.platform.GeckoLibUtil
 import java.util.function.Consumer
 
 /**

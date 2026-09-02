@@ -39,7 +39,7 @@ import net.minecraft.world.phys.Vec3
 import bpm.platform.AnimatableManager
 import bpm.platform.AnimationController
 import bpm.platform.PlayState
-import software.bernie.geckolib.animation.RawAnimation
+import bpm.platform.RawAnimation
 import java.util.UUID
 import kotlin.math.abs
 import bpm.platform.longOr

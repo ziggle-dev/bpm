@@ -54,12 +54,22 @@ version = modVersion
 group = "bpm"
 base { archivesName = modId }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+/*
+ * 26.1 moves the game to JDK 25, so the TOOLCHAIN follows it there -- Minecraft's own classes are
+ * compiled for 25 and cannot be read by a 21 compiler. The bytecode this mod emits stays at 21 (see
+ * `jvmTarget` below): a 25 toolchain is perfectly happy to target 21, and a jar that runs on both is
+ * worth more than one that does not.
+ */
+val toolchainVersion = if (stonecutter.eval(minecraftVersion, ">=26.1")) 25 else 21
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(toolchainVersion)
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(toolchainVersion)
     compilerOptions {
-        jvmTarget = JvmTarget.JVM_21
+        // 26.x requires Java 25 in a player's game, so this band emits 25 bytecode rather than
+        // contorting to stay at 21 for a version that could not run it anyway.
+        jvmTarget = if (toolchainVersion == 25) JvmTarget.JVM_25 else JvmTarget.JVM_21
         // The mod may not reach for stdlib API newer than the compiler that built vscript (2.3.x): KFF's
         // runtime is the only stdlib present in a player's game and it must satisfy both.
         apiVersion = KotlinVersion.KOTLIN_2_3
@@ -460,7 +470,12 @@ dependencies {
     implementation("thedarkcolour:kotlinforforge-neoforge:$kffVersion")
     // GeckoLib is NOT optional — the models are the mod. Its coordinate names the Minecraft version,
     // so a node whose version GeckoLib has not published for will fail here, loudly, which is right.
-    implementation("software.bernie.geckolib:geckolib-neoforge-$minecraftVersion:$geckolibVersion")
+    // GeckoLib is not on the Cloudsmith maven for 26.x; see the note beside `geckolib_version_26_2`.
+    if (stonecutter.eval(minecraftVersion, ">=26.1")) {
+        implementation("maven.modrinth:geckolib:$geckolibVersion")
+    } else {
+        implementation("software.bernie.geckolib:geckolib-neoforge-$minecraftVersion:$geckolibVersion")
+    }
 
     // Dev runs only: Mekanism (core + generators) to test the energy and fluid verbs against real machines,
     // cables and pipes. Runtime only — nothing compiles against it, and it is never bundled.

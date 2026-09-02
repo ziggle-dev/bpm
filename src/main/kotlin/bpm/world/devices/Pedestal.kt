@@ -23,7 +23,7 @@ import net.minecraft.world.phys.BlockHitResult
 import bpm.platform.AnimatableManager
 import bpm.platform.AnimationController
 import bpm.platform.PlayState
-import software.bernie.geckolib.animation.RawAnimation
+import bpm.platform.RawAnimation
 import java.util.UUID
 import bpm.platform.compoundOr
 

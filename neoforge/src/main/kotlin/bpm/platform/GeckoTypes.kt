@@ -23,7 +23,17 @@ package bpm.platform
  * takes it as an inferred lambda parameter and calls `setAndContinue` on it, which survived the rename
  * unchanged. A type nobody writes down costs nothing to rename.
  */
-//? if >=1.21.9 {
+//? if >=26.1 {
+/*// GeckoLib 5.5. Structurally identical to 5.4 below it -- every sub-path is the same -- but the root
+// package became `com.geckolib`. A fourth arm rather than a fourth layout.
+typealias AnimatableManager<T> = com.geckolib.animatable.manager.AnimatableManager<T>
+typealias ControllerRegistrar = com.geckolib.animatable.manager.AnimatableManager.ControllerRegistrar
+typealias PlayState = com.geckolib.animation.`object`.PlayState
+typealias GeoBone = com.geckolib.cache.model.GeoBone
+typealias BakedGeoModel = com.geckolib.cache.model.BakedGeoModel
+typealias AnimationController<T> = com.geckolib.animation.AnimationController<T>
+typealias AnimationStateHandler<T> = com.geckolib.animation.AnimationController.AnimationStateHandler<T>
+*///?} elif >=1.21.9 {
 /*typealias AnimatableManager<T> = software.bernie.geckolib.animatable.manager.AnimatableManager<T>
 typealias ControllerRegistrar = software.bernie.geckolib.animatable.manager.AnimatableManager.ControllerRegistrar
 typealias PlayState = software.bernie.geckolib.animation.`object`.PlayState
@@ -85,7 +95,7 @@ typealias RenderType = net.minecraft.client.renderer.RenderType
  * Taken here and ignored on the newer line rather than removed from the call sites, because the older
  * line still requires it and the shared tree has to read the same on both.
  */
-fun <T : software.bernie.geckolib.animatable.GeoAnimatable> animController(
+fun <T : GeoAnimatable> animController(
     animatable: T,
     name: String,
     transitionTicks: Int,
@@ -96,3 +106,89 @@ fun <T : software.bernie.geckolib.animatable.GeoAnimatable> animController(
     *///?} else {
     AnimationController(animatable, name, transitionTicks, handler)
     //?}
+
+/*
+ * The GeckoLib types whose package did NOT move within the library, only underneath it.
+ *
+ * At 5.5 GeckoLib renamed its root: `software.bernie.geckolib` became `com.geckolib`. Everything below
+ * that is untouched -- `animation.RawAnimation` is still `animation.RawAnimation` -- so unlike the three
+ * layouts above, this one is a pure prefix change and needs only two arms.
+ *
+ * These are aliased for the same reason [ResourceLocation] is: a prefix that appears in a hundred imports
+ * is exactly the sort of thing a build-level find-and-replace does almost correctly. A typealias is
+ * resolved by the compiler, so a place it does not fit is an error rather than a silent edit.
+ */
+//? if >=26.1 {
+/*typealias RawAnimation = com.geckolib.animation.RawAnimation
+typealias GeckoLibUtil = com.geckolib.util.GeckoLibUtil
+typealias AnimatableInstanceCache = com.geckolib.animatable.instance.AnimatableInstanceCache
+typealias GeoAnimatable = com.geckolib.animatable.GeoAnimatable
+typealias GeoItem = com.geckolib.animatable.GeoItem
+typealias GeoBlockEntity = com.geckolib.animatable.GeoBlockEntity
+typealias GeoEntity = com.geckolib.animatable.GeoEntity
+typealias MolangQueries = com.geckolib.loading.math.MolangQueries
+typealias DataTickets = com.geckolib.constant.DataTickets
+typealias DataTicket<D> = com.geckolib.constant.dataticket.DataTicket<D>
+typealias GeoRenderProvider = com.geckolib.animatable.client.GeoRenderProvider
+typealias GeoModel<T> = com.geckolib.model.GeoModel<T>
+*///?} else {
+typealias RawAnimation = software.bernie.geckolib.animation.RawAnimation
+typealias GeckoLibUtil = software.bernie.geckolib.util.GeckoLibUtil
+typealias AnimatableInstanceCache = software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
+typealias GeoAnimatable = software.bernie.geckolib.animatable.GeoAnimatable
+typealias GeoItem = software.bernie.geckolib.animatable.GeoItem
+typealias GeoBlockEntity = software.bernie.geckolib.animatable.GeoBlockEntity
+typealias GeoEntity = software.bernie.geckolib.animatable.GeoEntity
+typealias MolangQueries = software.bernie.geckolib.loading.math.MolangQueries
+typealias DataTickets = software.bernie.geckolib.constant.DataTickets
+typealias DataTicket<D> = software.bernie.geckolib.constant.dataticket.DataTicket<D>
+typealias GeoRenderProvider = software.bernie.geckolib.animatable.client.GeoRenderProvider
+typealias GeoModel<T> = software.bernie.geckolib.model.GeoModel<T>
+//?}
+
+/*
+ * The renderer family, aliased so the branch files' 1.21.9 arms do not name a package at all.
+ *
+ * Those arms already MATCH on 26.x -- 26.2 is greater than 1.21.9 -- and GeckoLib 5.5 is 5.4 with a
+ * different root, so the only thing standing between them and working unchanged was the literal
+ * `software.bernie.geckolib` in every signature. Aliasing removes it.
+ *
+ * Not declared below 1.21.5: render states and three-parameter renderers do not exist on 4.x, and the
+ * arms that target it write GeckoLib 4's own names directly.
+ */
+/*
+ * `GeoRenderState` arrives with GeckoLib 5, one band earlier than the rest of this group, so it is
+ * switched separately. The others are 5.4-and-up shapes.
+ */
+//? if >=26.1 {
+/*typealias GeoRenderState = com.geckolib.renderer.base.GeoRenderState
+*///?} elif >=1.21.5 {
+/*typealias GeoRenderState = software.bernie.geckolib.renderer.base.GeoRenderState
+*///?}
+
+/*
+ * A nested classifier is NOT reachable through a typealias in Kotlin -- `bpm.platform.MolangQueries.Actor`
+ * does not resolve -- so the nested one gets an alias of its own.
+ */
+//? if >=26.1 {
+/*typealias MolangActor<T> = com.geckolib.loading.math.MolangQueries.Actor<T>
+*///?} else {
+typealias MolangActor<T> = software.bernie.geckolib.loading.math.MolangQueries.Actor<T>
+//?}
+
+//? if >=26.1 {
+/*typealias RenderPassInfo<R> = com.geckolib.renderer.base.RenderPassInfo<R>
+typealias GeoRendererOf<T, O, R> = com.geckolib.renderer.base.GeoRenderer<T, O, R>
+typealias GeoBlockRendererOf<T, R> = com.geckolib.renderer.GeoBlockRenderer<T, R>
+typealias GeoEntityRendererOf<T, R> = com.geckolib.renderer.GeoEntityRenderer<T, R>
+// The item renderer fixes its render state, so it takes one parameter where the others take two.
+typealias GeoItemRendererOf<T> = com.geckolib.renderer.GeoItemRenderer<T>
+typealias AutoGlowingGeoLayerOf<T, O, R> = com.geckolib.renderer.layer.builtin.AutoGlowingGeoLayer<T, O, R>
+*///?} elif >=1.21.9 {
+/*typealias RenderPassInfo<R> = software.bernie.geckolib.renderer.base.RenderPassInfo<R>
+typealias GeoRendererOf<T, O, R> = software.bernie.geckolib.renderer.base.GeoRenderer<T, O, R>
+typealias GeoBlockRendererOf<T, R> = software.bernie.geckolib.renderer.GeoBlockRenderer<T, R>
+typealias GeoEntityRendererOf<T, R> = software.bernie.geckolib.renderer.GeoEntityRenderer<T, R>
+typealias GeoItemRendererOf<T> = software.bernie.geckolib.renderer.GeoItemRenderer<T>
+typealias AutoGlowingGeoLayerOf<T, O, R> = software.bernie.geckolib.renderer.layer.builtin.AutoGlowingGeoLayer<T, O, R>
+*///?}

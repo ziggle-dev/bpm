@@ -14,13 +14,13 @@ import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.TooltipFlag
 import net.minecraft.world.item.context.UseOnContext
 import net.minecraft.world.level.Level
-import software.bernie.geckolib.animatable.GeoItem
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
+import bpm.platform.GeoItem
+import bpm.platform.AnimatableInstanceCache
 import bpm.platform.AnimatableManager
 import bpm.platform.AnimationController
 import bpm.platform.PlayState
-import software.bernie.geckolib.animation.RawAnimation
-import software.bernie.geckolib.util.GeckoLibUtil
+import bpm.platform.RawAnimation
+import bpm.platform.GeckoLibUtil
 import java.util.function.Consumer
 
 /**

@@ -1,8 +1,8 @@
 package bpm.platform.client
 
 import bpm.platform.ResourceLocation
-import software.bernie.geckolib.animatable.GeoAnimatable
-import software.bernie.geckolib.model.GeoModel
+import bpm.platform.GeoAnimatable
+import bpm.platform.GeoModel
 
 /**
  * A GeckoLib model at fixed asset paths, and the one way this mod varies them.
@@ -37,9 +37,9 @@ abstract class PathGeoModelBase<T : GeoAnimatable>(
         if (altApplies(animatable)) (altTexture() ?: tex) else tex
 
     //? if >=1.21.9 {
-    /*override fun getModelResource(state: software.bernie.geckolib.renderer.base.GeoRenderState): ResourceLocation = geckoAsset(geo)
+    /*override fun getModelResource(state: bpm.platform.GeoRenderState): ResourceLocation = geckoAsset(geo)
 
-    override fun getTextureResource(state: software.bernie.geckolib.renderer.base.GeoRenderState): ResourceLocation =
+    override fun getTextureResource(state: bpm.platform.GeoRenderState): ResourceLocation =
         if (state.getOrDefaultGeckolibData(ALT_TEXTURE, false) == true) (altTexture() ?: tex) else tex
 
     /**
@@ -51,15 +51,15 @@ abstract class PathGeoModelBase<T : GeoAnimatable>(
     override fun addAdditionalStateData(
         animatable: T,
         relatedObject: Any?,
-        state: software.bernie.geckolib.renderer.base.GeoRenderState,
+        state: bpm.platform.GeoRenderState,
     ) {
         super.addAdditionalStateData(animatable, relatedObject, state)
         state.addGeckolibData(ALT_TEXTURE, altApplies(animatable))
     }
     *///?} elif >=1.21.5 {
-    /*override fun getModelResource(state: software.bernie.geckolib.renderer.base.GeoRenderState): ResourceLocation = geckoAsset(geo)
+    /*override fun getModelResource(state: bpm.platform.GeoRenderState): ResourceLocation = geckoAsset(geo)
 
-    override fun getTextureResource(state: software.bernie.geckolib.renderer.base.GeoRenderState): ResourceLocation =
+    override fun getTextureResource(state: bpm.platform.GeoRenderState): ResourceLocation =
         if (state.getOrDefaultGeckolibData(ALT_TEXTURE, false) == true) (altTexture() ?: tex) else tex
 
     // The same hook as the band above, one argument shorter: 5.4 added the related object, 5.1-5.2 pass
@@ -67,7 +67,7 @@ abstract class PathGeoModelBase<T : GeoAnimatable>(
     // in hand, and asking later is not possible.
     override fun addAdditionalStateData(
         animatable: T,
-        state: software.bernie.geckolib.renderer.base.GeoRenderState,
+        state: bpm.platform.GeoRenderState,
     ) {
         super.addAdditionalStateData(animatable, state)
         state.addGeckolibData(ALT_TEXTURE, altApplies(animatable))
@@ -91,8 +91,8 @@ abstract class PathGeoModelBase<T : GeoAnimatable>(
 
 //? if >=1.21.5 {
 /*/** The ticket the alternate-texture answer rides on, from extraction to draw. */
-private val ALT_TEXTURE: software.bernie.geckolib.constant.dataticket.DataTicket<Boolean> =
-    software.bernie.geckolib.constant.dataticket.DataTicket.create("bpm_alt_texture", Boolean::class.javaObjectType)
+private val ALT_TEXTURE: bpm.platform.DataTicket<Boolean> =
+    bpm.platform.DataTicket.create("bpm_alt_texture", Boolean::class.javaObjectType)
 *///?}
 
 /**
@@ -106,18 +106,18 @@ private val ALT_TEXTURE: software.bernie.geckolib.constant.dataticket.DataTicket
  * Null when the thing being drawn is not an item, which is most of the time -- a block entity's actor
  * has no stack, and a variable that asks about one should read that as "no".
  */
-fun actorStack(actor: software.bernie.geckolib.loading.math.MolangQueries.Actor<*>): net.minecraft.world.item.ItemStack? {
+fun actorStack(actor: bpm.platform.MolangActor<*>): net.minecraft.world.item.ItemStack? {
     //? if >=1.21.5 {
     /*return actor.renderState().getOrDefaultGeckolibData(ITEM_STACK, null)
     *///?} else {
-    return actor.animationState().getData(software.bernie.geckolib.constant.DataTickets.ITEMSTACK)
+    return actor.animationState().getData(bpm.platform.DataTickets.ITEMSTACK)
     //?}
 }
 
 //? if >=1.21.5 {
 /*/** The ticket the drawn stack rides on, from the item renderer to whoever asks about it. */
-internal val ITEM_STACK: software.bernie.geckolib.constant.dataticket.DataTicket<net.minecraft.world.item.ItemStack> =
-    software.bernie.geckolib.constant.dataticket.DataTicket.create("bpm_item_stack", net.minecraft.world.item.ItemStack::class.java)
+internal val ITEM_STACK: bpm.platform.DataTicket<net.minecraft.world.item.ItemStack> =
+    bpm.platform.DataTicket.create("bpm_item_stack", net.minecraft.world.item.ItemStack::class.java)
 *///?}
 
 /**

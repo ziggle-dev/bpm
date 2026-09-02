@@ -15,12 +15,12 @@ package bpm.platform.client
  * [bpm.client.render.Glowmasks.glows] -- is shared and has never changed.
  */
 //? if >=1.21.9 {
-/*class BpmGlowLayer<T : software.bernie.geckolib.animatable.GeoAnimatable, O : Any, R : software.bernie.geckolib.renderer.base.GeoRenderState>(
+/*class BpmGlowLayer<T : bpm.platform.GeoAnimatable, O : Any, R : bpm.platform.GeoRenderState>(
     renderer: software.bernie.geckolib.renderer.base.GeoRenderer<T, O, R>,
 ) : software.bernie.geckolib.renderer.layer.builtin.AutoGlowingGeoLayer<T, O, R>(renderer) {
 
     override fun submitRenderTask(
-        pass: software.bernie.geckolib.renderer.base.RenderPassInfo<R>,
+        pass: bpm.platform.RenderPassInfo<R>,
         collector: net.minecraft.client.renderer.SubmitNodeCollector,
     ) {
         if (!bpm.client.render.Glowmasks.glows(getTextureResource(pass.renderState()))) return
@@ -31,7 +31,7 @@ package bpm.platform.client
 /*// Three type parameters, as on the band above, but the layer still DRAWS rather than submitting, and
 // AutoGlowingGeoLayer has not moved into `layer.builtin` yet. Both halves of that are why this file
 // needs a fourth body rather than a relaxed condition on one of the others.
-class BpmGlowLayer<T : software.bernie.geckolib.animatable.GeoAnimatable, O : Any, R : software.bernie.geckolib.renderer.base.GeoRenderState>(
+class BpmGlowLayer<T : bpm.platform.GeoAnimatable, O : Any, R : bpm.platform.GeoRenderState>(
     renderer: software.bernie.geckolib.renderer.base.GeoRenderer<T, O, R>,
 ) : software.bernie.geckolib.renderer.layer.AutoGlowingGeoLayer<T, O, R>(renderer) {
 
@@ -51,7 +51,7 @@ class BpmGlowLayer<T : software.bernie.geckolib.animatable.GeoAnimatable, O : An
     }
 }
 *///?} elif >=1.21.2 {
-/*class BpmGlowLayer<T : software.bernie.geckolib.animatable.GeoAnimatable>(
+/*class BpmGlowLayer<T : bpm.platform.GeoAnimatable>(
     renderer: bpm.platform.GeoRenderer<T>,
 ) : bpm.platform.AutoGlowingGeoLayer<T>(renderer) {
 
@@ -72,7 +72,7 @@ class BpmGlowLayer<T : software.bernie.geckolib.animatable.GeoAnimatable, O : An
     }
 }
 *///?} else {
-class BpmGlowLayer<T : software.bernie.geckolib.animatable.GeoAnimatable>(
+class BpmGlowLayer<T : bpm.platform.GeoAnimatable>(
     renderer: bpm.platform.GeoRenderer<T>,
 ) : bpm.platform.AutoGlowingGeoLayer<T>(renderer) {
 

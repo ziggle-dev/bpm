@@ -28,13 +28,13 @@ import net.minecraft.world.entity.player.Player
 import net.minecraft.world.entity.projectile.Projectile
 import net.minecraft.world.level.Level
 import net.minecraft.world.phys.Vec3
-import software.bernie.geckolib.animatable.GeoEntity
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
+import bpm.platform.GeoEntity
+import bpm.platform.AnimatableInstanceCache
 import bpm.platform.AnimatableManager
 import bpm.platform.AnimationController
 import bpm.platform.PlayState
-import software.bernie.geckolib.animation.RawAnimation
-import software.bernie.geckolib.util.GeckoLibUtil
+import bpm.platform.RawAnimation
+import bpm.platform.GeckoLibUtil
 import java.util.UUID
 import kotlin.math.atan2
 import kotlin.math.cos

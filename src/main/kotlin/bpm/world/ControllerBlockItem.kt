@@ -2,11 +2,11 @@ package bpm.world
 
 import net.minecraft.world.item.BlockItem
 import net.minecraft.world.level.block.Block
-import software.bernie.geckolib.animatable.GeoItem
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache
+import bpm.platform.GeoItem
+import bpm.platform.AnimatableInstanceCache
 import bpm.platform.AnimatableManager
 import bpm.platform.AnimationController
-import software.bernie.geckolib.util.GeckoLibUtil
+import bpm.platform.GeckoLibUtil
 import java.util.function.Consumer
 
 /** The controller in item form, drawn with the same GeckoLib model (dormant pose) in hand and in the inventory. */
