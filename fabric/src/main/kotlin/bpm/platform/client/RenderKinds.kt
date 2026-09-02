@@ -864,6 +864,43 @@ fun skinHandle(skin: net.minecraft.client.resources.PlayerSkin): Long? =
     net.minecraft.client.Minecraft.getInstance().textureManager.getTexture(skin.texture()).id.toLong()
 //?}
 
+/**
+ * The texture handle for a player's head, by uuid.
+ *
+ * The skin comes from the player when the client can see them and from the uuid's default skin when it
+ * cannot, so a row for someone across the world or logged out still shows a face rather than a hole.
+ *
+ * `PlayerSkin` -- an object with the skin's several parts -- arrived at 1.20.5; before it a player simply
+ * had a texture id. The whole lookup lives here rather than at the call site because the type of "a
+ * skin" is what changed, and a shared caller cannot name two of them.
+ */
+//? if >=1.21.9 {
+/*fun playerHeadHandle(uuid: java.util.UUID): Long? {
+    val skin = net.minecraft.client.Minecraft.getInstance().level?.players()?.firstOrNull { it.uuid == uuid }?.skin
+        ?: net.minecraft.client.resources.DefaultPlayerSkin.get(uuid)
+    return textureHandle(skin.body().texturePath())
+}
+*///?} elif >=1.21.5 {
+/*fun playerHeadHandle(uuid: java.util.UUID): Long? {
+    val skin = net.minecraft.client.Minecraft.getInstance().level?.players()?.firstOrNull { it.uuid == uuid }?.skin
+        ?: net.minecraft.client.resources.DefaultPlayerSkin.get(uuid)
+    return textureHandle(skin.texture())
+}
+*///?} elif >=1.20.5 {
+fun playerHeadHandle(uuid: java.util.UUID): Long? {
+    val skin = net.minecraft.client.Minecraft.getInstance().level?.players()?.firstOrNull { it.uuid == uuid }?.skin
+        ?: net.minecraft.client.resources.DefaultPlayerSkin.get(uuid)
+    return net.minecraft.client.Minecraft.getInstance().textureManager.getTexture(skin.texture()).id.toLong()
+}
+//?} else {
+/*fun playerHeadHandle(uuid: java.util.UUID): Long? {
+    val player = net.minecraft.client.Minecraft.getInstance().level?.players()?.firstOrNull { it.uuid == uuid }
+    val texture = (player as? net.minecraft.client.player.AbstractClientPlayer)?.skinTextureLocation
+        ?: net.minecraft.client.resources.DefaultPlayerSkin.getDefaultSkin(uuid)
+    return net.minecraft.client.Minecraft.getInstance().textureManager.getTexture(texture).id.toLong()
+}
+*///?}
+
 /** The handle of an offscreen target's colour attachment. See [skinHandle] for why this can be null. */
 fun targetHandle(target: com.mojang.blaze3d.pipeline.RenderTarget): Long? {
     //? if >=1.21.5 {

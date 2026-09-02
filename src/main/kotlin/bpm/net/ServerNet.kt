@@ -26,7 +26,7 @@ import dev.ziggle.vscript.model.GraphDoc
 import net.minecraft.core.BlockPos
 import net.minecraft.core.GlobalPos
 import net.minecraft.network.chat.Component
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload
+import bpm.platform.net.BpmPayload
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import bpm.platform.net.Net
@@ -67,7 +67,7 @@ object ServerNet {
 
     // ---- sending ------------------------------------------------------------------------------------------
 
-    private fun send(player: ServerPlayer, payload: CustomPacketPayload) = Net.sendToPlayer(player, payload)
+    private fun send(player: ServerPlayer, payload: BpmPayload) = Net.sendToPlayer(player, payload)
 
     private fun sendBig(player: ServerPlayer, inner: String, bytes: ByteArray) {
         for (c in Chunker.split(inner, bytes)) Net.sendToPlayer(player, ChunkPayload(c))

@@ -1,5 +1,6 @@
 package bpm.client
 
+import bpm.platform.registry.hasComp
 import bpm.net.KeyEdgePayload
 import bpm.net.KeyWatchPayload
 import bpm.world.KeyNames
@@ -119,7 +120,7 @@ object Keys {
     private fun carryingBoundTether(): Boolean {
         val inv = Minecraft.getInstance().player?.inventory ?: return false
         for (i in 0 until inv.containerSize) {
-            if (inv.getItem(i).has(ModComponents.TETHER_CONTROLLER.get())) return true
+            if (inv.getItem(i).hasComp(ModComponents.TETHER_CONTROLLER.get())) return true
         }
         return false
     }

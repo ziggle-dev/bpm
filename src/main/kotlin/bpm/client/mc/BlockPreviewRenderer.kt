@@ -71,12 +71,9 @@ object BlockPreviewRenderer : BlockPreviews, ItemIcons, IconSource {
      */
     override fun head(playerId: String): IconRegion? {
         val uuid = runCatching { java.util.UUID.fromString(playerId) }.getOrNull() ?: return null
-        val mc = Minecraft.getInstance()
-        val skin = mc.level?.players()?.firstOrNull { it.uuid == uuid }?.skin
-            ?: net.minecraft.client.resources.DefaultPlayerSkin.get(uuid)
         // Widened where it is produced, not where it is drawn: IconRegion takes a Long because from
         // 1.21.6 the game stops handing out GL names at all -- and from 1.21.9 it stops having any.
-        val id = bpm.platform.client.skinHandle(skin) ?: return null
+        val id = bpm.platform.client.playerHeadHandle(uuid) ?: return null
         // 8/64 .. 16/64 — the face; the hat layer at 40/64 is left off, it reads as noise at this size.
         return IconRegion(id, 0.125f, 0.125f, 0.25f, 0.25f)
     }

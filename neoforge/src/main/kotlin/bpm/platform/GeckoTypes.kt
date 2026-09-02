@@ -172,7 +172,7 @@ typealias GeoBlockEntity = software.bernie.geckolib.animatable.GeoBlockEntity
 typealias GeoEntity = software.bernie.geckolib.animatable.GeoEntity
 typealias MolangQueries = software.bernie.geckolib.core.molang.MolangQueries
 typealias DataTickets = software.bernie.geckolib.constant.DataTickets
-typealias DataTicket<D> = software.bernie.geckolib.constant.dataticket.DataTicket<D>
+typealias DataTicket<D> = software.bernie.geckolib.core.object.DataTicket<D>
 typealias GeoRenderProvider = software.bernie.geckolib.animatable.client.RenderProvider
 typealias GeoModel<T> = software.bernie.geckolib.model.GeoModel<T>
 typealias SingletonGeoAnimatable = software.bernie.geckolib.animatable.SingletonGeoAnimatable
@@ -204,9 +204,12 @@ typealias SingletonGeoAnimatable = software.bernie.geckolib.animatable.Singleton
  */
 //? if >=26.1 {
 /*typealias MolangActor<T> = com.geckolib.loading.math.MolangQueries.Actor<T>
-*///?} else {
+*///?} elif >=1.21 {
 typealias MolangActor<T> = software.bernie.geckolib.loading.math.MolangQueries.Actor<T>
-//?}
+//?} else {
+/*// 4.8 has no actor at all: a Molang variable there is global, and per-animatable values are set by
+// the model each frame. Nothing on this band names this type, so it does not exist here.
+*///?}
 
 //? if >=26.1 {
 /*typealias RenderPassInfo<R> = com.geckolib.renderer.base.RenderPassInfo<R>
@@ -226,4 +229,51 @@ typealias GeoEntityRendererOf<T, R> = software.bernie.geckolib.renderer.GeoEntit
 typealias GeoItemRendererOf<T> = software.bernie.geckolib.renderer.GeoItemRenderer<T>
 typealias GeoItemRenderData = software.bernie.geckolib.renderer.GeoItemRenderer.RenderData
 typealias AutoGlowingGeoLayerOf<T, O, R> = software.bernie.geckolib.renderer.layer.builtin.AutoGlowingGeoLayer<T, O, R>
+*///?}
+
+/**
+ * An item GeckoLib draws with a model, and the one method that asks it which renderer.
+ *
+ * 5.x asks through `GeoItem.createGeoRenderer(Consumer<GeoRenderProvider>)`. 4.8 asks through TWO
+ * methods on `SingletonGeoAnimatable` -- `createRenderer(Consumer<Object>)`, which fills in the answer,
+ * and `getRenderProvider()`, which hands it back later; `RenderProvider.of(item)` calls the second and
+ * casts what it gets. The provider itself is the same object either way, which is why the mod's items
+ * write [geoRenderProvider] and nothing else.
+ */
+//? if >=1.21 {
+interface GeoRenderedItem : GeoItem {
+
+    /** The provider naming this item's renderer. Called once, on the client, and cached from then on. */
+    fun geoRenderProvider(): GeoRenderProvider
+
+    override fun createGeoRenderer(consumer: java.util.function.Consumer<GeoRenderProvider>) {
+        consumer.accept(geoRenderProvider())
+    }
+}
+//?} else {
+/*interface GeoRenderedItem : GeoItem {
+
+    fun geoRenderProvider(): GeoRenderProvider
+
+    override fun createRenderer(consumer: java.util.function.Consumer<Any>) {
+        consumer.accept(geoRenderProvider())
+    }
+
+    /**
+     * The provider, made on first ask and kept.
+     *
+     * An interface holds no state, so the cache is beside it rather than in it. It is asked only from
+     * `RenderProvider.of`, which is client code, so building the renderer lazily here is what keeps a
+     * dedicated server from ever touching it -- the same guard `GeoItem.makeRenderer` uses upstream.
+     */
+    override fun getRenderProvider(): java.util.function.Supplier<Any> = geoRenderProviderOf(this)
+}
+
+private val geoRenderProviders = java.util.concurrent.ConcurrentHashMap<GeoRenderedItem, java.util.function.Supplier<Any>>()
+
+private fun geoRenderProviderOf(item: GeoRenderedItem): java.util.function.Supplier<Any> =
+    geoRenderProviders.computeIfAbsent(item) {
+        val provider = item.geoRenderProvider()
+        java.util.function.Supplier { provider }
+    }
 *///?}

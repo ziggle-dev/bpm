@@ -10,7 +10,7 @@ import bpm.platform.GeckoLibUtil
 import java.util.function.Consumer
 
 /** The controller in item form, drawn with the same GeckoLib model (dormant pose) in hand and in the inventory. */
-class ControllerBlockItem(block: Block, properties: Properties) : bpm.platform.BpmBlockItem(block, properties), GeoItem {
+class ControllerBlockItem(block: Block, properties: Properties) : bpm.platform.BpmBlockItem(block, properties), bpm.platform.GeoRenderedItem {
 
     private val animCache: AnimatableInstanceCache = GeckoLibUtil.createInstanceCache(this)
 
@@ -28,8 +28,8 @@ class ControllerBlockItem(block: Block, properties: Properties) : bpm.platform.B
      * the one route that works on both loaders and on both sides of 1.21.4's
      * `BlockEntityWithoutLevelRenderer` deletion.
      */
-    override fun createGeoRenderer(consumer: Consumer<bpm.platform.GeoRenderProvider>) =
-        bpm.client.render.geoItemRenderer(this, consumer)
+    override fun geoRenderProvider(): bpm.platform.GeoRenderProvider =
+        bpm.client.render.geoItemRenderer(this)
 
     override fun lore(stack: net.minecraft.world.item.ItemStack, add: (net.minecraft.network.chat.Component) -> Unit) {
         val tier = CoreTier.of(stack)

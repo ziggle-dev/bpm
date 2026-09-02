@@ -150,15 +150,8 @@ object BpmItemRenderers {
  * renderer on 1.21.1, and its `SpecialModelRenderers` mixin reads as a vanilla special renderer on
  * 1.21.4. One override, four items, both loaders, both sides of the break.
  */
-fun geoItemRenderer(item: net.minecraft.world.item.Item, consumer: java.util.function.Consumer<GeoRenderProvider>) {
-    consumer.accept(
-        object : GeoRenderProvider {
-            private val renderer by lazy { BpmItemRenderers.rendererFor(item) }
-
-            override fun getGeoItemRenderer(): bpm.platform.client.GeoItemRendererBase<*>? = renderer
-        },
-    )
-}
+fun geoItemRenderer(item: net.minecraft.world.item.Item): GeoRenderProvider =
+    bpm.platform.client.geoRenderProvider { BpmItemRenderers.rendererFor(item) }
 
 /**
  * Client wiring for the models: the block-entity renderer and the Molang variables the animations read.

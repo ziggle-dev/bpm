@@ -60,7 +60,7 @@ class AssemblerBlock(properties: Properties) : bpm.platform.RemovalAwareHorizont
         registerDefaultState(stateDefinition.any().setValue(FACING, net.minecraft.core.Direction.NORTH).setValue(RUNNING, false))
     }
 
-    override fun codec(): com.mojang.serialization.MapCodec<out HorizontalDirectionalBlock> = CODEC
+    override fun blockCodec(): com.mojang.serialization.MapCodec<*>? = codecOf { p -> AssemblerBlock(p) }
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
         builder.add(FACING, RUNNING)
@@ -103,7 +103,6 @@ class AssemblerBlock(properties: Properties) : bpm.platform.RemovalAwareHorizont
     }
 
     companion object {
-        val CODEC: com.mojang.serialization.MapCodec<AssemblerBlock> = simpleCodec(::AssemblerBlock)
         val FACING = BlockStateProperties.HORIZONTAL_FACING
         val RUNNING: BooleanProperty = BooleanProperty.create("running")
     }

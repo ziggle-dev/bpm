@@ -84,7 +84,7 @@ object DeviceBlockEntities {
 }
 
 /** A device in item form: the same GeckoLib model, resting, in hand and in the inventory. */
-class DeviceBlockItem(block: Block, properties: Properties, val model: String, private val restAnimation: String) : BlockItem(block, properties), GeoItem {
+class DeviceBlockItem(block: Block, properties: Properties, val model: String, private val restAnimation: String) : BlockItem(block, properties), bpm.platform.GeoRenderedItem {
     private val animCache: AnimatableInstanceCache = GeckoLibUtil.createInstanceCache(this)
     private val rest: RawAnimation = RawAnimation.begin().thenLoop(restAnimation)
 
@@ -95,8 +95,8 @@ class DeviceBlockItem(block: Block, properties: Properties, val model: String, p
     override fun getAnimatableInstanceCache(): AnimatableInstanceCache = animCache
 
     /** Drawn by the table in [bpm.client.render.BpmItemRenderers]; GeckoLib asks the item, so the item asks it. */
-    override fun createGeoRenderer(consumer: Consumer<bpm.platform.GeoRenderProvider>) =
-        bpm.client.render.geoItemRenderer(this, consumer)
+    override fun geoRenderProvider(): bpm.platform.GeoRenderProvider =
+        bpm.client.render.geoItemRenderer(this)
 
 }
 

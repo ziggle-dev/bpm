@@ -49,6 +49,30 @@ abstract class RemovalAwareHorizontalBlock(properties: Properties) :
     net.minecraft.world.level.block.HorizontalDirectionalBlock(properties) {
 
     /**
+     * The codec vanilla asks a block for from 1.20.2, or null to keep the default.
+     *
+     * [blockCodec] rather than an override, because the method it answers does not exist on the older
+     * band at all -- and neither does `simpleCodec`, which is why [codecOf] is here rather than at the
+     * call site: it is `protected static` on `BlockBehaviour`, so only a subclass can reach it.
+     */
+    protected abstract fun blockCodec(): com.mojang.serialization.MapCodec<*>?
+
+    //? if >=1.20.5 {
+    protected fun <B : net.minecraft.world.level.block.Block> codecOf(
+        ctor: java.util.function.Function<Properties, B>,
+    ): com.mojang.serialization.MapCodec<*>? = simpleCodec(ctor)
+
+    @Suppress("UNCHECKED_CAST")
+    override fun codec(): com.mojang.serialization.MapCodec<out net.minecraft.world.level.block.HorizontalDirectionalBlock> =
+        requireNotNull(blockCodec()) as com.mojang.serialization.MapCodec<out net.minecraft.world.level.block.HorizontalDirectionalBlock>
+    //?} else {
+    /*@Suppress("UNUSED_PARAMETER")
+    protected fun <B : net.minecraft.world.level.block.Block> codecOf(
+        ctor: java.util.function.Function<Properties, B>,
+    ): com.mojang.serialization.MapCodec<*>? = null
+    *///?}
+
+    /**
      * Using this block with an item in hand.
      *
      * Answer [BlockUse.PASS_TO_BLOCK] to decline and let the empty-hand path run instead -- which on the

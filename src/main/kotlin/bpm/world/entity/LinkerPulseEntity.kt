@@ -146,12 +146,11 @@ class LinkerPulseEntity(type: EntityType<out LinkerPulseEntity>, level: Level) :
         val v = LAUNCH_MIN + l.random.nextDouble() * (LAUNCH_MAX - LAUNCH_MIN)
         p.deltaMovement = Vec3(p.deltaMovement.x * 0.4, v, p.deltaMovement.z * 0.4)
         p.hurtMarked = true
-        p.currentImpulseImpactPos = result.location
         bpm.platform.ignoreImpulseFallDamage(p, result.location)
         p.resetFallDistance()
-        l.sendParticles(ParticleTypes.GUST, result.location.x, result.location.y + 0.1, result.location.z, 1, 0.0, 0.0, 0.0, 0.0)
+        l.sendParticles(bpm.platform.gustParticle(), result.location.x, result.location.y + 0.1, result.location.z, 1, 0.0, 0.0, 0.0, 0.0)
         l.sendParticles(ParticleTypes.CLOUD, result.location.x, result.location.y + 0.2, result.location.z, 16, 0.5, 0.1, 0.5, 0.05)
-        l.playSound(null, result.location.x, result.location.y, result.location.z, net.minecraft.sounds.SoundEvents.WIND_CHARGE_BURST.value(), net.minecraft.sounds.SoundSource.PLAYERS, 0.8f, 1.1f)
+        l.playSound(null, result.location.x, result.location.y, result.location.z, bpm.platform.windBurstSound(), net.minecraft.sounds.SoundSource.PLAYERS, 0.8f, 1.1f)
     }
 
     companion object {

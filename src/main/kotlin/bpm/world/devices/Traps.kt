@@ -250,7 +250,7 @@ class SpikeBlockEntity(pos: BlockPos, state: BlockState) : TrapBlockEntity(Devic
             for (v in victims(1.0)) {
                 if (!hit.add(v.uuid)) continue
                 v.hurt(BpmDamage.source(l, BpmDamage.SPIKE), BpmConfig.TRAP_SPIKE_DAMAGE.orDefault().toFloat())
-                v.addEffect(MobEffectInstance(bpm.platform.SLOWNESS, 8, 1))
+                v.addEffect(bpm.platform.slowness(8, 1))
             }
         }
     }
@@ -649,7 +649,7 @@ class TurretBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(De
         val dir = aim.subtract(from).normalize()
         val to = from.add(dir.scale(range))
         val start = from.add(dir.scale(RAY_SKIP))
-        val blockHit = l.clip(ClipContext(start, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty()))
+        val blockHit = l.clip(ClipContext(start, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, null as net.minecraft.world.entity.Entity?))
         val end = if (blockHit.type == HitResult.Type.MISS) to else blockHit.location
         var victim: LivingEntity? = null
         var best = Double.MAX_VALUE

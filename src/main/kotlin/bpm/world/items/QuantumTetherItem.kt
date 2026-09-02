@@ -49,7 +49,7 @@ import bpm.platform.showMessage
  * putting it in a chest, dropping it, or dying with it revokes everything that same tick. See
  * `docs/DESIGN_PLAYER_LINK.md`.
  */
-class QuantumTetherItem(properties: Properties) : TooltipItem(properties), GeoItem {
+class QuantumTetherItem(properties: Properties) : TooltipItem(properties), bpm.platform.GeoRenderedItem {
 
     private val animCache: AnimatableInstanceCache = GeckoLibUtil.createInstanceCache(this)
 
@@ -192,8 +192,8 @@ class QuantumTetherItem(properties: Properties) : TooltipItem(properties), GeoIt
     override fun getAnimatableInstanceCache(): AnimatableInstanceCache = animCache
 
     /** Drawn by the table in [bpm.client.render.BpmItemRenderers]; GeckoLib asks the item, so the item asks it. */
-    override fun createGeoRenderer(consumer: Consumer<bpm.platform.GeoRenderProvider>) =
-        bpm.client.render.geoItemRenderer(this, consumer)
+    override fun geoRenderProvider(): bpm.platform.GeoRenderProvider =
+        bpm.client.render.geoItemRenderer(this)
 
 
     companion object {

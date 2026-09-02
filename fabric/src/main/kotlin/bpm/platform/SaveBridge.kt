@@ -179,6 +179,18 @@ abstract class SavingProjectile(type: EntityType<out Projectile>, level: Level) 
     protected open fun saveExtra(tag: CompoundTag, registries: HolderLookup.Provider) {}
 
     protected open fun loadExtra(tag: CompoundTag, registries: HolderLookup.Provider) {}
+    /** Declare this projectile's synched fields; see [SynchedSink]. */
+    protected open fun defineSynched(sink: SynchedSink) {}
+
+    //? if >=1.20.5 {
+    final override fun defineSynchedData(builder: net.minecraft.network.syncher.SynchedEntityData.Builder) {
+        defineSynched(SynchedSink(builder))
+    }
+    //?} else {
+    /*final override fun defineSynchedData() {
+        defineSynched(SynchedSink(entityData))
+    }
+    *///?}
     /** `Entity.registryAccess()` arrived with the components; before it the level is what holds them. */
     protected fun projectileRegistries(): HolderLookup.Provider {
         //? if >=1.20.5 {

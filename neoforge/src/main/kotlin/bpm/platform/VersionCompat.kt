@@ -277,8 +277,44 @@ fun recipeById(
 fun recipeIdOf(entry: bpm.platform.RecipeEntry<*>): bpm.platform.ResourceLocation = entry.id
 *///?}
 
+/**
+ * The codec for one ingredient that must not be empty.
+ *
+ * `Ingredient.CODEC_NONEMPTY` and `Ingredient.CODEC` were two codecs until 1.21.2, differing only in
+ * whether an empty holder set was accepted -- and below 1.20.5 there is no ingredient codec at all.
+ */
+//? if >=1.20.5 {
 val INGREDIENT_CODEC: com.mojang.serialization.Codec<net.minecraft.world.item.crafting.Ingredient> =
     net.minecraft.world.item.crafting.Ingredient.CODEC_NONEMPTY
+//?} else {
+/*// An ingredient is read by a hand-written `fromJson` and written by `toJson` here, which is what the
+// recipe serializer itself uses. The recipe's own codec still asks for a codec, so this is that pair
+// wrapped as one: PASSTHROUGH takes whatever ops the caller brought and both directions convert to
+// JSON, which is the only shape `fromJson` knows. The serializer only ever drives it with JsonOps (a
+// datapack) or NbtOps (the network), and the ingredient's JSON shape survives that trip.
+val INGREDIENT_CODEC: com.mojang.serialization.Codec<net.minecraft.world.item.crafting.Ingredient> =
+    com.mojang.serialization.Codec.PASSTHROUGH.flatXmap(
+        { dynamic ->
+            runCatching {
+                net.minecraft.world.item.crafting.Ingredient.fromJson(
+                    dynamic.convert(com.mojang.serialization.JsonOps.INSTANCE).value as com.google.gson.JsonElement,
+                )
+            }.fold(
+                { com.mojang.serialization.DataResult.success(it) },
+                { failure -> com.mojang.serialization.DataResult.error { "not an ingredient: ${failure.message}" } },
+            )
+        },
+        { ingredient ->
+            com.mojang.serialization.DataResult.success(
+                com.mojang.serialization.Dynamic(com.mojang.serialization.JsonOps.INSTANCE, ingredient.toJson()),
+            )
+        },
+    )
+
+// Slowness, and an instance of it, which took the effect itself before it was holder-wrapped.
+fun slowness(duration: Int, amplifier: Int): net.minecraft.world.effect.MobEffectInstance =
+    net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, duration, amplifier)
+*///?}
 
 //?}
 
@@ -399,12 +435,18 @@ fun selectedSlot(inventory: net.minecraft.world.entity.player.Inventory): Int =
  * `MobEffects.MOVEMENT_SLOWDOWN` was renamed to `SLOWNESS` -- the name players and the wiki have always
  * used -- at 1.21.9. Nothing else about it changed.
  */
+//? if >=1.20.5 {
 val SLOWNESS: net.minecraft.core.Holder<net.minecraft.world.effect.MobEffect>
     //? if >=1.21.5 {
     /*get() = net.minecraft.world.effect.MobEffects.SLOWNESS
     *///?} else {
     get() = net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN
     //?}
+
+/** Slowness, and an instance of it. */
+fun slowness(duration: Int, amplifier: Int): net.minecraft.world.effect.MobEffectInstance =
+    net.minecraft.world.effect.MobEffectInstance(SLOWNESS, duration, amplifier)
+//?}
 
 /**
  * A command source with full permission, for the dev harness to run commands through.
@@ -499,9 +541,12 @@ fun interactWith(
 fun ignoreImpulseFallDamage(player: net.minecraft.world.entity.player.Player, at: net.minecraft.world.phys.Vec3) {
     //? if >=26.1 {
     /*player.setIgnoreFallDamageFromCurrentImpulse(true, at)
-    *///?} else {
+    *///?} elif >=1.20.5 {
     player.setIgnoreFallDamageFromCurrentImpulse(true)
-    //?}
+    //?} else {
+    /*// The flag arrived with the wind charge that needed it; there is nothing to set on this band, and
+    // nothing that sets it either -- a linker pulse simply does not suppress fall damage here.
+    *///?}
 }
 
 /**
@@ -552,3 +597,86 @@ fun net.minecraft.world.entity.player.Player.showMessage(
     displayClientMessage(message, actionBar)
     //?}
 }
+
+/**
+ * Another block's properties, to build on.
+ *
+ * `Properties.copy` was renamed `ofFullCopy` at 1.20.5, when a second, shallower `ofLegacyCopy` appeared
+ * beside it. This is the full one, which is what `copy` always was.
+ */
+//? if >=1.20.5 {
+fun copyProperties(block: net.minecraft.world.level.block.Block): net.minecraft.world.level.block.state.BlockBehaviour.Properties =
+    net.minecraft.world.level.block.state.BlockBehaviour.Properties.ofFullCopy(block)
+//?} else {
+/*fun copyProperties(block: net.minecraft.world.level.block.Block): net.minecraft.world.level.block.state.BlockBehaviour.Properties =
+    net.minecraft.world.level.block.state.BlockBehaviour.Properties.copy(block)
+*///?}
+
+/** An ore that drops experience. The two arguments swapped places at 1.20.5. */
+//? if >=1.20.5 {
+fun dropExperienceBlock(
+    xp: net.minecraft.util.valueproviders.IntProvider,
+    properties: net.minecraft.world.level.block.state.BlockBehaviour.Properties,
+): net.minecraft.world.level.block.DropExperienceBlock =
+    net.minecraft.world.level.block.DropExperienceBlock(xp, properties)
+//?} else {
+/*fun dropExperienceBlock(
+    xp: net.minecraft.util.valueproviders.IntProvider,
+    properties: net.minecraft.world.level.block.state.BlockBehaviour.Properties,
+): net.minecraft.world.level.block.DropExperienceBlock =
+    net.minecraft.world.level.block.DropExperienceBlock(properties, xp)
+*///?}
+
+/**
+ * Putting a fluid into a block that holds one, and taking it back out.
+ *
+ * Both gained a leading nullable `Player` at 1.20.5 -- so a waterloggable block can tell who is doing it
+ * and play the sound at them. Nothing in this mod passes one, so both arms take none.
+ */
+//? if >=1.20.5 {
+fun canPlaceLiquid(
+    container: net.minecraft.world.level.block.LiquidBlockContainer,
+    level: net.minecraft.world.level.LevelAccessor,
+    pos: net.minecraft.core.BlockPos,
+    state: net.minecraft.world.level.block.state.BlockState,
+    fluid: net.minecraft.world.level.material.Fluid,
+): Boolean = container.canPlaceLiquid(null, level, pos, state, fluid)
+
+fun pickupBlock(
+    source: net.minecraft.world.level.block.BucketPickup,
+    level: net.minecraft.world.level.LevelAccessor,
+    pos: net.minecraft.core.BlockPos,
+    state: net.minecraft.world.level.block.state.BlockState,
+): net.minecraft.world.item.ItemStack = source.pickupBlock(null, level, pos, state)
+//?} else {
+/*fun canPlaceLiquid(
+    container: net.minecraft.world.level.block.LiquidBlockContainer,
+    level: net.minecraft.world.level.LevelAccessor,
+    pos: net.minecraft.core.BlockPos,
+    state: net.minecraft.world.level.block.state.BlockState,
+    fluid: net.minecraft.world.level.material.Fluid,
+): Boolean = container.canPlaceLiquid(level as net.minecraft.world.level.BlockGetter, pos, state, fluid)
+
+fun pickupBlock(
+    source: net.minecraft.world.level.block.BucketPickup,
+    level: net.minecraft.world.level.LevelAccessor,
+    pos: net.minecraft.core.BlockPos,
+    state: net.minecraft.world.level.block.state.BlockState,
+): net.minecraft.world.item.ItemStack = source.pickupBlock(level, pos, state)
+*///?}
+
+/**
+ * The gust of a linker pulse landing, and the sound of it.
+ *
+ * Both are wind-charge assets that arrived at 1.20.5. Before them the nearest honest pair is a puff of
+ * cloud and a wing-beat -- the effect reads as a gust rather than as nothing.
+ */
+//? if >=1.20.5 {
+fun gustParticle(): net.minecraft.core.particles.SimpleParticleType = net.minecraft.core.particles.ParticleTypes.GUST
+
+fun windBurstSound(): net.minecraft.sounds.SoundEvent = net.minecraft.sounds.SoundEvents.WIND_CHARGE_BURST.value()
+//?} else {
+/*fun gustParticle(): net.minecraft.core.particles.SimpleParticleType = net.minecraft.core.particles.ParticleTypes.CLOUD
+
+fun windBurstSound(): net.minecraft.sounds.SoundEvent = net.minecraft.sounds.SoundEvents.ENDER_DRAGON_FLAP
+*///?}

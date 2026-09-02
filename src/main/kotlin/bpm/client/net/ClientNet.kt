@@ -46,7 +46,7 @@ import dev.ziggle.vscript.model.GraphSource
 import dev.ziggle.vscript.runtime.EditorDoc
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload
+import bpm.platform.net.BpmPayload
 import bpm.platform.net.Net
 import java.util.UUID
 
@@ -193,7 +193,7 @@ object ClientNet {
     /** Nothing goes out without a connection — a screen that outlives the world must not throw on every frame. */
     private val connected: Boolean get() = Minecraft.getInstance().connection != null
 
-    private fun send(payload: CustomPacketPayload) {
+    private fun send(payload: BpmPayload) {
         if (connected) Net.sendToServer(payload)
     }
 

@@ -33,8 +33,8 @@ object ContentBlocks {
     private fun stone(colour: MapColor, hardness: Float = 3f, resistance: Float = 6f) =
         BlockBehaviour.Properties.of().mapColor(colour).strength(hardness, resistance).requiresCorrectToolForDrops()
 
-    val ENTANGLIUM_ORE: RegistryRef<Block> = REG.registerBlock("entanglium_ore", { p -> DropExperienceBlock(UniformInt.of(2, 5), p) }, stone(MapColor.STONE))
-    val DEEPSLATE_ENTANGLIUM_ORE: RegistryRef<Block> = REG.registerBlock("deepslate_entanglium_ore", { p -> DropExperienceBlock(UniformInt.of(2, 5), p) }, stone(MapColor.DEEPSLATE, 4.5f, 6f).sound(SoundType.DEEPSLATE))
+    val ENTANGLIUM_ORE: RegistryRef<Block> = REG.registerBlock("entanglium_ore", { p -> bpm.platform.dropExperienceBlock(UniformInt.of(2, 5), p) }, stone(MapColor.STONE))
+    val DEEPSLATE_ENTANGLIUM_ORE: RegistryRef<Block> = REG.registerBlock("deepslate_entanglium_ore", { p -> bpm.platform.dropExperienceBlock(UniformInt.of(2, 5), p) }, stone(MapColor.DEEPSLATE, 4.5f, 6f).sound(SoundType.DEEPSLATE))
     val ENTANGLIUM_BLOCK: RegistryRef<Block> = REG.registerSimpleBlock("entanglium_block", stone(MapColor.COLOR_CYAN, 5f, 6f).sound(SoundType.AMETHYST).lightLevel { 7 })
     val QUANTUM_ALLOY_BLOCK: RegistryRef<Block> = REG.registerSimpleBlock("quantum_alloy_block", stone(MapColor.COLOR_BLUE, 5f, 6f).sound(SoundType.METAL))
 

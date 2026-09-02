@@ -29,6 +29,15 @@ abstract class BossMonster(type: EntityType<out Monster>, level: Level) : Monste
      */
     protected abstract fun defineSynched(sink: SynchedSink)
 
+    /** Whether a lead can be tied to this. The player asking was dropped from the question at 1.20.5. */
+    protected open fun leashable(): Boolean = true
+
+    //? if >=1.20.5 {
+    override fun canBeLeashed(): Boolean = leashable()
+    //?} else {
+    /*override fun canBeLeashed(player: net.minecraft.world.entity.player.Player): Boolean = leashable()
+    *///?}
+
     //? if >=1.20.5 {
     final override fun defineSynchedData(builder: net.minecraft.network.syncher.SynchedEntityData.Builder) {
         super.defineSynchedData(builder)

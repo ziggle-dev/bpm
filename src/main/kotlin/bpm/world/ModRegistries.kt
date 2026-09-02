@@ -54,7 +54,7 @@ object ModBlocks {
     val EXPERIENCE: RegistryRef<LiquidBlock> = REG.registerBlock(
         "experience",
         { p -> LiquidBlock(ModFluids.EXPERIENCE.get(), p) },
-        BlockBehaviour.Properties.ofFullCopy(Blocks.WATER).lightLevel { 10 }.noLootTable(),
+        bpm.platform.copyProperties(Blocks.WATER).lightLevel { 10 }.noLootTable(),
     )
 }
 

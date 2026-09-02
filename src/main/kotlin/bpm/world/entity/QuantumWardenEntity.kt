@@ -541,7 +541,7 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
 
     override fun isPushable(): Boolean = false
     override fun removeWhenFarAway(distance: Double): Boolean = false
-    override fun canBeLeashed(): Boolean = false
+    override fun leashable(): Boolean = false
 
     // ---- death: the core goes home -------------------------------------------------------------------------
 

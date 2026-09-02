@@ -108,6 +108,7 @@ private val ALT_TEXTURE: bpm.platform.DataTicket<Boolean> =
  * Null when the thing being drawn is not an item, which is most of the time -- a block entity's actor
  * has no stack, and a variable that asks about one should read that as "no".
  */
+//? if >=1.21 {
 fun actorStack(actor: bpm.platform.MolangActor<*>): net.minecraft.world.item.ItemStack? {
     //? if >=1.21.5 {
     /*return actor.renderState().getOrDefaultGeckolibData(ITEM_STACK, null)
@@ -115,6 +116,9 @@ fun actorStack(actor: bpm.platform.MolangActor<*>): net.minecraft.world.item.Ite
     return actor.animationState().getData(bpm.platform.DataTickets.ITEMSTACK)
     //?}
 }
+//?} else {
+/*// No actor to ask on 4.8; the stack a variable would want is not reachable there. See installMolang.
+*///?}
 
 //? if >=1.21.5 {
 /*/** The ticket the drawn stack rides on, from the item renderer to whoever asks about it. */
@@ -195,3 +199,25 @@ fun applyMolang(animatable: Any?) {
     }
 }
 *///?}
+
+/**
+ * A render provider answering with [renderer], under whichever name this band's GeckoLib asks by.
+ *
+ * `GeoRenderProvider.getGeoItemRenderer()` on 5.x; `RenderProvider.getCustomRenderer()` on 4.8, which
+ * answers a `BlockEntityWithoutLevelRenderer` -- what a `GeoItemRenderer` already is on that band.
+ */
+fun geoRenderProvider(renderer: () -> GeoItemRendererBase<*>?): bpm.platform.GeoRenderProvider {
+    //? if >=1.21 {
+    return object : bpm.platform.GeoRenderProvider {
+        private val made by lazy { renderer() }
+
+        override fun getGeoItemRenderer(): GeoItemRendererBase<*>? = made
+    }
+    //?} else {
+    /*return object : bpm.platform.GeoRenderProvider {
+        private val made by lazy { renderer() }
+
+        override fun getCustomRenderer(): net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer? = made
+    }
+    *///?}
+}

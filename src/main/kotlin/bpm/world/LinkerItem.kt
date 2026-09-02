@@ -40,7 +40,7 @@ import bpm.platform.showMessage
  * one dimension and within [RANGE] blocks. The face matters because capabilities are sided; direction does
  * not — it lives in the verb (`items.move(from, to)`), not on the link.
  */
-class LinkerItem(properties: Properties) : bpm.platform.BpmItem(properties), GeoItem {
+class LinkerItem(properties: Properties) : bpm.platform.BpmItem(properties), bpm.platform.GeoRenderedItem {
 
     private val animCache: AnimatableInstanceCache = GeckoLibUtil.createInstanceCache(this)
 
@@ -313,8 +313,8 @@ class LinkerItem(properties: Properties) : bpm.platform.BpmItem(properties), Geo
     override fun getAnimatableInstanceCache(): AnimatableInstanceCache = animCache
 
     /** Drawn by the table in [bpm.client.render.BpmItemRenderers]; GeckoLib asks the item, so the item asks it. */
-    override fun createGeoRenderer(consumer: Consumer<bpm.platform.GeoRenderProvider>) =
-        bpm.client.render.geoItemRenderer(this, consumer)
+    override fun geoRenderProvider(): bpm.platform.GeoRenderProvider =
+        bpm.client.render.geoItemRenderer(this)
 
 
     companion object {

@@ -1,5 +1,6 @@
 package bpm.client.render
 
+import bpm.platform.registry.compOr
 import bpm.platform.idOf
 
 import bpm.Bpm
@@ -235,7 +236,7 @@ object LinkerHud {
         if (bpm.chamber.ChamberDimension.isChamber(player.level())) {
             val linker = stack.item as LinkerItem
             val charges = linker.charges(stack)
-            val ready = stack.getOrDefault(bpm.world.ModComponents.TRACK_READY_AT.get(), 0L)
+            val ready = stack.compOr(bpm.world.ModComponents.TRACK_READY_AT.get(), 0L)
             val now = player.level().gameTime
             val track = if (now >= ready) "special ready" else "special in ${(ready - now) / 20 + 1} s"
             g.drawText(font, "linker · specials $charges / ${LinkerItem.MAX_CHARGES} · $track", x, y1, if (charges == 0) 0xF26D6D else 0x4DFFD8, true)

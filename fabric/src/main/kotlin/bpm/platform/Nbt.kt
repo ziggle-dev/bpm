@@ -128,13 +128,28 @@ fun writeStack(registries: net.minecraft.core.HolderLookup.Provider, stack: net.
         .encodeStart(registries.createSerializationContext(net.minecraft.nbt.NbtOps.INSTANCE), stack)
         .result()
         .orElseGet { net.minecraft.nbt.CompoundTag() }
-*///?} else {
+*///?} elif >=1.20.5 {
 fun readStack(registries: net.minecraft.core.HolderLookup.Provider, tag: net.minecraft.nbt.CompoundTag): net.minecraft.world.item.ItemStack =
     net.minecraft.world.item.ItemStack.parseOptional(registries, tag)
 
 fun writeStack(registries: net.minecraft.core.HolderLookup.Provider, stack: net.minecraft.world.item.ItemStack): net.minecraft.nbt.Tag =
     stack.saveOptional(registries)
-//?}
+//?} else {
+/*/**
+ * A stack wrote itself into a tag and read itself back out of one, with no registries and no codec.
+ *
+ * `parseOptional`/`saveOptional` are the component-era pair; the older `of`/`save` say the same thing,
+ * including the empty case -- `of` answers EMPTY for a tag with no id in it, and an empty stack writes
+ * an empty compound so it reads back the same way.
+ */
+@Suppress("UNUSED_PARAMETER")
+fun readStack(registries: net.minecraft.core.HolderLookup.Provider, tag: net.minecraft.nbt.CompoundTag): net.minecraft.world.item.ItemStack =
+    if (tag.isEmpty) net.minecraft.world.item.ItemStack.EMPTY else net.minecraft.world.item.ItemStack.of(tag)
+
+@Suppress("UNUSED_PARAMETER")
+fun writeStack(registries: net.minecraft.core.HolderLookup.Provider, stack: net.minecraft.world.item.ItemStack): net.minecraft.nbt.Tag =
+    if (stack.isEmpty) net.minecraft.nbt.CompoundTag() else stack.save(net.minecraft.nbt.CompoundTag())
+*///?}
 
 /**
  * A block position in a compound, by codec rather than by `NbtUtils`.

@@ -209,7 +209,7 @@ internal object FluidWorld {
                 Fluids.vaporize(level, pos, volume)
                 true
             }
-            block is LiquidBlockContainer && block.canPlaceLiquid(null, level, pos, state, kind) -> block.placeLiquid(level, pos, state, flowing.defaultFluidState())
+            block is LiquidBlockContainer && bpm.platform.canPlaceLiquid(block, level, pos, state, kind) -> block.placeLiquid(level, pos, state, flowing.defaultFluidState())
             state.isAir || (state.canBeReplaced() && !state.liquid()) -> level.setBlock(pos, flowing.defaultFluidState().createLegacyBlock(), 11)
             else -> false
         }
@@ -243,7 +243,7 @@ internal object FluidWorld {
         if (Bottomless.covers(level, pos, fs.type)) {
             tanks.fill(volume, simulate = false)
         } else {
-            val got = block.pickupBlock(null, level, pos, state)
+            val got = bpm.platform.pickupBlock(block, level, pos, state)
             if (got.isEmpty) return false
             tanks.fill(volume, simulate = false)
         }

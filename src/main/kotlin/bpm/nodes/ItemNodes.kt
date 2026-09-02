@@ -346,7 +346,7 @@ object ItemNodes {
             val stack = param("Stack", McVs.itemStack, "the stack")
             val predicate = param("Predicate", McVs.string, "the predicate as JSON")
             result("Matches", McVs.bool)
-            query { FilterValue.predicate(predicate(), host.registries)?.test(ItemStackValue.stack(stack())) ?: false }
+            query { FilterValue.predicate(predicate(), host.registries)?.let { bpm.platform.testItemPredicate(it, ItemStackValue.stack(stack())) } ?: false }
         }
         func("item") {
             title("Item By Id")

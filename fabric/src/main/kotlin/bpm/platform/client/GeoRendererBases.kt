@@ -1085,6 +1085,9 @@ abstract class GeoItemRendererBase<T>(model: GeoModel<T>) :
 
     protected open fun onBones(bones: BoneAccess) {}
 
+    // The colour packed into one int at 1.21; on 4.8 it is still four floats. The nesting is safe because
+    // the arm enclosing it is live rather than commented -- see the same pair in the block base above.
+    //? if >=1.21 {
     override fun renderRecursively(
         poseStack: com.mojang.blaze3d.vertex.PoseStack,
         animatable: T,
@@ -1102,6 +1105,31 @@ abstract class GeoItemRendererBase<T>(model: GeoModel<T>) :
         if (!bones.visit(bone, isReRender, poseStack)) return
         super.renderRecursively(poseStack, animatable, bone, renderType, bufferSource, buffer, isReRender, partialTick, packedLight, packedOverlay, colour)
     }
+    //?} else {
+    /*override fun renderRecursively(
+        poseStack: com.mojang.blaze3d.vertex.PoseStack,
+        animatable: T,
+        bone: bpm.platform.GeoBone,
+        renderType: bpm.platform.RenderType,
+        bufferSource: net.minecraft.client.renderer.MultiBufferSource,
+        buffer: com.mojang.blaze3d.vertex.VertexConsumer,
+        isReRender: Boolean,
+        partialTick: Float,
+        packedLight: Int,
+        packedOverlay: Int,
+        red: Float,
+        green: Float,
+        blue: Float,
+        alpha: Float,
+    ) {
+        onBones(bones)
+        if (!bones.visit(bone, isReRender, poseStack)) return
+        super.renderRecursively(
+            poseStack, animatable, bone, renderType, bufferSource, buffer, isReRender, partialTick,
+            packedLight, packedOverlay, red, green, blue, alpha,
+        )
+    }
+    *///?}
 
     protected fun addGlow() {
         addRenderLayer(BpmGlowLayer(this))

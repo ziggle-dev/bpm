@@ -25,12 +25,20 @@ abstract class TagStore : SavedData() {
     // built out of writeTo at the point the type is declared. Before that, this is the override -- and
     // this comment is line-shaped on purpose, because a block comment sitting where a Stonecutter arm
     // would put its own is eaten by the switch.
-    //? if <1.21.5 {
+    //? if >=1.21.5 {
+    /*// Nothing to override: the codec does the writing.
+    *///?} elif >=1.20.5 {
     final override fun save(tag: CompoundTag, registries: net.minecraft.core.HolderLookup.Provider): CompoundTag {
         writeTo(tag)
         return tag
     }
-    //?}
+    //?} else {
+    /*// The registries arrived with the components; before them a store wrote a bare tag.
+    final override fun save(tag: CompoundTag): CompoundTag {
+        writeTo(tag)
+        return tag
+    }
+    *///?}
 }
 
 /**
@@ -84,8 +92,11 @@ fun <T : TagStore> storeOf(server: MinecraftServer, type: StoreType<T>): T {
         )
     } as net.minecraft.world.level.saveddata.SavedDataType<T>
     return server.overworld().dataStorage.computeIfAbsent(savedType)
-    *///?} else {
+    *///?} elif >=1.20.5 {
     val factory = SavedData.Factory({ type.create() }, { tag, _ -> type.read(tag) }, null)
     return server.overworld().dataStorage.computeIfAbsent(factory, type.name)
-    //?}
+    //?} else {
+    /*// No `Factory` to hold the pair yet: the reader and the maker are two arguments, reader first.
+    return server.overworld().dataStorage.computeIfAbsent({ tag -> type.read(tag) }, { type.create() }, type.name)
+    *///?}
 }

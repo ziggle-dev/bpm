@@ -48,8 +48,8 @@ class WardenBoltEntity(type: EntityType<out WardenBoltEntity>, level: Level) : b
         deltaMovement = deltaMovement.normalize().scale(speed)
     }
 
-    override fun defineSynchedData(builder: SynchedEntityData.Builder) {
-        builder.define(HOMING, false)
+    override fun defineSynched(sink: bpm.platform.SynchedSink) {
+        sink.define(HOMING, false)
     }
 
     override fun tick() {

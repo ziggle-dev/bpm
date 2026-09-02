@@ -29,10 +29,20 @@ fun recipeAny(entry: RecipeEntry<*>): Any = entry.value()
 fun soundOf(sound: net.minecraft.core.Holder<net.minecraft.sounds.SoundEvent>): net.minecraft.sounds.SoundEvent =
     sound.value()
 //?} else {
-/*/** Below 1.20.5 a lookup hands back the recipe itself; there is no wrapper. */
-typealias RecipeEntry<T> = T
+/*/**
+ * Below 1.20.5 a lookup hands back the recipe itself, which carries its own id.
+ *
+ * A type alias to the type parameter -- `typealias RecipeEntry<T> = T` -- is not a thing Kotlin can
+ * express, so this band gets a real one-field wrapper instead. It costs an allocation per lookup and
+ * keeps every call site writing `RecipeEntry<T>` and reading it back through the same two functions.
+ */
+class RecipeEntry<T : net.minecraft.world.item.crafting.Recipe<*>>(private val recipe: T) {
+    fun value(): T = recipe
 
-fun <T : net.minecraft.world.item.crafting.Recipe<*>> recipeOf(entry: RecipeEntry<T>): T = entry
+    fun id(): net.minecraft.resources.ResourceLocation = recipe.id
+}
+
+fun <T : net.minecraft.world.item.crafting.Recipe<*>> recipeOf(entry: RecipeEntry<T>): T = entry.value()
 
 fun effectOf(instance: net.minecraft.world.effect.MobEffectInstance): net.minecraft.world.effect.MobEffect =
     instance.effect
