@@ -1,5 +1,8 @@
 package bpm.client.render
 
+import bpm.platform.client.addVertex
+import bpm.platform.client.setColor
+
 import bpm.client.fx.Rift
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer

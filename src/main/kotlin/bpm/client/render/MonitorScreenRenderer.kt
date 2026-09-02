@@ -1,5 +1,8 @@
 package bpm.client.render
 
+import bpm.platform.client.addVertex
+import bpm.platform.client.setColor
+
 import bpm.world.devices.MonitorBlockEntity
 import bpm.world.devices.MonitorWall
 import bpm.world.devices.Widget

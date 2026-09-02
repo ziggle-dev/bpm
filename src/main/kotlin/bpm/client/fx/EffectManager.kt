@@ -1,5 +1,8 @@
 package bpm.client.fx
 
+import bpm.platform.client.addVertex
+import bpm.platform.client.setColor
+
 import bpm.client.render.BoneAnchors
 import bpm.client.render.ControllerRenderer
 import bpm.client.render.RiftRenderer

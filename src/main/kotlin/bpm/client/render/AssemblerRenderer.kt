@@ -1,5 +1,8 @@
 package bpm.client.render
 
+import bpm.platform.client.addVertex
+import bpm.platform.client.setColor
+
 import bpm.world.devices.AssemblerBlockEntity
 import bpm.world.devices.PedestalBlockEntity
 import com.mojang.blaze3d.vertex.PoseStack
