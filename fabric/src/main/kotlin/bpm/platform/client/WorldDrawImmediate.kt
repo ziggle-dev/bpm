@@ -80,10 +80,17 @@ internal class PreparedDraw : ImmediateDraw {
         draw(poseStack.last(), consumer(kind))
     }
 
-    // Text is NOT drawn on this band yet, and it no-ops rather than throwing because this runs once a
-    // frame: a throw would either crash the client or be swallowed into a silent disable, and neither
-    // says more than nothing drawn does. It wants `Font.prepareText` walked with a `GlyphVisitor` that
-    // writes into one of these batches, which is real work and is outstanding.
+    /**
+     * Text, which 26.1 turned from a draw into a description.
+     *
+     * `Font.drawInBatch` is gone. `prepareText` returns a `PreparedText` that is WALKED with a
+     * `GlyphVisitor`, and each thing it hands over is a `TextRenderable` that knows both its own render
+     * type and how to write itself into a consumer. So the glyphs land in the same per-render-type
+     * batches as everything else here and go out on the same flush.
+     *
+     * Only `acceptRenderable` is overridden because the other three visitor methods default to it -- and
+     * this is vanilla's own shape: `GizmoFeatureRenderer` draws its in-world text exactly this way.
+     */
     override fun text(
         poseStack: com.mojang.blaze3d.vertex.PoseStack,
         text: net.minecraft.util.FormattedCharSequence,
@@ -94,7 +101,17 @@ internal class PreparedDraw : ImmediateDraw {
         mode: net.minecraft.client.gui.Font.DisplayMode,
         backgroundColour: Int,
         packedLight: Int,
-    ) = Unit
+    ) {
+        val font = net.minecraft.client.Minecraft.getInstance().font
+        val matrix = poseStack.last().pose()
+        // `includeEmpty` false: an empty area contributes nothing to draw and only exists for layout.
+        val prepared = font.prepareText(text, x, y, colour, dropShadow, false, backgroundColour)
+        prepared.visit(object : net.minecraft.client.gui.Font.GlyphVisitor {
+            override fun acceptRenderable(renderable: net.minecraft.client.gui.font.TextRenderable) {
+                renderable.render(matrix, consumer(renderable.renderType(mode)), packedLight, false)
+            }
+        })
+    }
 
     /**
      * Resolve the item and submit it to ourselves.

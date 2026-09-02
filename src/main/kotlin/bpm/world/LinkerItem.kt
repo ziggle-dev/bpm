@@ -38,6 +38,12 @@ class LinkerItem(properties: Properties) : bpm.platform.BpmItem(properties), Geo
 
     private val animCache: AnimatableInstanceCache = GeckoLibUtil.createInstanceCache(this)
 
+    init {
+        // This item's overlay animation is triggered from the SERVER (see the `triggerItemAnim`
+        // call below), and that only reaches the client for an animatable the client can look up.
+        bpm.platform.registerSyncedItem(this)
+    }
+
     /**
      * Before the block gets a say — so a chest, a furnace, anything with a screen, links instead of opening.
      * Only the plain link is taken here (a bound controller, no sneaking, a block that is not a controller):
