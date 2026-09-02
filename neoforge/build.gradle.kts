@@ -232,6 +232,27 @@ for (name in listOf("main", "test", "core", "dev")) {
         resources.srcDir(rootProject.file("src/$name/resources"))
     }
 }
+
+/*
+ * GeckoLib's assets move house at 1.21.9.
+ *
+ * It used to open whatever path a `GeoModel` handed it. From 1.21.9 it scans two fixed folders --
+ * `assets/<ns>/geckolib/models` and `assets/<ns>/geckolib/animations` -- and anything outside them is
+ * invisible, however it is asked for.
+ *
+ * COPIED at build time rather than moved in the tree, because the files are identical on both sides of
+ * that line and a second copy under version control is a second copy to keep in step. `bpm.platform
+ * .client.geckoAsset` does the matching half, turning the path the mod files an asset under into the id
+ * the band's cache is keyed by.
+ */
+if (stonecutter.eval(minecraftVersion, ">=1.21.9")) {
+    for (task in listOf("processResources", "processDevResources")) {
+        tasks.named<ProcessResources>(task) {
+            from(rootProject.file("src/main/resources/assets/bpm/geo")) { into("assets/bpm/geckolib/models") }
+            from(rootProject.file("src/main/resources/assets/bpm/animations")) { into("assets/bpm/geckolib/animations") }
+        }
+    }
+}
 /*
  * **Two source trees, and the difference between them is whether Stonecutter processes it.**
  *

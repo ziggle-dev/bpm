@@ -171,6 +171,15 @@ sourceSets.named("main") {
     resources.srcDir(rootProject.file("src/main/resources"))
 }
 
+// GeckoLib scans assets/<ns>/geckolib/{models,animations} from 1.21.9 and ignores anything outside them.
+// Copied at build time rather than duplicated in the tree -- see the note in neoforge/build.gradle.kts.
+if (stonecutter.eval(minecraftVersion, ">=1.21.9")) {
+    tasks.named<ProcessResources>("processResources") {
+        from(rootProject.file("src/main/resources/assets/bpm/geo")) { into("assets/bpm/geckolib/models") }
+        from(rootProject.file("src/main/resources/assets/bpm/animations")) { into("assets/bpm/geckolib/animations") }
+    }
+}
+
 /** A node's own resources, then the version's, then the shared tree: the most specific copy wins. */
 tasks.named<ProcessResources>("processResources") {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE

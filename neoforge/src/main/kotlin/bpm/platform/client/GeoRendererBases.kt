@@ -82,12 +82,36 @@ interface WorldDraw {
 }
 
 //? if >=1.21.9 {
-/*/** A block entity's render state, carrying GeckoLib's per-frame data alongside Minecraft's. */
+/*/**
+ * A block entity's render state, carrying GeckoLib's per-frame data alongside Minecraft's.
+ *
+ * ALL THREE accessors are overridden, not just [getDataMap], and that is not tidiness.
+ *
+ * GeckoLib mixes `GeoRenderState` into vanilla's `BlockEntityRenderState` and, in that mixin, overrides
+ * `addGeckolibData` and `hasGeckolibData` as CONCRETE CLASS METHODS that write straight to its own
+ * field -- while leaving `getGeckolibData` as the interface default, which reads through `getDataMap()`.
+ * A class method beats an interface default, so a subclass that overrides only `getDataMap()` ends up
+ * writing to GeckoLib's field and reading from its own: every ticket comes back null.
+ *
+ * That is not a subtle wrongness either. `DataTickets.ANIMATABLE_MANAGER` is read back through
+ * `Objects.requireNonNull` during extraction, so the first frame a device is on screen takes the client
+ * down with a bare NullPointerException four frames deep in GeckoLib. Overriding the writes onto the
+ * same map is what makes the two directions agree.
+ */
 class BpmBlockRenderState :
     net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState(),
     software.bernie.geckolib.renderer.base.GeoRenderState {
+
     private val data = HashMap<software.bernie.geckolib.constant.dataticket.DataTicket<*>, Any>()
+
     override fun getDataMap(): MutableMap<software.bernie.geckolib.constant.dataticket.DataTicket<*>, Any> = data
+
+    override fun <D : Any> addGeckolibData(ticket: software.bernie.geckolib.constant.dataticket.DataTicket<D>, value: D) {
+        data[ticket] = value
+    }
+
+    override fun hasGeckolibData(ticket: software.bernie.geckolib.constant.dataticket.DataTicket<*>): Boolean =
+        data.containsKey(ticket)
 }
 
 /**
@@ -96,13 +120,25 @@ class BpmBlockRenderState :
  * Only the ID, deliberately. A renderer that wants more looks the entity back up on the client, which
  * costs a map lookup once a frame and keeps this class from growing a field per renderer. The entity
  * itself must not be held here: the whole point of a render state is that the draw pass runs without it.
+ *
+ * The three accessors are overridden together for the reason given on [BpmBlockRenderState].
  */
 class BpmEntityRenderState :
     net.minecraft.client.renderer.entity.state.EntityRenderState(),
     software.bernie.geckolib.renderer.base.GeoRenderState {
+
     var entityId: Int = 0
+
     private val data = HashMap<software.bernie.geckolib.constant.dataticket.DataTicket<*>, Any>()
+
     override fun getDataMap(): MutableMap<software.bernie.geckolib.constant.dataticket.DataTicket<*>, Any> = data
+
+    override fun <D : Any> addGeckolibData(ticket: software.bernie.geckolib.constant.dataticket.DataTicket<D>, value: D) {
+        data[ticket] = value
+    }
+
+    override fun hasGeckolibData(ticket: software.bernie.geckolib.constant.dataticket.DataTicket<*>): Boolean =
+        data.containsKey(ticket)
 }
 
 

@@ -37,7 +37,7 @@ abstract class PathGeoModelBase<T : GeoAnimatable>(
         if (altApplies(animatable)) (altTexture() ?: tex) else tex
 
     //? if >=1.21.9 {
-    /*override fun getModelResource(state: software.bernie.geckolib.renderer.base.GeoRenderState): ResourceLocation = geo
+    /*override fun getModelResource(state: software.bernie.geckolib.renderer.base.GeoRenderState): ResourceLocation = geckoAsset(geo)
 
     override fun getTextureResource(state: software.bernie.geckolib.renderer.base.GeoRenderState): ResourceLocation =
         if (state.getOrDefaultGeckolibData(ALT_TEXTURE, false) == true) (altTexture() ?: tex) else tex
@@ -57,17 +57,17 @@ abstract class PathGeoModelBase<T : GeoAnimatable>(
         state.addGeckolibData(ALT_TEXTURE, altApplies(animatable))
     }
     *///?} elif >=1.21.2 {
-    /*override fun getModelResource(animatable: T, renderer: software.bernie.geckolib.renderer.GeoRenderer<T>?): ResourceLocation = geo
+    /*override fun getModelResource(animatable: T, renderer: software.bernie.geckolib.renderer.GeoRenderer<T>?): ResourceLocation = geckoAsset(geo)
 
     override fun getTextureResource(animatable: T, renderer: software.bernie.geckolib.renderer.GeoRenderer<T>?): ResourceLocation =
         textureFor(animatable)
     *///?} else {
-    override fun getModelResource(animatable: T, renderer: software.bernie.geckolib.renderer.GeoRenderer<T>?): ResourceLocation = geo
+    override fun getModelResource(animatable: T, renderer: software.bernie.geckolib.renderer.GeoRenderer<T>?): ResourceLocation = geckoAsset(geo)
 
     override fun getTextureResource(animatable: T, renderer: software.bernie.geckolib.renderer.GeoRenderer<T>?): ResourceLocation =
         textureFor(animatable)
 
-    override fun getModelResource(animatable: T): ResourceLocation = geo
+    override fun getModelResource(animatable: T): ResourceLocation = geckoAsset(geo)
 
     override fun getTextureResource(animatable: T): ResourceLocation = textureFor(animatable)
     //?}
@@ -103,3 +103,28 @@ fun actorStack(actor: software.bernie.geckolib.loading.math.MolangQueries.Actor<
 internal val ITEM_STACK: software.bernie.geckolib.constant.dataticket.DataTicket<net.minecraft.world.item.ItemStack> =
     software.bernie.geckolib.constant.dataticket.DataTicket.create("bpm_item_stack", net.minecraft.world.item.ItemStack::class.java)
 *///?}
+
+/**
+ * The id GeckoLib wants for a model or animation file, given the path this mod files it under.
+ *
+ * Until 1.21.9 a `GeoModel` answered with the RESOURCE PATH -- `bpm:geo/block/x.geo.json` --  and
+ * GeckoLib opened exactly that. From 1.21.9 it scans two fixed folders, `assets/<ns>/geckolib/models`
+ * and `assets/<ns>/geckolib/animations`, and keys what it finds by the path with the folder prefix and
+ * the `.geo`/`.animation`/`.json` suffixes stripped. So the same file is now asked for as
+ * `bpm:block/x`, and a full path is not merely tolerated-with-a-warning: the lookup misses and GeckoLib
+ * throws.
+ *
+ * The mod keeps writing the path it files the asset under, because that is the true thing about it, and
+ * this turns it into whatever the band's cache is keyed by. The build copies the two folders into
+ * `geckolib/` on the bands that read them there -- see the resource wiring in the loader build scripts.
+ */
+fun geckoAsset(path: ResourceLocation): ResourceLocation {
+    //? if >=1.21.9 {
+    /*var p = path.path
+    for (prefix in listOf("geo/", "animations/")) if (p.startsWith(prefix)) p = p.removePrefix(prefix)
+    for (suffix in listOf(".geo.json", ".animation.json", ".json")) if (p.endsWith(suffix)) { p = p.removeSuffix(suffix); break }
+    return ResourceLocation.fromNamespaceAndPath(path.namespace, p)
+    *///?} else {
+    return path
+    //?}
+}

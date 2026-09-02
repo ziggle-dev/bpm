@@ -33,7 +33,7 @@ import software.bernie.geckolib.animatable.client.GeoRenderProvider
  */
 open class PathGeoModel<T : GeoAnimatable>(geo: ResourceLocation, private val anim: ResourceLocation, tex: ResourceLocation) :
     bpm.platform.client.PathGeoModelBase<T>(geo, tex) {
-    override fun getAnimationResource(animatable: T): ResourceLocation = anim
+    override fun getAnimationResource(animatable: T): ResourceLocation = bpm.platform.client.geckoAsset(anim)
 }
 
 private fun rl(path: String) = ResourceLocation.fromNamespaceAndPath(Bpm.ID, path)
