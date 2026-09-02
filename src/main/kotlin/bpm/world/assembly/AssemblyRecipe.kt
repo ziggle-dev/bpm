@@ -13,13 +13,9 @@ import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.HolderLookup
 import net.minecraft.core.NonNullList
 import net.minecraft.core.registries.Registries
-import net.minecraft.network.RegistryFriendlyByteBuf
-import net.minecraft.network.codec.ByteBufCodecs
-import net.minecraft.network.codec.StreamCodec
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.crafting.Ingredient
 import net.minecraft.world.item.crafting.Recipe
-import net.minecraft.world.item.crafting.RecipeInput
 import net.minecraft.world.item.crafting.RecipeSerializer
 import net.minecraft.world.item.crafting.RecipeType
 import net.minecraft.world.level.Level
@@ -31,7 +27,7 @@ import net.minecraft.world.level.Level
  * every vanilla helper that walks an input expects to find everything by index. [ingredients] is only what
  * is on the pedestals; the catalyst sits in the assembler itself, and one is spent per completed job.
  */
-class AssemblyInput(val ingredients: List<ItemStack>, val catalyst: ItemStack) : RecipeInput {
+class AssemblyInput(val ingredients: List<ItemStack>, val catalyst: ItemStack) : bpm.platform.RecipeInputBase() {
 
     override fun getItem(index: Int): ItemStack =
         if (index < ingredients.size) ingredients[index] else catalyst
@@ -152,27 +148,38 @@ class AssemblyRecipe(
             }
         }
 
-        val streamCodec: StreamCodec<RegistryFriendlyByteBuf, AssemblyRecipe> =
-            StreamCodec.of({ buf, r ->
-                ByteBufCodecs.collection<RegistryFriendlyByteBuf, Ingredient, MutableList<Ingredient>>({ ArrayList(it) }, Ingredient.CONTENTS_STREAM_CODEC)
-                    .encode(buf, r.parts)
-                Ingredient.CONTENTS_STREAM_CODEC.encode(buf, r.catalyst)
+        /**
+         * The wire form, written by hand.
+         *
+         * `ByteBufCodecs` arrived in 1.20.5 and its `collection` helper with it, so the lists are looped
+         * here instead: a count and then the members, which is what the helper does anyway. The two
+         * pieces that genuinely differ between bands -- an ingredient and a stack -- go through
+         * `bpm.platform.writeIngredient`/`writeStack`, and the layout is otherwise identical on every
+         * version. Same arrangement as `bpm.net.Payloads`, and for the same reason.
+         *
+         * The 64-character cap on a requirement name is kept: it bounded a decode before and still does.
+         */
+        val streamCodec: bpm.platform.net.PayloadCodec<AssemblyRecipe> =
+            bpm.platform.recipeWire<AssemblyRecipe>({ buf, r ->
+                buf.writeVarInt(r.parts.size)
+                for (part in r.parts) bpm.platform.writeIngredient(buf, part)
+                bpm.platform.writeIngredient(buf, r.catalyst)
                 buf.writeVarInt(r.energy)
                 buf.writeVarInt(r.experience)
                 buf.writeVarInt(r.ticks)
-                ItemStack.STREAM_CODEC.encode(buf, r.result)
-                ByteBufCodecs.collection<RegistryFriendlyByteBuf, String, MutableList<String>>({ ArrayList(it) }, ByteBufCodecs.stringUtf8(64))
-                    .encode(buf, ArrayList(r.requires))
+                bpm.platform.writeStack(buf, r.result)
+                buf.writeVarInt(r.requires.size)
+                for (name in r.requires) buf.writeUtf(name, 64)
             }, { buf ->
-                val ingredients = ByteBufCodecs.collection<RegistryFriendlyByteBuf, Ingredient, MutableList<Ingredient>>({ ArrayList(it) }, Ingredient.CONTENTS_STREAM_CODEC)
-                    .decode(buf)
-                val catalyst = Ingredient.CONTENTS_STREAM_CODEC.decode(buf)
+                val ingredients = ArrayList<Ingredient>()
+                repeat(buf.readVarInt()) { ingredients += bpm.platform.readIngredient(buf) }
+                val catalyst = bpm.platform.readIngredient(buf)
                 val energy = buf.readVarInt()
                 val experience = buf.readVarInt()
                 val ticks = buf.readVarInt()
-                val result = bpm.platform.RecipeResult.of(ItemStack.STREAM_CODEC.decode(buf))
-                val requires = ByteBufCodecs.collection<RegistryFriendlyByteBuf, String, MutableList<String>>({ ArrayList(it) }, ByteBufCodecs.stringUtf8(64))
-                    .decode(buf)
+                val result = bpm.platform.RecipeResult.of(bpm.platform.readStack(buf))
+                val requires = ArrayList<String>()
+                repeat(buf.readVarInt()) { requires += buf.readUtf(64) }
                 AssemblyRecipe(list(ingredients), catalyst, energy, experience, ticks, result, requires)
             })
 

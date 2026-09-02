@@ -42,7 +42,7 @@ fun <T : BpmPayload> payloadType(id: ResourceLocation): PayloadType<T> =
     net.minecraft.network.protocol.common.custom.CustomPacketPayload.Type(id)
 
 /** Build a wire form from a write and a read. */
-fun <T : BpmPayload> payloadCodec(
+fun <T : Any> payloadCodec(
     write: (FriendlyByteBuf, T) -> Unit,
     read: (FriendlyByteBuf) -> T,
 ): PayloadCodec<T> = net.minecraft.network.codec.StreamCodec.of({ buf, v -> write(buf, v) }, { buf -> read(buf) })
@@ -74,7 +74,7 @@ class PayloadCodec<T>(
 
 fun <T : BpmPayload> payloadType(id: ResourceLocation): PayloadType<T> = PayloadType(id)
 
-fun <T : BpmPayload> payloadCodec(
+fun <T : Any> payloadCodec(
     write: (FriendlyByteBuf, T) -> Unit,
     read: (FriendlyByteBuf) -> T,
 ): PayloadCodec<T> = PayloadCodec(write, read)
