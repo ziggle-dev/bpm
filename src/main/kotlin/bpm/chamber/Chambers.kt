@@ -30,6 +30,13 @@ import net.minecraft.world.level.saveddata.SavedData
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import java.util.UUID
+import bpm.platform.intOr
+import bpm.platform.longOr
+import bpm.platform.floatOr
+import bpm.platform.doubleOr
+import bpm.platform.stringOr
+import bpm.platform.boolOr
+import bpm.platform.compoundOr
 
 /** The Decoherence Chamber's dimension — `bpm:decoherence`, a void with one room per player stamped into it. */
 object ChamberDimension {
@@ -88,7 +95,7 @@ class ChamberSlot(val owner: UUID, val index: Int) {
     val returnGate: BlockPos get() = origin.offset(20, 4, 0)
 
     fun save(): CompoundTag = CompoundTag().also { t ->
-        t.putUUID("owner", owner)
+        bpm.platform.putUuid(t, "owner", owner)
         t.putInt("index", index)
         t.putBoolean("built", built)
         t.putString("state", state.name)
@@ -107,21 +114,21 @@ class ChamberSlot(val owner: UUID, val index: Int) {
 
     companion object {
         fun load(t: CompoundTag): ChamberSlot? {
-            if (!t.hasUUID("owner")) return null
-            return ChamberSlot(t.getUUID("owner"), t.getInt("index")).also { s ->
-                s.built = t.getBoolean("built")
-                s.state = runCatching { SlotState.valueOf(t.getString("state")) }.getOrDefault(SlotState.DORMANT)
-                s.lastVisit = t.getLong("lastVisit")
-                s.claimedAt = t.getLong("claimedAt")
-                s.stage3StartedAt = t.getLong("stage3StartedAt")
-                s.killedAt = t.getLong("killedAt")
-                s.lastKillByPlayer = t.getBoolean("lastKillByPlayer")
-                s.resetCount = t.getInt("resetCount")
-                s.crystalsBroken = t.getInt("crystalsBroken")
-                s.occupied = t.getBoolean("occupied")
-                s.gateDim = if (t.contains("gateDim")) ResourceLocation.tryParse(t.getString("gateDim"))?.let { ResourceKey.create(Registries.DIMENSION, it) } else null
-                s.gatePos = if (t.contains("gatePos")) BlockPos.of(t.getLong("gatePos")) else null
-                s.layout = if (t.contains("layout")) RoomLayout.load(t.getCompound("layout")) else null
+            val owner = bpm.platform.uuidOrNull(t, "owner") ?: return null
+            return ChamberSlot(owner, t.intOr("index", 0)).also { s ->
+                s.built = t.boolOr("built", false)
+                s.state = runCatching { SlotState.valueOf(t.stringOr("state", "")) }.getOrDefault(SlotState.DORMANT)
+                s.lastVisit = t.longOr("lastVisit", 0L)
+                s.claimedAt = t.longOr("claimedAt", 0L)
+                s.stage3StartedAt = t.longOr("stage3StartedAt", 0L)
+                s.killedAt = t.longOr("killedAt", 0L)
+                s.lastKillByPlayer = t.boolOr("lastKillByPlayer", false)
+                s.resetCount = t.intOr("resetCount", 0)
+                s.crystalsBroken = t.intOr("crystalsBroken", 0)
+                s.occupied = t.boolOr("occupied", false)
+                s.gateDim = if (t.contains("gateDim")) ResourceLocation.tryParse(t.stringOr("gateDim", ""))?.let { ResourceKey.create(Registries.DIMENSION, it) } else null
+                s.gatePos = if (t.contains("gatePos")) BlockPos.of(t.longOr("gatePos", 0L)) else null
+                s.layout = if (t.contains("layout")) RoomLayout.load(t.compoundOr("layout")) else null
             }
         }
     }
@@ -163,7 +170,7 @@ class Chambers : SavedData() {
         fun get(server: MinecraftServer): Chambers = server.overworld().dataStorage.computeIfAbsent(FACTORY, NAME)
 
         private fun load(tag: CompoundTag, registries: HolderLookup.Provider): Chambers = Chambers().also { c ->
-            c.nextIndex = tag.getInt("next")
+            c.nextIndex = tag.intOr("next", 0)
             val list = tag.getList("slots", Tag.TAG_COMPOUND.toInt())
             for (i in 0 until list.size) ChamberSlot.load(list.getCompound(i))?.let { c.slots[it.owner] = it }
         }
@@ -219,9 +226,9 @@ class Chambers : SavedData() {
         /** Where [player] goes when they leave: the spot outside the gate they came through, or the world spawn if that is lost. */
         fun returnPoint(server: MinecraftServer, player: ServerPlayer): Pair<ServerLevel, Vec3> {
             val tag = PlayerStore.get(player, ModAttachments.CHAMBER_RETURN)
-            val key = ResourceLocation.tryParse(tag.getString("dim"))?.let { ResourceKey.create(Registries.DIMENSION, it) }
+            val key = ResourceLocation.tryParse(tag.stringOr("dim", ""))?.let { ResourceKey.create(Registries.DIMENSION, it) }
             val target = key?.let { server.getLevel(it) } ?: server.overworld()
-            if (tag.contains("x")) return target to Vec3(tag.getDouble("x"), tag.getDouble("y"), tag.getDouble("z"))
+            if (tag.contains("x")) return target to Vec3(tag.doubleOr("x", 0.0), tag.doubleOr("y", 0.0), tag.doubleOr("z", 0.0))
             val spawn = target.sharedSpawnPos
             return target to Vec3(spawn.x + 0.5, spawn.y.toDouble(), spawn.z + 0.5)
         }
@@ -307,7 +314,7 @@ class Chambers : SavedData() {
         /** Sends [player] back to where they came in — or to the world spawn if that is lost. */
         fun leave(player: ServerPlayer) {
             val (target, at) = returnPoint(player.server, player)
-            val yaw = PlayerStore.get(player, ModAttachments.CHAMBER_RETURN).getFloat("yaw")
+            val yaw = PlayerStore.get(player, ModAttachments.CHAMBER_RETURN).floatOr("yaw", 0f)
             bpm.platform.teleport(player, target, at.x, at.y, at.z, yaw, 0f)
             player.setPortalCooldown(ARRIVAL_COOLDOWN)
         }

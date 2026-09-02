@@ -9,6 +9,10 @@ import bpm.platform.ResourceLocation
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.material.Fluid
 import net.minecraft.world.level.material.Fluids
+import bpm.platform.intOr
+import bpm.platform.longOr
+import bpm.platform.stringOr
+import bpm.platform.compoundOr
 
 /**
  * The stores a controller owns, written against the mod's own ports.
@@ -84,9 +88,9 @@ open class SlotStore(private val size: Int, private val onChange: () -> Unit = {
         for (i in stacks.indices) stacks[i] = ItemStack.EMPTY
         for (i in 0 until list.size) {
             val t = list.getCompound(i)
-            val slot = t.getInt("slot")
+            val slot = t.intOr("slot", 0)
             if (slot !in 0 until size) continue
-            stacks[slot] = ItemStack.parse(registries, t.getCompound("item")).orElse(ItemStack.EMPTY)
+            stacks[slot] = ItemStack.parse(registries, t.compoundOr("item")).orElse(ItemStack.EMPTY)
         }
     }
 }
@@ -128,9 +132,9 @@ class Tank(val capacity: Long) {
     }
 
     fun load(t: CompoundTag) {
-        val id = t.getString("fluid").takeIf { it.isNotBlank() } ?: run { held = FluidVolume.EMPTY; return }
+        val id = t.stringOr("fluid", "").takeIf { it.isNotBlank() } ?: run { held = FluidVolume.EMPTY; return }
         val fluid: Fluid = ResourceLocation.tryParse(id)?.let { bpm.platform.valueOf(BuiltInRegistries.FLUID, it) } ?: Fluids.EMPTY
-        held = if (fluid == Fluids.EMPTY) FluidVolume.EMPTY else FluidVolume(fluid, t.getLong("droplets"))
+        held = if (fluid == Fluids.EMPTY) FluidVolume.EMPTY else FluidVolume(fluid, t.longOr("droplets", 0L))
     }
 }
 
@@ -235,6 +239,6 @@ class EnergyCell(
     fun save(): Tag = CompoundTag().also { it.putLong("energy", stored) }
 
     fun load(tag: Tag) {
-        stored = ((tag as? CompoundTag)?.getLong("energy") ?: 0L).coerceIn(0L, capacity)
+        stored = ((tag as? CompoundTag)?.longOr("energy", 0L) ?: 0L).coerceIn(0L, capacity)
     }
 }

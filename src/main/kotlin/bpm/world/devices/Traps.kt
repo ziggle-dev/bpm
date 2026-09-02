@@ -46,6 +46,11 @@ import software.bernie.geckolib.animation.RawAnimation
 import java.util.UUID
 import kotlin.math.atan2
 import kotlin.math.sqrt
+import bpm.platform.longOr
+import bpm.platform.floatOr
+import bpm.platform.stringOr
+import bpm.platform.boolOr
+import bpm.platform.compoundOr
 
 /*
  * The chamber's hazards as blocks — usable anywhere, which is why they have recipes.
@@ -166,8 +171,8 @@ abstract class TrapBlockEntity(type: BlockEntityType<*>, pos: BlockPos, state: B
     }
 
     override fun loadSynced(tag: CompoundTag, registries: HolderLookup.Provider) {
-        mode = runCatching { TrapMode.valueOf(tag.getString("mode")) }.getOrDefault(TrapMode.CYCLE)
-        proximity = tag.getBoolean("proximity")
+        mode = runCatching { TrapMode.valueOf(tag.stringOr("mode", "")) }.getOrDefault(TrapMode.CYCLE)
+        proximity = tag.boolOr("proximity", false)
     }
 }
 
@@ -216,9 +221,9 @@ class SpikeBlockEntity(pos: BlockPos, state: BlockState) : TrapBlockEntity(Devic
 
     override fun loadSynced(tag: CompoundTag, registries: HolderLookup.Provider) {
         super.loadSynced(tag, registries)
-        conjured = tag.getBoolean("conjured")
-        revertAt = tag.getLong("revertAt")
-        original = if (tag.contains("original")) net.minecraft.nbt.NbtUtils.readBlockState(bpm.platform.blockLookup(), tag.getCompound("original")) else null
+        conjured = tag.boolOr("conjured", false)
+        revertAt = tag.longOr("revertAt", 0L)
+        original = if (tag.contains("original")) net.minecraft.nbt.NbtUtils.readBlockState(bpm.platform.blockLookup(), tag.compoundOr("original")) else null
     }
 
     override val phase: String
@@ -675,12 +680,12 @@ class TurretBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(De
     }
 
     override fun loadSynced(tag: CompoundTag, registries: HolderLookup.Provider) {
-        targetYaw = tag.getFloat("yaw")
-        targetPitch = tag.getFloat("pitch")
-        tracking = tag.getBoolean("tracking")
-        active = !tag.contains("active") || tag.getBoolean("active")
-        off = tag.getBoolean("off")
-        disabledUntil = tag.getLong("darkUntil")
+        targetYaw = tag.floatOr("yaw", 0f)
+        targetPitch = tag.floatOr("pitch", 0f)
+        tracking = tag.boolOr("tracking", false)
+        active = !tag.contains("active") || tag.boolOr("active", false)
+        off = tag.boolOr("off", false)
+        disabledUntil = tag.longOr("darkUntil", 0L)
     }
 
     override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
@@ -867,10 +872,10 @@ class PhaseBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(Dev
     }
 
     override fun loadSynced(tag: CompoundTag, registries: HolderLookup.Provider) {
-        mode = runCatching { TrapMode.valueOf(tag.getString("mode")) }.getOrDefault(TrapMode.LINKED)
-        trail = tag.getBoolean("trail")
-        revertAt = tag.getLong("revertAt")
-        original = if (tag.contains("original")) net.minecraft.nbt.NbtUtils.readBlockState(bpm.platform.blockLookup(), tag.getCompound("original")) else null
+        mode = runCatching { TrapMode.valueOf(tag.stringOr("mode", "")) }.getOrDefault(TrapMode.LINKED)
+        trail = tag.boolOr("trail", false)
+        revertAt = tag.longOr("revertAt", 0L)
+        original = if (tag.contains("original")) net.minecraft.nbt.NbtUtils.readBlockState(bpm.platform.blockLookup(), tag.compoundOr("original")) else null
     }
 
     override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {

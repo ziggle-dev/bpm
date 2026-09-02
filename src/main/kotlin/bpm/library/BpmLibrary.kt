@@ -16,6 +16,10 @@ import java.security.MessageDigest
 import java.util.UUID
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
+import bpm.platform.intOr
+import bpm.platform.longOr
+import bpm.platform.stringOr
+import bpm.platform.boolOr
 
 /** One graph document in the world's library. The bytes are the gzip of the `GraphDoc` JSON. */
 class DocumentRecord(
@@ -34,14 +38,14 @@ class DocumentRecord(
     var isLibrary: Boolean = false,
 ) : bpm.library.DocumentInfo {
     fun save(): CompoundTag = CompoundTag().also { t ->
-        t.putUUID("id", id)
+        bpm.platform.putUuid(t, "id", id)
         t.putString("name", name)
         t.putInt("version", version)
         t.putInt("format", format)
         t.putByteArray("gz", gz)
         t.putString("sha256", sha256)
         t.putInt("rawSize", rawSize)
-        owner?.let { t.putUUID("owner", it) }
+        owner?.let { bpm.platform.putUuid(t, "owner", it) }
         t.putLong("createdAt", createdAt)
         t.putLong("updatedAt", updatedAt)
         t.putBoolean("hasErrors", hasErrors)
@@ -50,20 +54,20 @@ class DocumentRecord(
 
     companion object {
         fun load(t: CompoundTag): DocumentRecord? {
-            if (!t.hasUUID("id")) return null
+            val docId = bpm.platform.uuidOrNull(t, "id") ?: return null
             return DocumentRecord(
-                id = t.getUUID("id"),
-                name = t.getString("name"),
-                version = t.getInt("version"),
-                format = t.getInt("format"),
+                id = docId,
+                name = t.stringOr("name", ""),
+                version = t.intOr("version", 0),
+                format = t.intOr("format", 0),
                 gz = t.getByteArray("gz"),
-                sha256 = t.getString("sha256"),
-                rawSize = t.getInt("rawSize"),
-                owner = if (t.hasUUID("owner")) t.getUUID("owner") else null,
-                createdAt = t.getLong("createdAt"),
-                updatedAt = t.getLong("updatedAt"),
-                hasErrors = t.getBoolean("hasErrors"),
-                isLibrary = t.getBoolean("library"),
+                sha256 = t.stringOr("sha256", ""),
+                rawSize = t.intOr("rawSize", 0),
+                owner = bpm.platform.uuidOrNull(t, "owner"),
+                createdAt = t.longOr("createdAt", 0L),
+                updatedAt = t.longOr("updatedAt", 0L),
+                hasErrors = t.boolOr("hasErrors", false),
+                isLibrary = t.boolOr("library", false),
             )
         }
     }
@@ -207,7 +211,7 @@ class BpmLibrary : SavedData(), bpm.library.DocumentStore {
 
         fun load(tag: CompoundTag, @Suppress("UNUSED_PARAMETER") registries: HolderLookup.Provider): BpmLibrary {
             val lib = BpmLibrary()
-            lib.libraryVersion = tag.getInt("libraryVersion")
+            lib.libraryVersion = tag.intOr("libraryVersion", 0)
             val list = tag.getList("docs", Tag.TAG_COMPOUND.toInt())
             for (i in 0 until list.size) DocumentRecord.load(list.getCompound(i))?.let { lib.docs[it.id] = it }
             return lib

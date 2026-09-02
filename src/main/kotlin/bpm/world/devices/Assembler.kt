@@ -38,6 +38,12 @@ import net.minecraft.world.phys.BlockHitResult
 import bpm.platform.AnimatableManager
 import software.bernie.geckolib.animation.AnimationController
 import software.bernie.geckolib.animation.RawAnimation
+import bpm.platform.intOr
+import bpm.platform.floatOr
+import bpm.platform.stringOr
+import bpm.platform.boolOr
+import bpm.platform.byteOr
+import bpm.platform.compoundOr
 
 /**
  * The Quantum Assembler: the block bpm's own things are made on, instead of a crafting grid.
@@ -403,15 +409,15 @@ class AssemblerBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity
     override fun loadSynced(tag: CompoundTag, registries: HolderLookup.Provider) {
         if (tag.contains("items")) items.load(registries, tag.getList("items", net.minecraft.nbt.Tag.TAG_COMPOUND.toInt()))
         catalyst = items.stackIn(CATALYST)
-        energy.set(tag.getInt("energy").toLong())
+        energy.set(tag.intOr("energy", 0).toLong())
         if (tag.contains("tanks")) tanks.load(tag.getList("tanks", net.minecraft.nbt.Tag.TAG_COMPOUND.toInt()))
-        running = tag.getBoolean("running")
-        ticksDone = tag.getInt("ticksDone")
-        totalTicks = tag.getInt("totalTicks")
-        coherence = tag.getFloat("coherence")
-        instability = Instability.entries.getOrElse(tag.getByte("instability").toInt()) { Instability.NONE }
-        forming = ItemStack.parseOptional(registries, tag.getCompound("forming"))
-        recipeId = if (tag.contains("recipe")) ResourceLocation.tryParse(tag.getString("recipe")) else null
+        running = tag.boolOr("running", false)
+        ticksDone = tag.intOr("ticksDone", 0)
+        totalTicks = tag.intOr("totalTicks", 0)
+        coherence = tag.floatOr("coherence", 0f)
+        instability = Instability.entries.getOrElse(tag.byteOr("instability", 0).toInt()) { Instability.NONE }
+        forming = ItemStack.parseOptional(registries, tag.compoundOr("forming"))
+        recipeId = if (tag.contains("recipe")) ResourceLocation.tryParse(tag.stringOr("recipe", "")) else null
     }
 
     override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {

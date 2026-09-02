@@ -40,6 +40,9 @@ import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
+import bpm.platform.intOr
+import bpm.platform.floatOr
+import bpm.platform.boolOr
 
 /**
  * The Quantum Warden — the containment vessel that guards the core (§7 of the mechanics design).
@@ -592,7 +595,7 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
     override fun addAdditionalSaveData(tag: CompoundTag) {
         super.addAdditionalSaveData(tag)
         home?.let { tag.put("home", NbtUtils.writeBlockPos(it)) }
-        slotOwner?.let { tag.putUUID("slotOwner", it) }
+        slotOwner?.let { bpm.platform.putUuid(tag, "slotOwner", it) }
         tag.putInt("stage", stage)
         tag.putBoolean("shield", shielded)
         tag.putBoolean("grounded", grounded)
@@ -603,13 +606,13 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
     override fun readAdditionalSaveData(tag: CompoundTag) {
         super.readAdditionalSaveData(tag)
         home = NbtUtils.readBlockPos(tag, "home").orElse(null)
-        slotOwner = if (tag.hasUUID("slotOwner")) tag.getUUID("slotOwner") else null
-        entityData.set(STAGE, tag.getInt("stage").coerceIn(1, 3))
-        entityData.set(SHIELD, tag.getBoolean("shield"))
-        entityData.set(GROUNDED, tag.getBoolean("grounded"))
-        setNoGravity(!tag.getBoolean("grounded"))
-        plateHp = tag.getFloat("plateHp")
-        spawnTicks = tag.getInt("spawnTicks")
+        slotOwner = bpm.platform.uuidOrNull(tag, "slotOwner")
+        entityData.set(STAGE, tag.intOr("stage", 0).coerceIn(1, 3))
+        entityData.set(SHIELD, tag.boolOr("shield", false))
+        entityData.set(GROUNDED, tag.boolOr("grounded", false))
+        setNoGravity(!tag.boolOr("grounded", false))
+        plateHp = tag.floatOr("plateHp", 0f)
+        spawnTicks = tag.intOr("spawnTicks", 0)
     }
 
     // ---- geckolib -----------------------------------------------------------------------------------------

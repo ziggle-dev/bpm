@@ -25,6 +25,7 @@ import software.bernie.geckolib.animation.AnimationController
 import bpm.platform.PlayState
 import software.bernie.geckolib.animation.RawAnimation
 import java.util.UUID
+import bpm.platform.compoundOr
 
 /**
  * The Core Pedestal: holds the Quantum Core the Warden guards. Using it with the core in place wakes the
@@ -176,13 +177,13 @@ class PedestalBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(
     }
 
     override fun saveSynced(tag: CompoundTag, registries: HolderLookup.Provider) {
-        slotOwner?.let { tag.putUUID("slotOwner", it) }
+        slotOwner?.let { bpm.platform.putUuid(tag, "slotOwner", it) }
         tag.put("held", held.saveOptional(registries))
     }
 
     override fun loadSynced(tag: CompoundTag, registries: HolderLookup.Provider) {
-        slotOwner = if (tag.hasUUID("slotOwner")) tag.getUUID("slotOwner") else null
-        held = ItemStack.parseOptional(registries, tag.getCompound("held"))
+        slotOwner = bpm.platform.uuidOrNull(tag, "slotOwner")
+        held = ItemStack.parseOptional(registries, tag.compoundOr("held"))
     }
 
     override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {

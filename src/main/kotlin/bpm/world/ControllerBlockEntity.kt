@@ -30,6 +30,10 @@ import bpm.platform.PlayState
 import software.bernie.geckolib.animation.RawAnimation
 import software.bernie.geckolib.util.GeckoLibUtil
 import java.util.UUID
+import bpm.platform.intOr
+import bpm.platform.stringOr
+import bpm.platform.boolOr
+import bpm.platform.compoundOr
 
 /**
  * A controller's saved state and its running program.
@@ -122,7 +126,7 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
 
     override fun saveAdditional(tag: CompoundTag, registries: HolderLookup.Provider) {
         super.saveAdditional(tag, registries)
-        docId?.let { tag.putUUID("doc", it) }
+        docId?.let { bpm.platform.putUuid(tag, "doc", it) }
         tag.putInt("docVersion", docVersion)
         tag.putInt("runningVersion", runningVersion)
         tag.putBoolean("enabled", enabled)
@@ -140,23 +144,23 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
 
     override fun loadAdditional(tag: CompoundTag, registries: HolderLookup.Provider) {
         super.loadAdditional(tag, registries)
-        docId = if (tag.hasUUID("doc")) tag.getUUID("doc") else null
-        docVersion = tag.getInt("docVersion")
-        runningVersion = tag.getInt("runningVersion")
-        enabled = !tag.contains("enabled") || tag.getBoolean("enabled")
-        debugBuild = !tag.contains("debug") || tag.getBoolean("debug")
-        coreTier = CoreTier.byKey(tag.getString("coreTier"))
+        docId = bpm.platform.uuidOrNull(tag, "doc")
+        docVersion = tag.intOr("docVersion", 0)
+        runningVersion = tag.intOr("runningVersion", 0)
+        enabled = !tag.contains("enabled") || tag.boolOr("enabled", false)
+        debugBuild = !tag.contains("debug") || tag.boolOr("debug", false)
+        coreTier = CoreTier.byKey(tag.stringOr("coreTier", ""))
         links.load(tag.getList("links", Tag.TAG_COMPOUND.toInt()))
-        scriptData = tag.getCompound("data")
+        scriptData = tag.compoundOr("data")
         val s = tag.getIntArray("signals")
         if (s.size == 6) s.copyInto(signals) else signals.fill(0)
         if (tag.contains("inventory")) inventory.load(registries, tag.getList("inventory", Tag.TAG_COMPOUND.toInt()))
         if (tag.contains("tanks")) tanks.load(tag.getList("tanks", Tag.TAG_COMPOUND.toInt()))
         tag.get("energy")?.let { energy.load(it) }
-        lastError = if (tag.contains("lastError")) tag.getString("lastError") else null
+        lastError = if (tag.contains("lastError")) tag.stringOr("lastError", "") else null
         breakpoints.clear()
         val bps = tag.getList("breakpoints", Tag.TAG_COMPOUND.toInt())
-        for (i in 0 until bps.size) bps.getCompound(i).let { breakpoints[it.getInt("node")] = it.getBoolean("on") }
+        for (i in 0 until bps.size) bps.getCompound(i).let { breakpoints[it.intOr("node", 0)] = it.boolOr("on", false) }
     }
 
     /** Arms, disarms or removes a breakpoint, now and for every later run. */
@@ -179,7 +183,7 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
 
     override fun getUpdateTag(registries: HolderLookup.Provider): CompoundTag = CompoundTag().also { tag ->
         tag.putString("coreTier", coreTier.key)
-        docId?.let { tag.putUUID("doc", it) }
+        docId?.let { bpm.platform.putUuid(tag, "doc", it) }
         tag.put("links", links.save())
         tag.putBoolean("enabled", enabled)
         lastError?.let { tag.putString("lastError", it) }

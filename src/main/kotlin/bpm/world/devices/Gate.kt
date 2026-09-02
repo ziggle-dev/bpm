@@ -42,6 +42,8 @@ import bpm.platform.PlayState
 import software.bernie.geckolib.animation.RawAnimation
 import java.util.UUID
 import kotlin.math.abs
+import bpm.platform.longOr
+import bpm.platform.boolOr
 
 /**
  * The Quantum Gate projector: the top-centre block of a 5 × 5 ring of gate frames in a vertical plane, which
@@ -304,14 +306,14 @@ class GateBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(Devi
         tag.putBoolean("frameOk", frameOk)
         tag.putLong("closeAt", closeAtTick)
         tag.putBoolean("returnGate", returnGate)
-        slotOwner?.let { tag.putUUID("slotOwner", it) }
+        slotOwner?.let { bpm.platform.putUuid(tag, "slotOwner", it) }
     }
 
     override fun loadSynced(tag: CompoundTag, registries: HolderLookup.Provider) {
-        frameOk = tag.getBoolean("frameOk")
-        closeAtTick = tag.getLong("closeAt")
-        returnGate = tag.getBoolean("returnGate")
-        slotOwner = if (tag.hasUUID("slotOwner")) tag.getUUID("slotOwner") else null
+        frameOk = tag.boolOr("frameOk", false)
+        closeAtTick = tag.longOr("closeAt", 0L)
+        returnGate = tag.boolOr("returnGate", false)
+        slotOwner = bpm.platform.uuidOrNull(tag, "slotOwner")
     }
 
     // ---- geckolib ---------------------------------------------------------------------------------------

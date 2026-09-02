@@ -17,6 +17,7 @@ import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.EntityHitResult
 import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
+import bpm.platform.floatOr
 
 /**
  * The Warden's bolt: a fast energy spear drawn by [bpm.client.render.WardenBoltRenderer] — teal for the
@@ -99,7 +100,7 @@ class WardenBoltEntity(type: EntityType<out WardenBoltEntity>, level: Level) : P
 
     override fun readAdditionalSaveData(tag: CompoundTag) {
         super.readAdditionalSaveData(tag)
-        damage = tag.getFloat("damage")
+        damage = tag.floatOr("damage", 0f)
     }
 
     override fun addAdditionalSaveData(tag: CompoundTag) {
