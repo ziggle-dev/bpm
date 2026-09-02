@@ -224,7 +224,7 @@ class LinkerItem(properties: Properties) : Item(properties), GeoItem {
      * the stack. Turrets are the quick pulse's business, not this one's.
      */
     fun trackingPulse(player: net.minecraft.server.level.ServerPlayer, hand: InteractionHand): Boolean {
-        val level = player.serverLevel()
+        val level = bpm.platform.levelOf(player)
         if (!bpm.chamber.ChamberDimension.isChamber(level)) return false
         val stack = player.getItemInHand(hand)
         if (stack.item !is LinkerItem) return false
@@ -290,9 +290,9 @@ class LinkerItem(properties: Properties) : Item(properties), GeoItem {
     // ---- geckolib ---------------------------------------------------------------------------------------
 
     override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
-        controllers.add(AnimationController(this, "idle", 0) { state -> state.setAndContinue(IDLE) })
+        controllers.add(bpm.platform.animController(this, "idle", 0) { state -> state.setAndContinue(IDLE) })
         controllers.add(
-            AnimationController(this, "overlay", 0) { PlayState.STOP }
+            bpm.platform.animController(this, "overlay", 0) { PlayState.STOP }
                 .triggerableAnim("select", SELECT).triggerableAnim("link", LINK).triggerableAnim("unlink", UNLINK),
         )
     }

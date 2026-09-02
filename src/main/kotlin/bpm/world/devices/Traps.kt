@@ -51,6 +51,7 @@ import bpm.platform.floatOr
 import bpm.platform.stringOr
 import bpm.platform.boolOr
 import bpm.platform.compoundOr
+import bpm.platform.intsOr
 
 /*
  * The chamber's hazards as blocks — usable anywhere, which is why they have recipes.
@@ -255,7 +256,7 @@ class SpikeBlockEntity(pos: BlockPos, state: BlockState) : TrapBlockEntity(Devic
 
     override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
         controllers.add(
-            AnimationController(this, "main", 2) { s -> s.setAndContinue(IDLE) }
+            bpm.platform.animController(this, "main", 2) { s -> s.setAndContinue(IDLE) }
                 .triggerableAnim("arm", ARM).triggerableAnim("extend", EXTEND).triggerableAnim("retract", RETRACT),
         )
     }
@@ -350,13 +351,13 @@ class VentBlockEntity(pos: BlockPos, state: BlockState) : TrapBlockEntity(Device
     override fun loadSynced(tag: CompoundTag, registries: HolderLookup.Provider) {
         super.loadSynced(tag, registries)
         peers.clear()
-        val a = tag.getIntArray("peers")
+        val a = tag.intsOr("peers")
         for (i in 0 until a.size / 3) peers += BlockPos(a[i * 3], a[i * 3 + 1], a[i * 3 + 2])
     }
 
     override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
         controllers.add(
-            AnimationController(this, "main", 2) { s -> s.setAndContinue(IDLE) }
+            bpm.platform.animController(this, "main", 2) { s -> s.setAndContinue(IDLE) }
                 .triggerableAnim("charge", CHARGE).triggerableAnim("erupt", ERUPT),
         )
     }
@@ -690,7 +691,7 @@ class TurretBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(De
 
     override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
         controllers.add(
-            AnimationController(this, "main", 4) { s -> s.setAndContinue(if (off) OFF else if (tracking) TRACK else IDLE) }
+            bpm.platform.animController(this, "main", 4) { s -> s.setAndContinue(if (off) OFF else if (tracking) TRACK else IDLE) }
                 .triggerableAnim("fire", FIRE).triggerableAnim("powerdown", POWERDOWN).triggerableAnim("powerup", POWERUP),
         )
     }
@@ -880,7 +881,7 @@ class PhaseBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(Dev
 
     override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
         controllers.add(
-            AnimationController(this, "main", 2) { s -> s.setAndContinue(if (solid) SOLID_ANIM else GHOST) }
+            bpm.platform.animController(this, "main", 2) { s -> s.setAndContinue(if (solid) SOLID_ANIM else GHOST) }
                 .triggerableAnim("phase_out", PHASE_OUT).triggerableAnim("phase_in", PHASE_IN),
         )
     }

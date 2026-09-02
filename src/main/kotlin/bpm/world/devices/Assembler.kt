@@ -44,6 +44,7 @@ import bpm.platform.stringOr
 import bpm.platform.boolOr
 import bpm.platform.byteOr
 import bpm.platform.compoundOr
+import bpm.platform.listOr
 
 /**
  * The Quantum Assembler: the block bpm's own things are made on, instead of a crafting grid.
@@ -407,10 +408,10 @@ class AssemblerBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity
     }
 
     override fun loadSynced(tag: CompoundTag, registries: HolderLookup.Provider) {
-        if (tag.contains("items")) items.load(registries, tag.getList("items", net.minecraft.nbt.Tag.TAG_COMPOUND.toInt()))
+        if (tag.contains("items")) items.load(registries, tag.listOr("items"))
         catalyst = items.stackIn(CATALYST)
         energy.set(tag.intOr("energy", 0).toLong())
-        if (tag.contains("tanks")) tanks.load(tag.getList("tanks", net.minecraft.nbt.Tag.TAG_COMPOUND.toInt()))
+        if (tag.contains("tanks")) tanks.load(tag.listOr("tanks"))
         running = tag.boolOr("running", false)
         ticksDone = tag.intOr("ticksDone", 0)
         totalTicks = tag.intOr("totalTicks", 0)
@@ -422,7 +423,7 @@ class AssemblerBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity
 
     override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
         controllers.add(
-            AnimationController(this, "main", 5) { state -> state.setAndContinue(if (running) ASSEMBLE else IDLE) }
+            bpm.platform.animController(this, "main", 5) { state -> state.setAndContinue(if (running) ASSEMBLE else IDLE) }
                 .triggerableAnim("assemble", ASSEMBLE)
                 .triggerableAnim("decohere", DECOHERE)
                 .triggerableAnim("finish", FINISH),

@@ -19,6 +19,7 @@ import net.minecraft.core.registries.BuiltInRegistries
 import bpm.platform.ResourceLocation
 import net.minecraft.world.item.ItemStack
 import org.joml.Matrix4f
+import bpm.platform.keyId
 
 /**
  * Renders items into small off-screen textures the editor can show: the block a link points at, the
@@ -47,7 +48,7 @@ object BlockPreviewRenderer : BlockPreviews, ItemIcons, IconSource {
     override fun want(link: LinkView) {
         val mc = Minecraft.getInstance()
         val level = mc.level ?: return
-        if (level.dimension().location().toString() != link.dimension) return
+        if (level.dimension().keyId().toString() != link.dimension) return
         val pos = BlockPos(link.x, link.y, link.z)
         if (!level.isLoaded(pos)) return
         val state = level.getBlockState(pos)

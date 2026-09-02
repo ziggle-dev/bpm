@@ -188,7 +188,7 @@ class PedestalBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(
 
     override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
         controllers.add(
-            AnimationController(this, "main", 3) { state -> state.setAndContinue(IDLE) }
+            bpm.platform.animController(this, "main", 3) { state -> state.setAndContinue(IDLE) }
                 .triggerableAnim("awaken", AWAKEN).triggerableAnim("claim", CLAIM),
         )
     }

@@ -227,7 +227,7 @@ class MonitorBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(D
     }
 
     override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
-        controllers.add(AnimationController(this, "main", 0) { state -> state.setAndContinue(IDLE) })
+        controllers.add(bpm.platform.animController(this, "main", 0) { state -> state.setAndContinue(IDLE) })
     }
 
     companion object {

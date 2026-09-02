@@ -34,6 +34,8 @@ import bpm.platform.intOr
 import bpm.platform.stringOr
 import bpm.platform.boolOr
 import bpm.platform.compoundOr
+import bpm.platform.listOr
+import bpm.platform.intsOr
 
 /**
  * A controller's saved state and its running program.
@@ -150,16 +152,16 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
         enabled = !tag.contains("enabled") || tag.boolOr("enabled", false)
         debugBuild = !tag.contains("debug") || tag.boolOr("debug", false)
         coreTier = CoreTier.byKey(tag.stringOr("coreTier", ""))
-        links.load(tag.getList("links", Tag.TAG_COMPOUND.toInt()))
+        links.load(tag.listOr("links"))
         scriptData = tag.compoundOr("data")
-        val s = tag.getIntArray("signals")
+        val s = tag.intsOr("signals")
         if (s.size == 6) s.copyInto(signals) else signals.fill(0)
-        if (tag.contains("inventory")) inventory.load(registries, tag.getList("inventory", Tag.TAG_COMPOUND.toInt()))
-        if (tag.contains("tanks")) tanks.load(tag.getList("tanks", Tag.TAG_COMPOUND.toInt()))
+        if (tag.contains("inventory")) inventory.load(registries, tag.listOr("inventory"))
+        if (tag.contains("tanks")) tanks.load(tag.listOr("tanks"))
         tag.get("energy")?.let { energy.load(it) }
         lastError = if (tag.contains("lastError")) tag.stringOr("lastError", "") else null
         breakpoints.clear()
-        val bps = tag.getList("breakpoints", Tag.TAG_COMPOUND.toInt())
+        val bps = tag.listOr("breakpoints")
         for (i in 0 until bps.size) bps.getCompound(i).let { breakpoints[it.intOr("node", 0)] = it.boolOr("on", false) }
     }
 
@@ -432,14 +434,14 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
 
     override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
         controllers.add(
-            AnimationController(this, "status", 5) { state ->
+            bpm.platform.animController(this, "status", 5) { state ->
                 val on = blockState.takeIf { it.hasProperty(ControllerBlock.STATUS) }?.getValue(ControllerBlock.STATUS)?.isOn ?: false
                 state.setAndContinue(if (on) IDLE else OFF)
                 PlayState.CONTINUE
             }.triggerableAnim("powerup", POWERUP).triggerableAnim("powerdown", POWERDOWN),
         )
         controllers.add(
-            AnimationController(this, "overlay", 0) { PlayState.STOP }
+            bpm.platform.animController(this, "overlay", 0) { PlayState.STOP }
                 .triggerableAnim("open", OPEN).triggerableAnim("close", CLOSE),
         )
     }

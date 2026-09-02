@@ -53,8 +53,8 @@ object ChamberEvents {
         if (!ChamberDimension.isChamber(player.level())) return
         PlayerStore.set(player, ModAttachments.RESPAWN_AT_GATE, true)
         if (!BpmConfig.CHAMBER_RESET_ON_LEAVE.orDefault()) return
-        val slot = Chambers.get(player.server).slotAt(player.blockPosition()) ?: return
-        if (Chambers.closeGate(player.server, slot)) player.sendSystemMessage(Component.literal("[bpm] the gate closes behind you — it takes another lens to open"))
+        val slot = Chambers.get(bpm.platform.serverOf(player)).slotAt(player.blockPosition()) ?: return
+        if (Chambers.closeGate(bpm.platform.serverOf(player), slot)) player.sendSystemMessage(Component.literal("[bpm] the gate closes behind you — it takes another lens to open"))
     }
 
     /** What a player drops dying in a chamber goes into a chest beside the spot outside the gate they return to. */
@@ -62,9 +62,9 @@ object ChamberEvents {
         val player = event.player
         if (!ChamberDimension.isChamber(player.level())) return true
         val stacks = event.stacks
-        val (level, point) = Chambers.returnPoint(player.server, player)
+        val (level, point) = Chambers.returnPoint(bpm.platform.serverOf(player), player)
         val at = BlockPos.containing(point)
-        val slot = Chambers.get(player.server).slotAt(player.blockPosition())
+        val slot = Chambers.get(bpm.platform.serverOf(player)).slotAt(player.blockPosition())
         val gate = slot?.gatePos?.takeIf { slot.gateDim == level.dimension() }?.let { level.getBlockEntity(it) as? GateBlockEntity }
         val avoid = gate?.volume()?.inflate(1.0, 0.0, 1.0)
         val chest = Chambers.stash(level, at, avoid, Component.literal("${player.name.string}'s remains"), stacks)

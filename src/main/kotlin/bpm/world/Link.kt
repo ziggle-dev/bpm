@@ -17,6 +17,7 @@ import bpm.platform.ports.FluidPort
 import bpm.platform.ports.ItemPort
 import bpm.platform.intOr
 import bpm.platform.stringOr
+import bpm.platform.keyId
 
 /**
  * One face in the world a controller may talk to, by name — or one person, when [player] is set.
@@ -43,7 +44,7 @@ data class Link(
         t.putString("name", name)
         t.putInt("x", pos.x); t.putInt("y", pos.y); t.putInt("z", pos.z)
         side?.let { t.putString("side", it.name.lowercase()) }
-        t.putString("dim", dimension.location().toString())
+        t.putString("dim", dimension.keyId().toString())
         player?.let { bpm.platform.putUuid(t, "player", it) }
     }
 

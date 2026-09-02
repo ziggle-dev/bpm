@@ -20,6 +20,7 @@ import bpm.platform.intOr
 import bpm.platform.longOr
 import bpm.platform.stringOr
 import bpm.platform.boolOr
+import bpm.platform.listOr
 
 /** One graph document in the world's library. The bytes are the gzip of the `GraphDoc` JSON. */
 class DocumentRecord(
@@ -212,7 +213,7 @@ class BpmLibrary : SavedData(), bpm.library.DocumentStore {
         fun load(tag: CompoundTag, @Suppress("UNUSED_PARAMETER") registries: HolderLookup.Provider): BpmLibrary {
             val lib = BpmLibrary()
             lib.libraryVersion = tag.intOr("libraryVersion", 0)
-            val list = tag.getList("docs", Tag.TAG_COMPOUND.toInt())
+            val list = tag.listOr("docs")
             for (i in 0 until list.size) DocumentRecord.load(list.getCompound(i))?.let { lib.docs[it.id] = it }
             return lib
         }

@@ -40,7 +40,7 @@ object BpmCommands {
                         Commands.literal("awaken").executes { ctx ->
                             val player = ctx.source.playerOrException
                             val slot = bpm.chamber.Chambers.get(ctx.source.server).slotAt(player.blockPosition())
-                            val be = slot?.let { player.serverLevel().getBlockEntity(it.pedestal) as? bpm.world.devices.PedestalBlockEntity }
+                            val be = slot?.let { bpm.platform.levelOf(player).getBlockEntity(it.pedestal) as? bpm.world.devices.PedestalBlockEntity }
                             if (be == null || !bpm.chamber.ChamberFight.awaken(be)) {
                                 ctx.source.sendFailure(Component.literal("no dormant chamber pedestal here"))
                                 0

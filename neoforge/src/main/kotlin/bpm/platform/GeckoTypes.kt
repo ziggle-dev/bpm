@@ -47,3 +47,25 @@ typealias AutoGlowingGeoLayer<T> = software.bernie.geckolib.renderer.layer.AutoG
 *///?} else {
 typealias RenderType = net.minecraft.client.renderer.RenderType
 //?}
+
+/**
+ * An animation controller, without naming what it is attached to.
+ *
+ * GeckoLib 5 dropped the animatable from every `AnimationController` constructor. It was redundant --
+ * the controller is registered onto that animatable's own manager a line later, so it always knew --
+ * and dropping it is the sort of tidy-up that is invisible until you have twenty call sites passing it.
+ *
+ * Taken here and ignored on the newer line rather than removed from the call sites, because the older
+ * line still requires it and the shared tree has to read the same on both.
+ */
+fun <T : software.bernie.geckolib.animatable.GeoAnimatable> animController(
+    animatable: T,
+    name: String,
+    transitionTicks: Int,
+    handler: software.bernie.geckolib.animation.AnimationController.AnimationStateHandler<T>,
+): software.bernie.geckolib.animation.AnimationController<T> =
+    //? if >=1.21.9 {
+    /*software.bernie.geckolib.animation.AnimationController(name, transitionTicks, handler)
+    *///?} else {
+    software.bernie.geckolib.animation.AnimationController(animatable, name, transitionTicks, handler)
+    //?}

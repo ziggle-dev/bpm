@@ -37,6 +37,8 @@ import bpm.platform.doubleOr
 import bpm.platform.stringOr
 import bpm.platform.boolOr
 import bpm.platform.compoundOr
+import bpm.platform.listOr
+import bpm.platform.keyId
 
 /** The Decoherence Chamber's dimension — `bpm:decoherence`, a void with one room per player stamped into it. */
 object ChamberDimension {
@@ -107,7 +109,7 @@ class ChamberSlot(val owner: UUID, val index: Int) {
         t.putInt("resetCount", resetCount)
         t.putInt("crystalsBroken", crystalsBroken)
         t.putBoolean("occupied", occupied)
-        gateDim?.let { t.putString("gateDim", it.location().toString()) }
+        gateDim?.let { t.putString("gateDim", it.keyId().toString()) }
         gatePos?.let { t.putLong("gatePos", it.asLong()) }
         layout?.let { t.put("layout", it.save()) }
     }
@@ -171,7 +173,7 @@ class Chambers : SavedData() {
 
         private fun load(tag: CompoundTag, registries: HolderLookup.Provider): Chambers = Chambers().also { c ->
             c.nextIndex = tag.intOr("next", 0)
-            val list = tag.getList("slots", Tag.TAG_COMPOUND.toInt())
+            val list = tag.listOr("slots")
             for (i in 0 until list.size) ChamberSlot.load(list.getCompound(i))?.let { c.slots[it.owner] = it }
         }
 
@@ -277,7 +279,7 @@ class Chambers : SavedData() {
 
         /** Sends [player] into their room through [from] (or from wherever they stand, for the command). */
         fun enter(player: ServerPlayer, from: GateBlockEntity?) {
-            val server = player.server
+            val server = bpm.platform.serverOf(player)
             val chamber = ChamberDimension.level(server)
             if (chamber == null) {
                 say(player, "the Decoherence Chamber is not part of this world")
@@ -296,7 +298,7 @@ class Chambers : SavedData() {
                 player,
                 ModAttachments.CHAMBER_RETURN,
                 CompoundTag().also { t ->
-                    t.putString("dim", player.level().dimension().location().toString())
+                    t.putString("dim", player.level().dimension().keyId().toString())
                     t.putDouble("x", back.x)
                     t.putDouble("y", back.y)
                     t.putDouble("z", back.z)
@@ -313,7 +315,7 @@ class Chambers : SavedData() {
 
         /** Sends [player] back to where they came in — or to the world spawn if that is lost. */
         fun leave(player: ServerPlayer) {
-            val (target, at) = returnPoint(player.server, player)
+            val (target, at) = returnPoint(bpm.platform.serverOf(player), player)
             val yaw = PlayerStore.get(player, ModAttachments.CHAMBER_RETURN).floatOr("yaw", 0f)
             bpm.platform.teleport(player, target, at.x, at.y, at.z, yaw, 0f)
             player.setPortalCooldown(ARRIVAL_COOLDOWN)

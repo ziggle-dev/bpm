@@ -5,6 +5,7 @@ import bpm.catalog.values.BlockPosValue
 import bpm.runtime.CountdownJob
 import dev.ziggle.vscript.nodes.Contribution
 import dev.ziggle.vscript.nodes.library
+import bpm.platform.keyId
 
 /** `controller.*` — the block the script runs in. */
 object ControllerNodes {
@@ -89,7 +90,7 @@ object ControllerNodes {
             title("Dimension")
             doc("Which dimension this controller is in, as its id.")
             result("Id", McVs.string)
-            query { host.level.dimension().location().toString() }
+            query { host.level.dimension().keyId().toString() }
         }
         func("wait") {
             title("Wait Ticks")

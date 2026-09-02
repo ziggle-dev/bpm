@@ -16,6 +16,7 @@ import net.minecraft.core.Registry
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.item.Item
 import net.minecraft.world.level.block.Block
+import bpm.platform.keyId
 
 /**
  * The value pickers for the mod's types: items, blocks and fluids from the registries (searched by display
@@ -62,7 +63,7 @@ private class RegistryCatalog(private val registry: Registry<*>, private val dis
     private var entries: List<Entry>? = null
 
     private fun entries(): List<Entry> = entries ?: registry.entrySet()
-        .map { (key, value) -> Entry(key.location().toString(), runCatching { display(value as Any) }.getOrNull() ?: key.location().path) }
+        .map { (key, value) -> Entry(key.keyId().toString(), runCatching { display(value as Any) }.getOrNull() ?: key.keyId().path) }
         .sortedBy { it.label.lowercase() }
         .also { entries = it }
 

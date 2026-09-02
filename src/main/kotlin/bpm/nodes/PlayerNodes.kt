@@ -15,6 +15,7 @@ import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.phys.Vec3
 import kotlin.math.sqrt
+import bpm.platform.keyId
 
 /**
  * `player.*` — reading the people who have tethered themselves to this controller.
@@ -148,7 +149,7 @@ object PlayerNodes {
                 distance set 0.0; lookingAt set null; onGround set false
                 val p = granted(host, player(), Grant.STATE, "state") ?: return@query null
                 pos set BlockPosValue.of(p.blockPosition())
-                dimension set p.level().dimension().location().toString()
+                dimension set p.level().dimension().keyId().toString()
                 yaw set p.yRot.toDouble()
                 pitch set p.xRot.toDouble()
                 distance set sqrt(p.blockPosition().distSqr(host.pos).toDouble())

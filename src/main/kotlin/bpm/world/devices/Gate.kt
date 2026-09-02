@@ -320,12 +320,12 @@ class GateBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(Devi
 
     override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
         controllers.add(
-            AnimationController(this, "main", 2) { state ->
+            bpm.platform.animController(this, "main", 2) { state ->
                 // Only the projector block renders until the ring is formed; a formed, closed gate shows its clamps.
                 state.setAndContinue(if (isOpen) IDLE else if (frameOk) CLOSED else UNFORMED)
             }.triggerableAnim("open", OPEN_ANIM).triggerableAnim("close", CLOSE_ANIM),
         )
-        controllers.add(AnimationController(this, "overlay", 0) { PlayState.STOP }.triggerableAnim("pulse", PULSE))
+        controllers.add(bpm.platform.animController(this, "overlay", 0) { PlayState.STOP }.triggerableAnim("pulse", PULSE))
     }
 
     companion object {

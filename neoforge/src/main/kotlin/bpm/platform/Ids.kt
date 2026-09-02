@@ -21,3 +21,26 @@ package bpm.platform
 *///?} else {
 typealias ResourceLocation = net.minecraft.resources.ResourceLocation
 //?}
+
+/** `ItemPredicate` moved from `advancements.critereon` to `advancements.criterion` at 1.21.9. */
+//? if >=1.21.9 {
+/*typealias ItemPredicate = net.minecraft.advancements.criterion.ItemPredicate
+*///?} else {
+typealias ItemPredicate = net.minecraft.advancements.critereon.ItemPredicate
+//?}
+
+/**
+ * The id inside a registry key.
+ *
+ * `ResourceKey.location()` became `identifier()` when the class it returns was renamed -- the accessor
+ * followed the type. `TagKey` did NOT follow: it is a record whose component is still called `location`,
+ * so it keeps its name on every version. Both are given the same name here so a call site does not have
+ * to know which kind of key it is holding.
+ */
+//? if >=1.21.9 {
+/*fun net.minecraft.resources.ResourceKey<*>.keyId(): ResourceLocation = identifier()
+*///?} else {
+fun net.minecraft.resources.ResourceKey<*>.keyId(): ResourceLocation = location()
+//?}
+
+fun net.minecraft.tags.TagKey<*>.keyId(): ResourceLocation = location()

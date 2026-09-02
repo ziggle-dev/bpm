@@ -16,6 +16,7 @@ import net.neoforged.fml.loading.FMLPaths
 import net.neoforged.neoforge.server.ServerLifecycleHooks
 import java.nio.file.Files
 import java.util.concurrent.TimeUnit
+import bpm.platform.keyId
 
 /** The non-Lua commands of the dev server. Each answers a JSON frame. */
 object DevCommands {
@@ -38,11 +39,11 @@ object DevCommands {
             "type" to "state",
             "client" to (mc != null),
             "screen" to mc?.screen?.javaClass?.simpleName,
-            "level" to mc?.level?.dimension()?.location()?.toString(),
+            "level" to mc?.level?.dimension()?.keyId()?.toString(),
             "player" to mc?.player?.let { p -> mapOf("name" to p.gameProfile.name, "x" to p.x, "y" to p.y, "z" to p.z) },
             "server" to (server != null),
             "serverTick" to server?.tickCount,
-            "levels" to server?.allLevels?.map { it.dimension().location().toString() },
+            "levels" to server?.allLevels?.map { it.dimension().keyId().toString() },
             "catalogHash" to BpmCatalog.hash.take(16),
         )
     }

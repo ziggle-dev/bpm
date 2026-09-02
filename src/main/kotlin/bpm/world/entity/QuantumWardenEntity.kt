@@ -619,7 +619,7 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
 
     override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
         controllers.add(
-            AnimationController(this, "main", 4) { state ->
+            bpm.platform.animController(this, "main", 4) { state ->
                 when {
                     isDeadOrDying -> state.setAndContinue(DEATH)
                     tickCount < SPAWN_TICKS -> state.setAndContinue(SPAWN)
@@ -629,12 +629,12 @@ class QuantumWardenEntity(type: EntityType<out QuantumWardenEntity>, level: Leve
             },
         )
         controllers.add(
-            AnimationController(this, "overlay", 0) { PlayState.STOP }
+            bpm.platform.animController(this, "overlay", 0) { PlayState.STOP }
                 .triggerableAnim("attack_beam", ATTACK).triggerableAnim("stagger", STAGGER)
                 .triggerableAnim("blink_out", BLINK_OUT).triggerableAnim("blink_in", BLINK_IN),
         )
         controllers.add(
-            AnimationController(this, "core", 0) { PlayState.STOP }
+            bpm.platform.animController(this, "core", 0) { PlayState.STOP }
                 .triggerableAnim("expose", EXPOSE).triggerableAnim("retract", RETRACT),
         )
     }

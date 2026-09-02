@@ -22,6 +22,7 @@ import net.minecraft.world.entity.player.Player
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import kotlin.math.sqrt
+import bpm.platform.keyId
 
 /** `world.*` — reading and acting on the world around the controller. */
 object WorldNodes {
@@ -173,7 +174,7 @@ object WorldNodes {
             result("Biome", McVs.string)
             query {
                 val p = BlockPosValue.toBlockPos(pos()) ?: return@query ""
-                host.level.getBiome(p).unwrapKey().map { it.location().toString() }.orElse("")
+                host.level.getBiome(p).unwrapKey().map { it.keyId().toString() }.orElse("")
             }
         }
         func("lightAt") {

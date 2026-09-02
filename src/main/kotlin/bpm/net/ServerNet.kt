@@ -32,6 +32,7 @@ import net.minecraft.server.level.ServerPlayer
 import bpm.platform.net.Net
 import java.util.UUID
 import java.util.function.Consumer
+import bpm.platform.keyId
 
 /**
  * The server's side of every conversation: sessions and leases, the library, commits, controller control,
@@ -84,7 +85,7 @@ object ServerNet {
     }
 
     private fun sendLibrary(player: ServerPlayer) {
-        val lib = BpmLibrary.get(player.server)
+        val lib = BpmLibrary.get(bpm.platform.serverOf(player))
         val records = lib.all.map { r ->
             LibraryRecordDto(r.id, r.name, r.version, r.rawSize, r.hasErrors, r.updatedAt, sessions[r.id]?.holderName ?: "", r.isLibrary)
         }
@@ -92,7 +93,7 @@ object ServerNet {
     }
 
     private fun pushDoc(player: ServerPlayer, docId: UUID) {
-        val lib = BpmLibrary.get(player.server)
+        val lib = BpmLibrary.get(bpm.platform.serverOf(player))
         val r = lib[docId] ?: return
         val text = lib.text(docId) ?: return
         val role = sessions.roleOf(player.uuid, docId) ?: Role.VIEWER
@@ -102,7 +103,7 @@ object ServerNet {
 
     private fun sessionState(player: ServerPlayer, docId: UUID, reason: SessionReason) {
         val role = sessions.roleOf(player.uuid, docId) ?: Role.VIEWER
-        val version = BpmLibrary.get(player.server)[docId]?.version ?: 0
+        val version = BpmLibrary.get(bpm.platform.serverOf(player))[docId]?.version ?: 0
         send(player, SessionStatePayload(docId, role, sessions[docId]?.holderName ?: "", version, reason))
     }
 
@@ -172,7 +173,7 @@ object ServerNet {
     }
 
     private fun onDocCreate(msg: DocCreateMsg, player: ServerPlayer) {
-        val lib = BpmLibrary.get(player.server)
+        val lib = BpmLibrary.get(bpm.platform.serverOf(player))
         val graph = try {
             GraphDoc.fromJson(msg.json)
         } catch (e: Exception) {
@@ -182,7 +183,7 @@ object ServerNet {
         val record = lib.create(msg.name, msg.json, player.uuid, isLibrary = msg.library)
         val errors = Validator(BpmCatalog.catalog, lib.graphSource(), tickMayWait = true).validate(graph).count { it.severity == Severity.ERROR }
         if (errors > 0) lib.store(record.id, msg.json, hasErrors = true)
-        libraryChanged(player.server, record.id)
+        libraryChanged(bpm.platform.serverOf(player), record.id)
         // The creator is editing it: open with the lease, push it.
         sessions.open(player.uuid, player.gameProfile.name, record.id, wantEdit = true)
         sessionState(player, record.id, SessionReason.GRANTED)
@@ -191,16 +192,16 @@ object ServerNet {
     }
 
     fun onDocRename(p: DocRenamePayload, player: ServerPlayer) {
-        val lib = BpmLibrary.get(player.server)
+        val lib = BpmLibrary.get(bpm.platform.serverOf(player))
         if (!mayManage(player, p.docId)) return
-        if (lib.rename(p.docId, p.name)) libraryChanged(player.server, p.docId)
+        if (lib.rename(p.docId, p.name)) libraryChanged(bpm.platform.serverOf(player), p.docId)
     }
 
     fun onDocDelete(p: DocDeletePayload, player: ServerPlayer) {
-        val lib = BpmLibrary.get(player.server)
+        val lib = BpmLibrary.get(bpm.platform.serverOf(player))
         if (!mayManage(player, p.docId)) return
         if (lib[p.docId] == null) return
-        deleteDocument(player.server, p.docId)
+        deleteDocument(bpm.platform.serverOf(player), p.docId)
     }
 
     /** Deletes a document everywhere: unbinds controllers, ends sessions, tells the library screens. */
@@ -215,12 +216,12 @@ object ServerNet {
     }
 
     fun onDocDuplicate(p: DocDuplicatePayload, player: ServerPlayer) {
-        val lib = BpmLibrary.get(player.server)
+        val lib = BpmLibrary.get(bpm.platform.serverOf(player))
         val src = lib[p.docId] ?: return
         val text = lib.text(src.id) ?: return
         val copy = lib.create(p.name.ifBlank { "${src.name} copy" }, text, player.uuid)
         if (src.hasErrors) lib.store(copy.id, text, hasErrors = true)
-        libraryChanged(player.server, copy.id)
+        libraryChanged(bpm.platform.serverOf(player), copy.id)
     }
 
     fun onDocFetch(p: DocFetchPayload, player: ServerPlayer) {
@@ -230,14 +231,14 @@ object ServerNet {
     /** Operators and the document's owner may rename, delete and steal. */
     private fun mayManage(player: ServerPlayer, docId: UUID): Boolean {
         if (player.hasPermissions(2)) return true
-        val owner = BpmLibrary.get(player.server)[docId]?.owner
+        val owner = BpmLibrary.get(bpm.platform.serverOf(player))[docId]?.owner
         return owner == null || owner == player.uuid
     }
 
     // ---- sessions ---------------------------------------------------------------------------------------------
 
     fun onEditorOpen(p: EditorOpenPayload, player: ServerPlayer) {
-        val lib = BpmLibrary.get(player.server)
+        val lib = BpmLibrary.get(bpm.platform.serverOf(player))
         val docId = if (p.isControllerGraph) {
             // The controller's own graph, made on first use.
             val be = controller(player, p.controller!!) ?: return
@@ -252,13 +253,13 @@ object ServerNet {
         val before = sessions.holderOf(docId)
         val open = sessions.open(player.uuid, player.gameProfile.name, docId, p.wantEdit)
         sessionState(player, docId, if (open.role == Role.HOLDER) SessionReason.GRANTED else SessionReason.NONE)
-        if (open.role == Role.HOLDER && before != player.uuid) broadcastSession(player.server, docId, SessionReason.NONE, special = player.uuid, specialReason = SessionReason.GRANTED)
+        if (open.role == Role.HOLDER && before != player.uuid) broadcastSession(bpm.platform.serverOf(player), docId, SessionReason.NONE, special = player.uuid, specialReason = SessionReason.GRANTED)
         pushDoc(player, docId)
         p.controller?.let { pos -> watch(player, pos, true) }
     }
 
     fun onEditorClose(p: EditorClosePayload, player: ServerPlayer) {
-        if (sessions.close(player.uuid, p.docId)) broadcastSession(player.server, p.docId, SessionReason.RELEASED)
+        if (sessions.close(player.uuid, p.docId)) broadcastSession(bpm.platform.serverOf(player), p.docId, SessionReason.RELEASED)
     }
 
     fun onHeartbeat(p: SessionHeartbeatPayload, player: ServerPlayer) {
@@ -269,10 +270,10 @@ object ServerNet {
         val lease = sessions.requestLease(player.uuid, player.gameProfile.name, p.docId, p.steal, maySteal = mayManage(player, p.docId))
         when (lease.outcome) {
             LeaseOutcome.HELD_BY_OTHER -> sessionState(player, p.docId, SessionReason.NONE)
-            LeaseOutcome.GRANTED -> broadcastSession(player.server, p.docId, SessionReason.NONE, special = player.uuid, specialReason = SessionReason.GRANTED)
+            LeaseOutcome.GRANTED -> broadcastSession(bpm.platform.serverOf(player), p.docId, SessionReason.NONE, special = player.uuid, specialReason = SessionReason.GRANTED)
             LeaseOutcome.STOLEN -> {
                 for (id in sessions.participantsOf(p.docId)) {
-                    val other = player(player.server, id) ?: continue
+                    val other = player(bpm.platform.serverOf(player), id) ?: continue
                     val reason = when (id) {
                         player.uuid -> SessionReason.GRANTED
                         lease.previous -> SessionReason.STOLEN
@@ -285,7 +286,7 @@ object ServerNet {
     }
 
     fun onLeaseRelease(p: LeaseReleasePayload, player: ServerPlayer) {
-        if (sessions.release(player.uuid, p.docId)) broadcastSession(player.server, p.docId, SessionReason.RELEASED)
+        if (sessions.release(player.uuid, p.docId)) broadcastSession(bpm.platform.serverOf(player), p.docId, SessionReason.RELEASED)
     }
 
     // ---- chunks and commits ----------------------------------------------------------------------------------
@@ -309,7 +310,7 @@ object ServerNet {
     }
 
     private fun onDocCommit(msg: DocCommitMsg, player: ServerPlayer) {
-        val outcome = pipeline(player.server).commit(
+        val outcome = pipeline(bpm.platform.serverOf(player)).commit(
             sessions.isHolder(player.uuid, msg.docId),
             CommitRequest(msg.docId, msg.baseVersion, msg.sha256, msg.json, msg.deploy),
         )
@@ -318,9 +319,9 @@ object ServerNet {
         if (outcome.status == CommitStatus.OK) {
             for (id in sessions.participantsOf(msg.docId)) {
                 if (id == player.uuid) continue
-                player(player.server, id)?.let { pushDoc(it, msg.docId) }
+                player(bpm.platform.serverOf(player), id)?.let { pushDoc(it, msg.docId) }
             }
-            libraryChanged(player.server, msg.docId)
+            libraryChanged(bpm.platform.serverOf(player), msg.docId)
         }
         if (outcome.deployed > 0) {
             for (be in RuntimeManager.all()) if (be.docId == msg.docId) broadcastController(be)
@@ -331,13 +332,13 @@ object ServerNet {
 
     private fun controller(player: ServerPlayer, pos: BlockPos): ControllerBlockEntity? {
         if (!player.blockPosition().closerThan(pos, CONTROL_RANGE)) return null
-        if (!player.serverLevel().isLoaded(pos)) return null
-        return player.serverLevel().getBlockEntity(pos) as? ControllerBlockEntity
+        if (!bpm.platform.levelOf(player).isLoaded(pos)) return null
+        return bpm.platform.levelOf(player).getBlockEntity(pos) as? ControllerBlockEntity
     }
 
     fun onControllerBind(p: ControllerBindPayload, player: ServerPlayer) {
         val be = controller(player, p.pos) ?: return
-        if (p.docId != null && BpmLibrary.get(player.server)[p.docId] == null) return
+        if (p.docId != null && BpmLibrary.get(bpm.platform.serverOf(player))[p.docId] == null) return
         be.bind(p.docId)
         broadcastController(be)
     }
@@ -438,7 +439,7 @@ object ServerNet {
         if (changed) {
             be.setChanged()
             broadcastController(be, withLinks = true)
-            if (p.op == LinkOp.RENAME) renameInGraph(player.server, be, p.name, p.newName.trim())
+            if (p.op == LinkOp.RENAME) renameInGraph(bpm.platform.serverOf(player), be, p.name, p.newName.trim())
         }
     }
 
@@ -469,12 +470,12 @@ object ServerNet {
     }
 
     private fun watch(player: ServerPlayer, pos: BlockPos, on: Boolean) {
-        val key = GlobalPos.of(player.serverLevel().dimension(), pos)
+        val key = GlobalPos.of(bpm.platform.levelOf(player).dimension(), pos)
         val set = watches.getOrPut(player.uuid) { LinkedHashSet() }
         if (on) {
             if (set.size >= MAX_WATCHES) return
             set.add(key)
-            (player.serverLevel().getBlockEntity(pos) as? ControllerBlockEntity)?.let { be ->
+            (bpm.platform.levelOf(player).getBlockEntity(pos) as? ControllerBlockEntity)?.let { be ->
                 send(player, status(be))
                 send(player, links(be))
             }
@@ -520,7 +521,7 @@ object ServerNet {
     }
 
     fun onRunSubscribe(p: RunSubscribePayload, player: ServerPlayer) {
-        val key = GlobalPos.of(player.serverLevel().dimension(), p.pos)
+        val key = GlobalPos.of(bpm.platform.levelOf(player).dimension(), p.pos)
         val mine = runWatches.getOrPut(player.uuid) { LinkedHashSet() }
         if (!p.on) {
             mine.remove(key)
@@ -643,7 +644,7 @@ object ServerNet {
         watches.remove(player.uuid)
         runWatches.remove(player.uuid)
         val freed = sessions.playerLeft(player.uuid)
-        for (docId in freed) broadcastSession(player.server, docId, SessionReason.HOLDER_LEFT)
+        for (docId in freed) broadcastSession(bpm.platform.serverOf(player), docId, SessionReason.HOLDER_LEFT)
     }
 
     private val NIL = UUID(0, 0)
@@ -655,4 +656,4 @@ object ServerNet {
 }
 
 /** The link table as the client draws it; kept here so `Link` stays a server type. */
-fun Link.toDto() = LinkDto(name, pos, side?.get3DDataValue() ?: -1, dimension.location().toString(), player?.toString().orEmpty())
+fun Link.toDto() = LinkDto(name, pos, side?.get3DDataValue() ?: -1, dimension.keyId().toString(), player?.toString().orEmpty())

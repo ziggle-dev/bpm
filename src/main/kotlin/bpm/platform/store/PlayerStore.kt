@@ -10,6 +10,7 @@ import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.level.saveddata.SavedData
 import java.util.UUID
 import bpm.platform.compoundOr
+import bpm.platform.listOr
 
 /**
  * Per-player data that outlives death, dimension changes and logging out.
@@ -61,7 +62,7 @@ class PlayerStoreData : SavedData() {
 
         fun load(tag: CompoundTag, @Suppress("UNUSED_PARAMETER") registries: HolderLookup.Provider): PlayerStoreData {
             val store = PlayerStoreData()
-            val list = tag.getList("players", Tag.TAG_COMPOUND.toInt())
+            val list = tag.listOr("players")
             for (i in 0 until list.size) {
                 val entry = list.getCompound(i)
                 val who = bpm.platform.uuidOrNull(entry, "player") ?: continue
@@ -78,9 +79,9 @@ class PlayerStoreData : SavedData() {
 
 object PlayerStore {
     fun <T> get(player: ServerPlayer, key: PlayerKey<T>): T =
-        PlayerStoreData.get(player.server).read(player.uuid, key)
+        PlayerStoreData.get(bpm.platform.serverOf(player)).read(player.uuid, key)
 
     fun <T> set(player: ServerPlayer, key: PlayerKey<T>, value: T) {
-        PlayerStoreData.get(player.server).write(player.uuid, key, value)
+        PlayerStoreData.get(bpm.platform.serverOf(player)).write(player.uuid, key, value)
     }
 }

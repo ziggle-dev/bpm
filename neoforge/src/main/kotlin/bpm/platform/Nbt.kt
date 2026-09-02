@@ -74,3 +74,26 @@ fun uuidOrNull(tag: CompoundTag, key: String): UUID? = if (tag.hasUUID(key)) tag
  */
 fun putUuid(tag: CompoundTag, key: String, id: UUID) =
     tag.putIntArray(key, net.minecraft.core.UUIDUtil.uuidToIntArray(id))
+
+/**
+ * The keys in a tag, and whether one is present with a given type.
+ *
+ * `allKeys` became `keySet`, and the two-argument `contains(key, type)` went away entirely when the
+ * getters became `Optional`-returning: asking "is there a string at this key" is now the same act as
+ * reading it, so the type check folded into the read.
+ */
+//? if >=1.21.9 {
+/*fun net.minecraft.nbt.CompoundTag.keys(): Set<String> = keySet()
+
+fun net.minecraft.nbt.CompoundTag.hasString(key: String): Boolean = getString(key).isPresent
+
+fun net.minecraft.nbt.CompoundTag.hasCompound(key: String): Boolean = getCompound(key).isPresent
+*///?} else {
+fun net.minecraft.nbt.CompoundTag.keys(): Set<String> = allKeys
+
+fun net.minecraft.nbt.CompoundTag.hasString(key: String): Boolean =
+    contains(key, net.minecraft.nbt.Tag.TAG_STRING.toInt())
+
+fun net.minecraft.nbt.CompoundTag.hasCompound(key: String): Boolean =
+    contains(key, net.minecraft.nbt.Tag.TAG_COMPOUND.toInt())
+//?}

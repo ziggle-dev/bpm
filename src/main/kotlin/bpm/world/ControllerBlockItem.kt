@@ -15,7 +15,7 @@ class ControllerBlockItem(block: Block, properties: Properties) : BlockItem(bloc
     private val animCache: AnimatableInstanceCache = GeckoLibUtil.createInstanceCache(this)
 
     override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
-        controllers.add(AnimationController(this, "status", 0) { state -> state.setAndContinue(ControllerBlockEntity.OFF) })
+        controllers.add(bpm.platform.animController(this, "status", 0) { state -> state.setAndContinue(ControllerBlockEntity.OFF) })
     }
 
     override fun getAnimatableInstanceCache(): AnimatableInstanceCache = animCache

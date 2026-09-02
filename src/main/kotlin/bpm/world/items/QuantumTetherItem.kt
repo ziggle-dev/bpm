@@ -178,9 +178,9 @@ class QuantumTetherItem(properties: Properties) : TooltipItem(properties), GeoIt
     // ---- geckolib ---------------------------------------------------------------------------------------
 
     override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
-        controllers.add(AnimationController(this, "idle", 0) { state -> state.setAndContinue(IDLE) })
+        controllers.add(bpm.platform.animController(this, "idle", 0) { state -> state.setAndContinue(IDLE) })
         controllers.add(
-            AnimationController(this, "overlay", 0) { PlayState.STOP }
+            bpm.platform.animController(this, "overlay", 0) { PlayState.STOP }
                 .triggerableAnim("bind", BIND).triggerableAnim("release", RELEASE),
         )
     }

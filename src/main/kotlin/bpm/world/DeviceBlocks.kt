@@ -89,7 +89,7 @@ class DeviceBlockItem(block: Block, properties: Properties, val model: String, p
     private val rest: RawAnimation = RawAnimation.begin().thenLoop(restAnimation)
 
     override fun registerControllers(controllers: bpm.platform.ControllerRegistrar) {
-        controllers.add(AnimationController(this, "rest", 0) { state -> state.setAndContinue(rest) })
+        controllers.add(bpm.platform.animController(this, "rest", 0) { state -> state.setAndContinue(rest) })
     }
 
     override fun getAnimatableInstanceCache(): AnimatableInstanceCache = animCache

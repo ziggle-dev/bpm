@@ -4,7 +4,7 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
 import dev.ziggle.vscript.vm.StructValue
-import net.minecraft.advancements.critereon.ItemPredicate
+import bpm.platform.ItemPredicate
 import net.minecraft.core.Holder
 import net.minecraft.core.RegistryAccess
 import net.minecraft.core.component.DataComponentType

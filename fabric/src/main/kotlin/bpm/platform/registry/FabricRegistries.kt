@@ -13,6 +13,7 @@ import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.Item
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockBehaviour
+import bpm.platform.keyId
 
 /**
  * Fabric has no `DeferredRegister`: you call `Registry.register` and it happens.
@@ -73,8 +74,8 @@ class FabricRegistries : PlatformRegistries {
          * and was a missing unwrap; the safe cast is what hid it.
          */
         fun <T> registryFor(key: ResourceKey<Registry<T>>): Registry<T> =
-            bpm.platform.valueOf(BuiltInRegistries.REGISTRY, key.location()) as? Registry<T>
-                ?: error("no registry ${key.location()} — a loader-specific registry cannot be asked for here")
+            bpm.platform.valueOf(BuiltInRegistries.REGISTRY, key.keyId()) as? Registry<T>
+                ?: error("no registry ${key.keyId()} — a loader-specific registry cannot be asked for here")
     }
 }
 

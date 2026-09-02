@@ -3,6 +3,7 @@ package bpm.platform
 import net.minecraft.core.Direction
 import net.minecraft.core.Vec3i
 import net.minecraft.world.level.block.RenderShape
+import bpm.platform.keyId
 
 /**
  * Small version differences that the shared tree cannot express, given as values and helpers.
@@ -113,7 +114,7 @@ fun teleport(
 
 /** `Registry.getTags()` stopped pairing each tag with its key -- the key is on the `HolderSet.Named` now. */
 fun <T> tagIds(registry: net.minecraft.core.Registry<T>): List<String> =
-    registry.tags.map { it.key().location().toString() }.toList()
+    registry.tags.map { it.key().keyId().toString() }.toList()
 
 /** `BlockState.isSolidRender` stopped asking where it was -- it is a property of the state alone now. */
 fun solidRender(
@@ -150,7 +151,7 @@ fun recipeById(
         ?.orElse(null)
 
 fun recipeIdOf(holder: net.minecraft.world.item.crafting.RecipeHolder<*>): bpm.platform.ResourceLocation =
-    holder.id().location()
+    holder.id().keyId()
 
 /**
  * The codec for one ingredient that must not be empty.
@@ -210,7 +211,7 @@ fun teleport(
 }
 
 fun <T> tagIds(registry: net.minecraft.core.Registry<T>): List<String> =
-    registry.tags.map { it.first.location().toString() }.toList()
+    registry.tags.map { it.first.keyId().toString() }.toList()
 
 fun solidRender(
     state: net.minecraft.world.level.block.state.BlockState,
@@ -263,3 +264,26 @@ fun <T : net.minecraft.world.level.block.entity.BlockEntity> blockEntityType(
     net.fabricmc.fabric.api.`object`.builder.v1.block.entity.FabricBlockEntityTypeBuilder
         .create({ pos, state -> factory(pos, state) }, block)
         .build()
+
+/**
+ * The server, and the level, reached from a player.
+ *
+ * Both accessors moved at 1.21.9 and in opposite directions. `ServerPlayer.server` became private, so
+ * the route is now through the level it is in -- which is fine, because `ServerLevel.getServer()` is
+ * public on every version. And `serverLevel()` went away because it no longer had anything to do:
+ * `ServerPlayer.level()` is covariantly typed to return a `ServerLevel` directly, where before it
+ * returned the general `Level` and needed a second, narrower accessor beside it.
+ */
+//? if >=1.21.9 {
+/*fun serverOf(player: net.minecraft.server.level.ServerPlayer): net.minecraft.server.MinecraftServer =
+    player.level().server
+
+fun levelOf(player: net.minecraft.server.level.ServerPlayer): net.minecraft.server.level.ServerLevel =
+    player.level()
+*///?} else {
+fun serverOf(player: net.minecraft.server.level.ServerPlayer): net.minecraft.server.MinecraftServer =
+    player.server
+
+fun levelOf(player: net.minecraft.server.level.ServerPlayer): net.minecraft.server.level.ServerLevel =
+    player.serverLevel()
+//?}
