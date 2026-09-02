@@ -588,7 +588,7 @@ fun blockSprite(texture: ResourceLocation): net.minecraft.client.renderer.textur
  */
 fun drawFluidTranslucent(fluid: net.minecraft.world.level.material.Fluid) {
     //? if >=1.21.9 {
-    /*net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap.putFluid(fluid, net.minecraft.client.renderer.chunk.ChunkSectionLayer.TRANSLUCENT)
+    /*net.fabricmc.fabric.api.client.rendering.v1.BlockRenderLayerMap.putFluid(fluid, net.minecraft.client.renderer.chunk.ChunkSectionLayer.TRANSLUCENT)
     *///?} else {
     net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap.INSTANCE.putFluid(fluid, net.minecraft.client.renderer.RenderType.translucent())
     //?}

@@ -57,7 +57,28 @@ class StoreType<T : TagStore>(
  * library -- and none of them is about a particular world.
  */
 fun <T : TagStore> storeOf(server: MinecraftServer, type: StoreType<T>): T {
-    //? if >=1.21.5 {
+    //? if >=1.21.9 {
+    /*@Suppress("UNCHECKED_CAST")
+    val savedType = savedTypes.getOrPut(type) {
+        // 1.21.9 deleted the three-argument constructor -- NeoForge's patched Minecraft keeps it, which is
+        // why only this branch has to answer the question -- so a saved data type now always names the
+        // DataFixTypes its file is upgraded through, and it will not take null.
+        //
+        // None of these stores is a vanilla structure and no fixer has ever been written for one, so the
+        // honest answer would be "none" and the question is which value comes closest to saying it. A
+        // fixer only runs when the tag on disk was written by an OLDER game than the one reading it, and
+        // random sequences are the least-fixed saved data vanilla has -- a bag of longs that has never
+        // needed a rule. Whatever is chosen here is a no-op for a store written by this same version,
+        // which is every store this mod writes.
+        net.minecraft.world.level.saveddata.SavedDataType(
+            type.name,
+            java.util.function.Supplier { type.create() },
+            CompoundTag.CODEC.xmap({ tag -> type.read(tag) }, { store -> CompoundTag().also(store::writeTo) }),
+            net.minecraft.util.datafix.DataFixTypes.SAVED_DATA_RANDOM_SEQUENCES,
+        )
+    } as net.minecraft.world.level.saveddata.SavedDataType<T>
+    return server.overworld().dataStorage.computeIfAbsent(savedType)
+    *///?} elif >=1.21.5 {
     /*@Suppress("UNCHECKED_CAST")
     val savedType = savedTypes.getOrPut(type) {
         net.minecraft.world.level.saveddata.SavedDataType(

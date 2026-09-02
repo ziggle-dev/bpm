@@ -20,7 +20,6 @@
       }
     ]
   },
-  "accessWidener": "bpm.accesswidener",
   "depends": {
     "minecraft": ">=1.21.1 <1.22",
     "fabricloader": ">=0.16",

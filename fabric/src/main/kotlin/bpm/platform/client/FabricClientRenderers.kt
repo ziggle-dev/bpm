@@ -32,7 +32,7 @@ object FabricRendererRegistry : RendererRegistry {
         val sink = object : RendererSink {
             override fun <T : net.minecraft.world.level.block.entity.BlockEntity> blockEntity(
                 type: net.minecraft.world.level.block.entity.BlockEntityType<out T>,
-                renderer: (net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider.Context) -> net.minecraft.client.renderer.blockentity.BlockEntityRenderer<T>,
+                renderer: (net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider.Context) -> BlockEntityRendererOf<T>,
             ) {
                 // The seam types the provider on T while the registry infers it from the `out T` type;
                 // the two are the same class at runtime and Kotlin will not say so on its own.

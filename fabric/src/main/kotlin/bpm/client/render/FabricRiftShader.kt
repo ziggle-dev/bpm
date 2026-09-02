@@ -3,7 +3,6 @@ package bpm.client.render
 import bpm.Bpm
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.VertexFormat
-import net.minecraft.client.renderer.RenderStateShard
 import bpm.platform.RenderType
 import bpm.platform.ResourceLocation
 
@@ -11,7 +10,7 @@ import bpm.platform.ResourceLocation
  * The rift's two core shaders on Fabric.
  *
  * The counterpart of `RiftShader` on the other loader, and the same two render types built the same way
- * from the same GLSL — only how the shader is *obtained* differs, and it differs twice over.
+ * from the same GLSL — only how the shader is *obtained* differs, and it differs three times over.
  *
  * **On 1.21.1** Fabric has `CoreShaderRegistrationCallback`, which exists because vanilla's own
  * `ShaderInstance` resolves its name in the `minecraft` namespace and a mod's cannot. Fabric's
@@ -24,6 +23,13 @@ import bpm.platform.ResourceLocation
  * mod namespaces included. NeoForge's `RegisterShadersEvent` still exists on that version, but what it
  * buys is preloading — one compile at load rather than one on first draw — not correctness. So this
  * branch declares the two programs and asks for them; the first frame that draws a rift compiles them.
+ *
+ * **On 1.21.11 there is nothing to register either, for the same reason one step further on.** A core
+ * shader is not a thing any more: a [com.mojang.blaze3d.pipeline.RenderPipeline] is, and it names its own
+ * GLSL. NeoForge collects them through `RegisterRenderPipelinesEvent` and Fabric offers no equivalent —
+ * because none is needed. The device compiles a pipeline the first time a render pass is set to it and
+ * caches it from then on; registration only moves that compile earlier. This mod already depends on that
+ * being true on both loaders: the ImGui backend's pipeline is registered nowhere and draws every frame.
  */
 object FabricRiftShader : bpm.platform.client.RiftLook {
 
@@ -32,7 +38,34 @@ object FabricRiftShader : bpm.platform.client.RiftLook {
 
     private fun rl(path: String) = ResourceLocation.fromNamespaceAndPath(Bpm.ID, path)
 
-    //? if >=1.21.2 {
+    //? if >=1.21.9 {
+    /*// The GLSL is a translation, not a redesign: the same maths against std140 uniform blocks instead
+    // of loose uniforms. See `src/main/resources-1.21.11/assets/bpm/shaders/core`, which is generated
+    // from the 1.21.1 originals so the two cannot drift.
+    private fun pipeline(name: String, shader: String): com.mojang.blaze3d.pipeline.RenderPipeline =
+        com.mojang.blaze3d.pipeline.RenderPipeline.builder(net.minecraft.client.renderer.RenderPipelines.MATRICES_PROJECTION_SNIPPET)
+            .withLocation("pipeline/" + name)
+            .withVertexShader(rl(shader))
+            .withFragmentShader(rl(shader))
+            .withVertexFormat(FORMAT, VertexFormat.Mode.QUADS)
+            .withBlend(com.mojang.blaze3d.pipeline.BlendFunction.LIGHTNING)
+            .withCull(false)
+            .withDepthWrite(true)
+            .build()
+
+    private val CUBE_PIPELINE = pipeline("bpm_rift_cube", "core/rift_cube")
+    private val TEAR_PIPELINE = pipeline("bpm_rift_tear", "core/rift_tear")
+
+    private fun registerShaders() {
+        Bpm.LOGGER.info("bpm rift pipelines declared (cube, tear); compiled on first use")
+    }
+
+    // A pipeline is a value, so there is nothing to wait for.
+    override val ready: Boolean get() = true
+
+    private val CUBE: RenderType = pipelineType("bpm_rift_cube", CUBE_PIPELINE)
+    private val TEAR: RenderType = pipelineType("bpm_rift_tear", TEAR_PIPELINE)
+    *///?} elif >=1.21.2 {
     /*private val CUBE_PROGRAM = net.minecraft.client.renderer.ShaderProgram(
         rl("core/rift_cube"), FORMAT, net.minecraft.client.renderer.ShaderDefines.EMPTY,
     )
@@ -59,8 +92,8 @@ object FabricRiftShader : bpm.platform.client.RiftLook {
             return shaders.getProgram(CUBE_PROGRAM) != null && shaders.getProgram(TEAR_PROGRAM) != null
         }
 
-    private val CUBE: RenderType = type("bpm_rift_cube", RenderStateShard.ShaderStateShard(CUBE_PROGRAM))
-    private val TEAR: RenderType = type("bpm_rift_tear", RenderStateShard.ShaderStateShard(TEAR_PROGRAM))
+    private val CUBE: RenderType = type("bpm_rift_cube", net.minecraft.client.renderer.RenderStateShard.ShaderStateShard(CUBE_PROGRAM))
+    private val TEAR: RenderType = type("bpm_rift_tear", net.minecraft.client.renderer.RenderStateShard.ShaderStateShard(TEAR_PROGRAM))
     *///?} else {
     private var cube: net.minecraft.client.renderer.ShaderInstance? = null
     private var tear: net.minecraft.client.renderer.ShaderInstance? = null
@@ -76,8 +109,8 @@ object FabricRiftShader : bpm.platform.client.RiftLook {
     /** True once both have loaded; nothing draws a rift before then. */
     override val ready: Boolean get() = cube != null && tear != null
 
-    private val CUBE: RenderType = type("bpm_rift_cube", RenderStateShard.ShaderStateShard { cube })
-    private val TEAR: RenderType = type("bpm_rift_tear", RenderStateShard.ShaderStateShard { tear })
+    private val CUBE: RenderType = type("bpm_rift_cube", net.minecraft.client.renderer.RenderStateShard.ShaderStateShard { cube })
+    private val TEAR: RenderType = type("bpm_rift_tear", net.minecraft.client.renderer.RenderStateShard.ShaderStateShard { tear })
     //?}
 
     /** Declare the shaders and hand this look to the renderer. Call from the client entry point. */
@@ -96,7 +129,19 @@ object FabricRiftShader : bpm.platform.client.RiftLook {
      * fragment shaders `discard` transparent fragments, so only the visible mouth writes depth, never the
      * quad it is cut from.
      */
-    private fun type(name: String, shader: RenderStateShard.ShaderStateShard): RenderType = net.minecraft.client.renderer.RenderType.create(
+    //? if >=1.21.9 {
+    /*// Everything the composite state below says is now a property of the pipeline itself: the blend, the
+    // cull, the write mask and the vertex format. The only thing left outside it is the buffer size,
+    // which is a hint about batching rather than a piece of GPU state.
+    private fun pipelineType(name: String, pipeline: com.mojang.blaze3d.pipeline.RenderPipeline): RenderType =
+        net.minecraft.client.renderer.rendertype.RenderType.create(
+            name,
+            net.minecraft.client.renderer.rendertype.RenderSetup.builder(pipeline)
+                .bufferSize(256)
+                .createRenderSetup(),
+        )
+    *///?} else {
+    private fun type(name: String, shader: net.minecraft.client.renderer.RenderStateShard.ShaderStateShard): RenderType = net.minecraft.client.renderer.RenderType.create(
         name,
         FORMAT,
         com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS,
@@ -105,10 +150,11 @@ object FabricRiftShader : bpm.platform.client.RiftLook {
         false,
         net.minecraft.client.renderer.RenderType.CompositeState.builder()
             .setShaderState(shader)
-            .setTextureState(RenderStateShard.NO_TEXTURE)
-            .setTransparencyState(RenderStateShard.ADDITIVE_TRANSPARENCY)
-            .setCullState(RenderStateShard.NO_CULL)
-            .setWriteMaskState(RenderStateShard.COLOR_DEPTH_WRITE)
+            .setTextureState(net.minecraft.client.renderer.RenderStateShard.NO_TEXTURE)
+            .setTransparencyState(net.minecraft.client.renderer.RenderStateShard.ADDITIVE_TRANSPARENCY)
+            .setCullState(net.minecraft.client.renderer.RenderStateShard.NO_CULL)
+            .setWriteMaskState(net.minecraft.client.renderer.RenderStateShard.COLOR_DEPTH_WRITE)
             .createCompositeState(false),
     )
+    //?}
 }

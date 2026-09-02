@@ -41,15 +41,17 @@ group = "bpm"
 base { archivesName = "$modId-fabric" }
 
 /*
- * NeoForge compiles against a Minecraft whose access transformers have already widened a good deal of
- * vanilla. Fabric does not, so anything the shared tree reaches for that vanilla keeps to itself has to
- * be named in an access widener. See the file for what and why.
+ * No access widener, on any band.
+ *
+ * There was one, for a single field: `SpriteContents.originalImage`, which the fluid gauge averaged to
+ * tint a bar. NeoForge compiles against a Minecraft whose access transformers have already widened that;
+ * Fabric does not, so the branch carried a widener to match. It is gone because the read is gone -- the
+ * gauge now averages the texture off the resource manager, which is public API on every version. That is
+ * the better shape anyway: the field is private before 1.21.9 and, from 1.21.9, deleted outright in
+ * favour of a package-private mip array, so the widener would have needed a per-band rewrite AND a
+ * migration to Loom's ClassTweaker format, which accepts only the `intermediary` namespace where this
+ * branch is Mojmap throughout.
  */
-loom {
-    // The BRANCH's resources, named from the root: `file(...)` here would resolve against the
-    // version node, which holds no sources of its own.
-    accessWidenerPath = rootProject.file("fabric/src/main/resources/bpm.accesswidener")
-}
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 

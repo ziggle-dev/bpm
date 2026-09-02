@@ -38,7 +38,7 @@ private class DefaultsFrom : FluidBehaviour {
         level: net.minecraft.server.level.ServerLevel,
         pos: net.minecraft.core.BlockPos,
         volume: bpm.platform.ports.FluidVolume,
-    ): Boolean = level.dimensionType().ultraWarm() && volume.fluid.`is`(net.minecraft.tags.FluidTags.WATER)
+    ): Boolean = bpm.platform.waterEvaporatesIn(level, pos) && volume.fluid.`is`(net.minecraft.tags.FluidTags.WATER)
 
     override fun vaporize(
         level: net.minecraft.server.level.ServerLevel,

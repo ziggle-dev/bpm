@@ -52,6 +52,26 @@ typealias BlockEntityRendererOf<T> = net.minecraft.client.renderer.blockentity.B
 /*class BoltRenderState : net.minecraft.client.renderer.entity.state.EntityRenderState() {
     var motion: net.minecraft.world.phys.Vec3 = net.minecraft.world.phys.Vec3.ZERO
     var style: BoltStyle? = null
+
+    // GeckoLib declares an INTERFACE INJECTION on this loader -- Loom reads it out of the mod's metadata
+    // and adds `GeoRenderState` to every `EntityRenderState` on the compile classpath -- so a render
+    // state here has to answer for it even though a bolt holds no GeckoLib data at all. NeoForge has no
+    // equivalent, which is why this is the one place the two branches' copies of this file differ.
+    //
+    // All three accessors are overridden together for the reason given on `BpmBlockRenderState`:
+    // GeckoLib's mixin turns two of them into class methods over its own field while the third stays an
+    // interface default reading this map, so implementing only one leaves reads and writes on different
+    // maps and the first lookup dies on a requireNonNull.
+    private val geckolib = HashMap<software.bernie.geckolib.constant.dataticket.DataTicket<*>, Any>()
+
+    override fun getDataMap(): MutableMap<software.bernie.geckolib.constant.dataticket.DataTicket<*>, Any> = geckolib
+
+    override fun <D : Any> addGeckolibData(ticket: software.bernie.geckolib.constant.dataticket.DataTicket<D>, value: D) {
+        geckolib[ticket] = value
+    }
+
+    override fun hasGeckolibData(ticket: software.bernie.geckolib.constant.dataticket.DataTicket<*>): Boolean =
+        geckolib.containsKey(ticket)
 }
 
 open class BoltRendererBase<T : Entity>(

@@ -42,7 +42,7 @@ rootProject.name = "bpm"
 stonecutter {
     create(rootProject) {
         branch("neoforge") { versions("1.21.1", "1.21.4", "1.21.11") }
-        branch("fabric") { versions("1.21.1", "1.21.4") }
+        branch("fabric") { versions("1.21.1", "1.21.4", "1.21.11") }
         vcsVersion = "1.21.1"
     }
 }

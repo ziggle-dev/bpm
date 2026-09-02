@@ -6,7 +6,6 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallba
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents
 import net.minecraft.client.Minecraft
 
 /**
@@ -41,7 +40,26 @@ object FabricClientEventBridge {
             // FABRIC TODO: bridge if a client-only command is ever added.
         }
 
-        WorldRenderEvents.AFTER_TRANSLUCENT.register { ctx ->
+        //? if >=1.21.9 {
+        /*// `AFTER_TRANSLUCENT` is gone with the rest of the old world-render callbacks; `END_MAIN` is the
+        // same moment under the new names -- the end of the main pass, after translucent terrain, which is
+        // what NeoForge still calls AfterTranslucentBlocks.
+        net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents.END_MAIN.register { ctx ->
+            val mc = Minecraft.getInstance()
+            val pose = ctx.matrices()
+            val camera = mc.gameRenderer.mainCamera
+            BpmEvents.worldRenderTranslucent.fire(
+                WorldRender(
+                    pose,
+                    camera.position(),
+                    projectionOf(mc, camera),
+                    org.joml.Matrix4f(pose.last().pose()),
+                    mc.deltaTracker,
+                ),
+            )
+        }
+        *///?} else {
+        net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents.AFTER_TRANSLUCENT.register { ctx ->
             BpmEvents.worldRenderTranslucent.fire(
                 WorldRender(
                     ctx.matrixStack()!!,
@@ -52,7 +70,36 @@ object FabricClientEventBridge {
                 ),
             )
         }
+        //?}
 
         ClientLifecycleEvents.CLIENT_STARTED.register { _: Minecraft -> }
     }
+
+    //? if >=1.21.9 {
+    /*/**
+     * The frame's projection, recovered from the camera.
+     *
+     * From 1.21.9 the projection lives in a GPU uniform buffer and is never handed back as a matrix, and
+     * Fabric's render context does not carry one either. The camera's near plane does carry it: the
+     * plane's half-extents over its distance from the eye ARE the tangent of the field of view and the
+     * aspect ratio, which is the whole of a perspective projection. Deriving it is exact, where reading
+     * the FOV setting would miss every modifier the game applies for sprinting, speed and the spyglass.
+     *
+     * Only one thing consumes this -- LinkerHud projecting a world point onto the window -- and there x/w
+     * and y/w depend on the field of view and the aspect ratio alone, so the near and far planes cancel.
+     */
+    private fun projectionOf(mc: Minecraft, camera: net.minecraft.client.Camera): org.joml.Matrix4f {
+        val plane = camera.nearPlane
+        val topLeft = plane.topLeft
+        val halfHeight = topLeft.subtract(plane.bottomLeft).length() / 2.0
+        val halfWidth = plane.topRight.subtract(topLeft).length() / 2.0
+        val near = topLeft.add(plane.bottomRight).scale(0.5).length()
+        return org.joml.Matrix4f().perspective(
+            (2.0 * kotlin.math.atan2(halfHeight, near)).toFloat(),
+            (halfWidth / halfHeight).toFloat(),
+            near.toFloat(),
+            mc.gameRenderer.depthFar,
+        )
+    }
+    *///?}
 }
