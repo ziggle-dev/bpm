@@ -44,11 +44,36 @@ object NeoNet : PlatformNet {
         onServer: (P, ServerPlayer) -> Unit,
         onClient: (P) -> Unit,
     ) {
+        /*
+         * Two handlers from 1.21.9, one that inspects the flow before it.
+         *
+         * The single-handler `playBidirectional` used to register both directions. From 1.21.9 it
+         * registers the SERVER side only and expects the client side through
+         * `RegisterClientPayloadHandlersEvent` -- and NeoForge now VALIDATES that, refusing to load a mod
+         * with a clientbound payload nobody handles.
+         *
+         * This mod has exactly one bidirectional payload, `bpm:chunk`, which carries every big message in
+         * pieces: the whole editor protocol rides on it. So on that band the check is the difference
+         * between a loud failure at load and an editor that silently receives nothing. The four-argument
+         * form is also the clearer statement, since the two handlers were already separate functions --
+         * but it does not exist below 1.21.9, so both spellings stay.
+         */
+        //? if >=1.21.9 {
+        /*pending += { r ->
+            r.playBidirectional(
+                type,
+                codec,
+                { p, ctx -> (ctx.player() as? ServerPlayer)?.let { onServer(p, it) } },
+                { p, _ -> onClient(p) },
+            )
+        }
+        *///?} else {
         pending += { r ->
             r.playBidirectional(type, codec) { p, ctx ->
                 if (ctx.flow() == PacketFlow.SERVERBOUND) (ctx.player() as? ServerPlayer)?.let { onServer(p, it) } else onClient(p)
             }
         }
+        //?}
     }
 
     /**

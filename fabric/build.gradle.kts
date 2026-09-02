@@ -164,6 +164,10 @@ sourceSets.named("main") {
  */
 sourceSets.named("main") {
     resources.srcDir(rootProject.file("src/main/resources-$minecraftVersion"))
+    // A band directory rather than a version one -- see the note in neoforge/build.gradle.kts.
+    if (stonecutter.eval(minecraftVersion, ">=1.21.2")) {
+        resources.srcDir(rootProject.file("src/main/resources-since-1.21.2"))
+    }
     resources.srcDir(rootProject.file("src/main/resources"))
 }
 

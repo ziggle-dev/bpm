@@ -1,0 +1,52 @@
+# The 1.21.11 metadata. A copy of ../../resources/META-INF/neoforge.mods.toml with three differences.
+#
+# 1. NO `[features] openGLVersion`. That block refuses to load the mod unless FML reports an OpenGL
+#    version in range, and from 1.21.9 it reports NONE -- the client no longer probes a GL context at
+#    that point, because it may not be running one. The gate is also redundant now: the game's own core
+#    shaders are `#version 330`, so vanilla itself will not start below what this mod needed.
+#
+# 2. Kotlin for Forge is the 6.x line here, and GeckoLib the 5.x line.
+#
+# 3. NeoForge and Minecraft ranges start at this band rather than at 1.21.1.
+#
+# Kept as a whole file rather than a patch because that is what the resource layering gives us: the
+# version directory is searched before the shared one and `processResources` excludes duplicates, so
+# this replaces its neighbour outright. See the note in neoforge/build.gradle.kts.
+modLoader="kotlinforforge"
+loaderVersion="[6,)"
+license="MIT"
+
+[[mods]]
+modId="bpm"
+version="0.2.1"
+displayName="bpm"
+description='''Visual scripting for automation: graphs run on the server, edited in-game, rendered in the world.'''
+
+[[dependencies.bpm]]
+    modId="kotlinforforge"
+    type="required"
+    versionRange="[6.3,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.bpm]]
+    modId="geckolib"
+    type="required"
+    versionRange="[5.4,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.bpm]]
+    modId="neoforge"
+    type="required"
+    versionRange="[21.11,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.bpm]]
+    modId="minecraft"
+    type="required"
+    versionRange="[1.21.11,1.22)"
+    ordering="NONE"
+    side="BOTH"
+
+# Ponder is not published for this band, and the package that uses it is excluded from the build here --
+# see the source-set exclusion in neoforge/build.gradle.kts. So there is nothing to depend on, even
+# optionally.

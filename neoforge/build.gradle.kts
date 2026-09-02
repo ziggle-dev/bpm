@@ -213,6 +213,22 @@ for (name in listOf("main", "test", "core", "dev")) {
      */
     sourceSets.named(name) {
         resources.srcDir(rootProject.file("src/$name/resources-$minecraftVersion"))
+        /*
+         * A BAND directory, not a version one.
+         *
+         * The client-item JSONs, the item models that go with them and the recipes all changed shape once,
+         * at 1.21.2, and have not changed since -- an item is declared under `assets/<ns>/items` and a
+         * recipe ingredient is a bare id string rather than `{"item": ...}`. Filing them under
+         * `resources-1.21.4` made them invisible to every later node, which is how the 1.21.11 client came
+         * up with forty-seven missing models and five unparseable recipes while 1.21.4 was fine.
+         *
+         * Named for the rule rather than for a version, so the next node in the band inherits it by
+         * existing. Added AFTER the exact-version directory and before the shared one, so specificity
+         * still decreases down the list and `processResources`' EXCLUDE keeps the first answer.
+         */
+        if (stonecutter.eval(minecraftVersion, ">=1.21.2")) {
+            resources.srcDir(rootProject.file("src/$name/resources-since-1.21.2"))
+        }
         resources.srcDir(rootProject.file("src/$name/resources"))
     }
 }
