@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " S ",
+    " C ",
+    " P "
+  ],
+  "key": {
+    "S": "bpm:entanglium_shard",
+    "C": "bpm:entangled_circuit",
+    "P": "bpm:phase_conduit"
+  },
+  "result": {
+    "id": "bpm:quantum_linker",
+    "count": 1
+  }
+}

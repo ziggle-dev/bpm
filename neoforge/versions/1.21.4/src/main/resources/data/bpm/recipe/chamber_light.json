@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " S ",
+    "SGS",
+    " S "
+  ],
+  "key": {
+    "S": "bpm:entanglium_shard",
+    "G": "minecraft:glowstone"
+  },
+  "result": {
+    "id": "bpm:chamber_light",
+    "count": 4
+  }
+}

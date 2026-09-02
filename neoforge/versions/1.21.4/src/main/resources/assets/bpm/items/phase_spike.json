@@ -1,0 +1,9 @@
+{
+  "model": {
+    "type": "minecraft:special",
+    "base": "bpm:item/phase_spike",
+    "model": {
+      "type": "geckolib:geckolib"
+    }
+  }
+}

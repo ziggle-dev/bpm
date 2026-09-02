@@ -1,0 +1,10 @@
+{
+  "type": "minecraft:blasting",
+  "category": "misc",
+  "ingredient": "bpm:quantum_alloy_blend",
+  "result": {
+    "id": "bpm:quantum_alloy_ingot"
+  },
+  "experience": 0.8,
+  "cookingtime": 100
+}

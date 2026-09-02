@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "bpm:chamber_floor",
+    "minecraft:redstone",
+    "bpm:entanglium_shard"
+  ],
+  "result": {
+    "id": "bpm:chamber_floor_circuit",
+    "count": 1
+  }
+}

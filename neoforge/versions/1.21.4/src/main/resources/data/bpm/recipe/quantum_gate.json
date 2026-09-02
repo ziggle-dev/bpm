@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "ALA",
+    "LEL",
+    "ACA"
+  ],
+  "key": {
+    "A": "bpm:quantum_alloy_ingot",
+    "L": "bpm:coherence_lens",
+    "E": "minecraft:ender_eye",
+    "C": "bpm:entangled_circuit"
+  },
+  "result": {
+    "id": "bpm:quantum_gate",
+    "count": 1
+  }
+}

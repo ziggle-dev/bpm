@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "DDD",
+    "DAD",
+    "DDD"
+  ],
+  "key": {
+    "D": "minecraft:deepslate_tiles",
+    "A": "bpm:quantum_alloy_ingot"
+  },
+  "result": {
+    "id": "bpm:chamber_wall",
+    "count": 8
+  }
+}

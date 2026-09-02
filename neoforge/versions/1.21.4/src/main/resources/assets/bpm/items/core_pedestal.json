@@ -1,0 +1,9 @@
+{
+  "model": {
+    "type": "minecraft:special",
+    "base": "bpm:item/core_pedestal",
+    "model": {
+      "type": "geckolib:geckolib"
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "model": {
+    "type": "minecraft:special",
+    "base": "bpm:item/quantum_tether",
+    "model": {
+      "type": "geckolib:geckolib"
+    }
+  }
+}

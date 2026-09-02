@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "CSC",
+    "RAR",
+    "CSC"
+  ],
+  "key": {
+    "C": "minecraft:copper_ingot",
+    "S": "bpm:entanglium_shard",
+    "R": "minecraft:redstone",
+    "A": "bpm:quantum_alloy_ingot"
+  },
+  "result": {
+    "id": "bpm:entangled_circuit",
+    "count": 2
+  }
+}

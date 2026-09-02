@@ -39,10 +39,23 @@ object ModBlocks {
             .lightLevel { state -> if (state.getValue(ControllerBlock.STATUS) == ControllerStatus.RUNNING) 9 else 3 },
     )
 
-    /** Liquid experience in the world — see [ModFluids]. */
-    val EXPERIENCE: RegistryRef<LiquidBlock> = REG.register("experience") { ->
-        LiquidBlock(ModFluids.EXPERIENCE.get(), BlockBehaviour.Properties.ofFullCopy(Blocks.WATER).lightLevel { 10 }.noLootTable())
-    }
+    /**
+     * Liquid experience in the world — see [ModFluids].
+     *
+     * Through `registerBlock` rather than the plain `register`, and it has to be from 1.21.2: a block's
+     * `Properties` now carries its own registry key, and `BlockBehaviour`'s constructor reads it while
+     * working out the loot table. Building the block from bare `Properties` leaves that unset and throws
+     * `NullPointerException: Block id not set` during registration — not at compile time, which is why
+     * this survived the port and only surfaced on the first launch. `registerBlock` is the form that
+     * sets the key, because the loader owns the name and can stamp it before the block is constructed.
+     *
+     * `noLootTable` does not excuse it: `effectiveDrops` demands the id before it looks at the value.
+     */
+    val EXPERIENCE: RegistryRef<LiquidBlock> = REG.registerBlock(
+        "experience",
+        { p -> LiquidBlock(ModFluids.EXPERIENCE.get(), p) },
+        BlockBehaviour.Properties.ofFullCopy(Blocks.WATER).lightLevel { 10 }.noLootTable(),
+    )
 }
 
 object ModItems {

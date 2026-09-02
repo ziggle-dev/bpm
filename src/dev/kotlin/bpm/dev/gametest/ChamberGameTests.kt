@@ -44,7 +44,7 @@ class ChamberGameTests {
         // away from the plot's interior (plot south), and the 3 x 3 backplate of frames stands one block behind
         // the opening, into the plot.
         val intoPlot = helper.absolutePos(centre.south()).subtract(helper.absolutePos(centre))
-        val facing = Direction.getNearest(-intoPlot.x.toDouble(), 0.0, -intoPlot.z.toDouble())
+        val facing = bpm.platform.nearestDirection(-intoPlot.x.toDouble(), 0.0, -intoPlot.z.toDouble())
         for (du in -1..1) for (dv in -1..1) helper.setBlock(centre.south().offset(du, dv, 0), ContentBlocks.GATE_FRAME.get())
         helper.setBlock(projector, DeviceBlocks.QUANTUM_GATE.get().defaultBlockState().setValue(GateBlock.FACING, facing))
         return projector

@@ -20,6 +20,12 @@ imgui.ini
 /tools
 /art
 # Stonecutter generates these version project directories from settings.gradle.kts, one per branch.
-/versions
-neoforge/versions/
-fabric/versions/
+#
+# Only their BUILD output is generated, not the directories themselves: a node may also carry real
+# source, and does. `<node>/src/main/resources` is where a resource whose SCHEMA changed lives -- the
+# 1.21.4 client-item files, its recipes in the new ingredient form, its rift shader configs -- because
+# a JSON cannot carry a `//? if` directive and those files cannot be shared. Ignoring the whole
+# directory would drop them on the floor, silently, which it did until this was narrowed.
+/versions/*/build/
+neoforge/versions/*/build/
+fabric/versions/*/build/

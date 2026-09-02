@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "SAS",
+    "AEA",
+    "SAS"
+  ],
+  "key": {
+    "S": "bpm:entanglium_shard",
+    "A": "bpm:quantum_alloy_ingot",
+    "E": "minecraft:ender_pearl"
+  },
+  "result": {
+    "id": "bpm:phase_block",
+    "count": 2
+  }
+}

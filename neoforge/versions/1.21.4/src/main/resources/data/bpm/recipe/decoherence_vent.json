@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " L ",
+    "ACA",
+    "WWW"
+  ],
+  "key": {
+    "L": "bpm:coherence_lens",
+    "A": "bpm:quantum_alloy_ingot",
+    "C": "bpm:entangled_circuit",
+    "W": "bpm:chamber_wall"
+  },
+  "result": {
+    "id": "bpm:decoherence_vent",
+    "count": 1
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "ACA",
+    "CQC",
+    "APA"
+  ],
+  "key": {
+    "A": "bpm:quantum_alloy_ingot",
+    "C": "bpm:entangled_circuit",
+    "Q": "#bpm:quantum_cores",
+    "P": "bpm:phase_conduit"
+  },
+  "result": {
+    "id": "bpm:quantum_controller",
+    "count": 1
+  }
+}
