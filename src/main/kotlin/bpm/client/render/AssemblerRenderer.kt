@@ -250,21 +250,8 @@ class AssemblerRenderer : DeviceRenderer<AssemblerBlockEntity>("quantum_assemble
          * them — became indistinguishable. Ordinary alpha blending keeps a beam the colour it was given
          * whatever it is drawn over.
          */
-        private val BEAM: RenderType = net.minecraft.client.renderer.RenderType.create(
-            "bpm_assembler_beam",
-            DefaultVertexFormat.POSITION_COLOR,
-            VertexFormat.Mode.QUADS,
-            256,
-            false,
-            false,
-            net.minecraft.client.renderer.RenderType.CompositeState.builder()
-                .setShaderState(bpm.platform.client.positionColorShader())
-                .setTextureState(RenderStateShard.NO_TEXTURE)
-                .setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY)
-                .setCullState(RenderStateShard.NO_CULL)
-                .setWriteMaskState(RenderStateShard.COLOR_DEPTH_WRITE)
-                .createCompositeState(false),
-        )
+        /** The assembler beam: blended, unculled, and it MUST write depth so the room occludes it. */
+        private val BEAM: RenderType = bpm.platform.client.translucentQuads("bpm_assembler_beam")
 
         /** The pedestal model's own socket, at model y=22 — where its held item is drawn, inside the ring. */
         const val PEDESTAL_SOCKET = 22.0 / 16.0

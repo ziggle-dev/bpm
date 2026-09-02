@@ -823,21 +823,8 @@ object EffectManager {
      * for the dedicated lightning pass. Additive on purpose here: an arc IS light added to the scene, and
      * effects are drawn after translucent blocks, so it glows over whatever is behind it.
      */
-    private val ARC: RenderType = net.minecraft.client.renderer.RenderType.create(
-        "bpm_energy_arc",
-        com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_COLOR,
-        com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS,
-        256,
-        false,
-        false,
-        net.minecraft.client.renderer.RenderType.CompositeState.builder()
-            .setShaderState(bpm.platform.client.positionColorShader())
-            .setTextureState(net.minecraft.client.renderer.RenderStateShard.NO_TEXTURE)
-            .setTransparencyState(net.minecraft.client.renderer.RenderStateShard.ADDITIVE_TRANSPARENCY)
-            .setCullState(net.minecraft.client.renderer.RenderStateShard.NO_CULL)
-            .setWriteMaskState(net.minecraft.client.renderer.RenderStateShard.COLOR_WRITE)
-            .createCompositeState(false),
-    )
+    /** The energy arc: flat colour, added onto the scene, and NOT depth-writing. */
+    private val ARC: RenderType = bpm.platform.client.additiveQuads("bpm_energy_arc")
 
     private fun flyerCount(): Int = effects.values.sumOf { (it as? Transfer)?.flyers?.size ?: 0 }
 
