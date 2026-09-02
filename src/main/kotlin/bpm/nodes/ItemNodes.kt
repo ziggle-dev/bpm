@@ -10,7 +10,6 @@ import com.mojang.serialization.JsonOps
 import dev.ziggle.vscript.json.Json
 import dev.ziggle.vscript.nodes.Contribution
 import dev.ziggle.vscript.nodes.library
-import net.minecraft.core.component.DataComponentType
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.RegistryOps
 import net.minecraft.world.item.ItemStack
@@ -395,11 +394,9 @@ object ItemNodes {
             val stack = param("Stack", McVs.itemStack, "the stack")
             result("Levels", McVs.stringIntMap)
             query {
-                val e = ItemStackValue.stack(stack()).enchantments
                 val out = LinkedHashMap<Any?, Any?>()
-                for (holder in e.keySet()) {
-                    val id = holder.unwrapKey().map { it.keyId().toString() }.orElse(holder.toString())
-                    out[id] = e.getLevel(holder).toLong()
+                for ((id, level) in bpm.platform.enchantmentsOf(ItemStackValue.stack(stack()))) {
+                    out[id] = level.toLong()
                 }
                 out
             }
@@ -412,7 +409,7 @@ object ItemNodes {
             result("Level", McVs.int)
             query {
                 val holder = FilterValue.enchantment(id(), host.registries) ?: return@query 0L
-                ItemStackValue.stack(stack()).enchantments.getLevel(holder).toLong()
+                bpm.platform.enchantmentLevel(ItemStackValue.stack(stack()), holder).toLong()
             }
         }
         func("components") {
@@ -420,7 +417,7 @@ object ItemNodes {
             doc("Every data component a stack carries, by id — `minecraft:enchantments`, `minecraft:custom_data`, and so on.")
             val stack = param("Stack", McVs.itemStack, "the stack")
             result("Ids", McVs.string.list())
-            query { ItemStackValue.stack(stack()).components.keySet().map { BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(it).toString() } }
+            query { bpm.platform.vanillaComponentIds(ItemStackValue.stack(stack())) }
         }
         func("hasComponent") {
             title("Has Component")
@@ -449,13 +446,9 @@ object ItemNodes {
         }
     }
 
-    @Suppress("UNCHECKED_CAST")
-    private fun componentJson(host: ControllerHost, stack: ItemStack, type: DataComponentType<*>): Any? {
-        val value = stack.get(type) ?: return null
-        val codec = (type as DataComponentType<Any>).codecOrThrow()
-        val ops = RegistryOps.create(JsonOps.INSTANCE, host.registries)
-        val element = codec.encodeStart(ops, value).result().orElse(null) ?: return null
-        return Json.parse(element.toString())
+    private fun componentJson(host: ControllerHost, stack: ItemStack, type: Any?): Any? {
+        val text = bpm.platform.vanillaComponentJson(host.registries, stack, type) ?: return null
+        return Json.parse(text)
     }
 }
 
