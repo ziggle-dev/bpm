@@ -1,22 +1,17 @@
 package bpm.client.render
 
 import bpm.Bpm
+import bpm.platform.ResourceLocation
 import com.mojang.blaze3d.platform.NativeImage
 import net.minecraft.client.Minecraft
-import bpm.platform.ResourceLocation
-import software.bernie.geckolib.animatable.GeoAnimatable
-import bpm.platform.GeoRenderer
 
-/**
- * GeckoLib's glow layer, minus its one sharp edge: a `_glowmask` with no visible pixel (an "off" texture with
- * nothing lit) makes [AutoGlowingGeoLayer] throw while registering the emissive texture and crashes the client
- * the first time the model is drawn — including in the creative tab. This layer looks at the mask first and
- * skips the glow when there is nothing to glow; a missing mask is left to GeckoLib (it may still carry glow
- * sections in the base texture's mcmeta).
+/*
+ * The glow LAYER now lives in `bpm.platform.client`, per loader and per band.
+ *
+ * Its generic arity changed at GeckoLib 5 -- `GeoRenderLayer<T>` became `GeoRenderLayer<T, O, R>` -- and
+ * a shared file cannot name a type whose parameter count depends on the version. What stays here is the
+ * part that never changed and is the whole reason the layer is subclassed at all: the survey below.
  */
-class GlowLayer<T : GeoAnimatable>(renderer: GeoRenderer<T>) : bpm.platform.client.GlowLayerBase<T>(renderer) {
-    override fun glows(animatable: T): Boolean = Glowmasks.glows(getTextureResource(animatable))
-}
 
 /** Which textures have a glowmask worth drawing; answered once per texture until resources reload. */
 object Glowmasks {

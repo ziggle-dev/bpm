@@ -51,6 +51,8 @@ class BpmEntityRenderState :
     override fun getDataMap(): MutableMap<software.bernie.geckolib.constant.dataticket.DataTicket<*>, Any> = data
 }
 
+
+
 /** [BoneAccess] over a render pass: listeners for the watches, one updater for the hides. */
 private class PassBones<R : software.bernie.geckolib.renderer.base.GeoRenderState>(
     private val pass: software.bernie.geckolib.renderer.base.RenderPassInfo<R>,
@@ -87,6 +89,30 @@ abstract class GeoBlockRendererBase<T>(model: GeoModel<T>) :
         onBones(PassBones(pass), pass.renderState().blockPos, pass.renderState().blockState)
         super.preRenderPass(pass, collector)
     }
+
+    /** Attach the glow layer. See [BpmGlowLayer] for why the class itself is not shared. */
+    protected fun addGlow() {
+        withRenderLayer(BpmGlowLayer(this))
+    }
+
+    /** The render type this renderer draws its texture with. */
+    protected open fun renderTypeFor(texture: bpm.platform.ResourceLocation): bpm.platform.RenderType =
+        entityTranslucent(texture)
+
+    override fun getRenderType(state: BpmBlockRenderState, texture: bpm.platform.ResourceLocation): bpm.platform.RenderType =
+        renderTypeFor(texture)
+
+    /** Whether to skip the frustum test. `shouldRenderOffScreen` lost its argument here. */
+    protected open fun alwaysRender(): Boolean = false
+
+    override fun shouldRenderOffScreen(): Boolean = alwaysRender()
+
+    /** Which way the block faces; `getFacing` became `getBlockStateDirection`. */
+    protected open fun facingOf(blockEntity: T): net.minecraft.core.Direction =
+        net.minecraft.core.Direction.NORTH
+
+    override fun getBlockStateDirection(blockEntity: T): net.minecraft.core.Direction = facingOf(blockEntity)
+
 }
 
 abstract class GeoEntityRendererBase<T>(
@@ -116,6 +142,17 @@ abstract class GeoEntityRendererBase<T>(
         onBones(PassBones(pass), pass.renderState().entityId)
         super.preRenderPass(pass, collector)
     }
+
+    protected fun addGlow() {
+        withRenderLayer(BpmGlowLayer(this))
+    }
+
+    protected open fun renderTypeFor(texture: bpm.platform.ResourceLocation): bpm.platform.RenderType =
+        entityTranslucent(texture)
+
+    override fun getRenderType(state: BpmEntityRenderState, texture: bpm.platform.ResourceLocation): bpm.platform.RenderType =
+        renderTypeFor(texture)
+
 }
 
 abstract class GeoItemRendererBase<T>(model: GeoModel<T>) :
@@ -131,8 +168,21 @@ abstract class GeoItemRendererBase<T>(model: GeoModel<T>) :
         onBones(PassBones(pass))
         super.preRenderPass(pass, collector)
     }
+
+    protected fun addGlow() {
+        withRenderLayer(BpmGlowLayer(this))
+    }
+
+    protected open fun renderTypeFor(texture: bpm.platform.ResourceLocation): bpm.platform.RenderType =
+        entityTranslucent(texture)
+
+    override fun getRenderType(state: software.bernie.geckolib.renderer.base.GeoRenderState, texture: bpm.platform.ResourceLocation): bpm.platform.RenderType =
+        renderTypeFor(texture)
+
 }
 *///?} else {
+
+
 /**
  * [BoneAccess] over the old recursion.
  *
@@ -191,6 +241,31 @@ abstract class GeoBlockRendererBase<T>(model: GeoModel<T>) :
         if (!bones.visit(bone.name, isReRender, poseStack)) return
         super.renderRecursively(poseStack, animatable, bone, renderType, bufferSource, buffer, isReRender, partialTick, packedLight, packedOverlay, colour)
     }
+
+    /** Attach the glow layer. See [BpmGlowLayer] for why the class itself is not shared. */
+    protected fun addGlow() {
+        addRenderLayer(BpmGlowLayer(this))
+    }
+
+    protected open fun renderTypeFor(texture: bpm.platform.ResourceLocation): bpm.platform.RenderType =
+        entityTranslucent(texture)
+
+    override fun getRenderType(
+        animatable: T,
+        texture: bpm.platform.ResourceLocation,
+        bufferSource: net.minecraft.client.renderer.MultiBufferSource?,
+        partialTick: Float,
+    ): bpm.platform.RenderType = renderTypeFor(texture)
+
+    protected open fun alwaysRender(): Boolean = false
+
+    override fun shouldRenderOffScreen(blockEntity: T): Boolean = alwaysRender()
+
+    protected open fun facingOf(blockEntity: T): net.minecraft.core.Direction =
+        net.minecraft.core.Direction.NORTH
+
+    override fun getFacing(animatable: T): net.minecraft.core.Direction = facingOf(animatable)
+
 }
 
 abstract class GeoEntityRendererBase<T>(
@@ -221,6 +296,21 @@ abstract class GeoEntityRendererBase<T>(
         if (!bones.visit(bone.name, isReRender, poseStack)) return
         super.renderRecursively(poseStack, animatable, bone, renderType, bufferSource, buffer, isReRender, partialTick, packedLight, packedOverlay, colour)
     }
+
+    protected fun addGlow() {
+        addRenderLayer(BpmGlowLayer(this))
+    }
+
+    protected open fun renderTypeFor(texture: bpm.platform.ResourceLocation): bpm.platform.RenderType =
+        entityTranslucent(texture)
+
+    override fun getRenderType(
+        animatable: T,
+        texture: bpm.platform.ResourceLocation,
+        bufferSource: net.minecraft.client.renderer.MultiBufferSource?,
+        partialTick: Float,
+    ): bpm.platform.RenderType = renderTypeFor(texture)
+
 }
 
 abstract class GeoItemRendererBase<T>(model: GeoModel<T>) :
@@ -248,5 +338,20 @@ abstract class GeoItemRendererBase<T>(model: GeoModel<T>) :
         if (!bones.visit(bone.name, isReRender, poseStack)) return
         super.renderRecursively(poseStack, animatable, bone, renderType, bufferSource, buffer, isReRender, partialTick, packedLight, packedOverlay, colour)
     }
+
+    protected fun addGlow() {
+        addRenderLayer(BpmGlowLayer(this))
+    }
+
+    protected open fun renderTypeFor(texture: bpm.platform.ResourceLocation): bpm.platform.RenderType =
+        entityTranslucent(texture)
+
+    override fun getRenderType(
+        animatable: T,
+        texture: bpm.platform.ResourceLocation,
+        bufferSource: net.minecraft.client.renderer.MultiBufferSource?,
+        partialTick: Float,
+    ): bpm.platform.RenderType = renderTypeFor(texture)
+
 }
 //?}

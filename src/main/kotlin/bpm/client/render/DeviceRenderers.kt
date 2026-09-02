@@ -33,7 +33,7 @@ class DeviceModel<T : GeoAnimatable>(name: String) : PathGeoModel<T>(
 /** A device block: translucent (columns, halos and bolts carry alpha), glow mask on top, its own render box. */
 open class DeviceRenderer<T : DeviceBlockEntity>(name: String, private val box: (T) -> AABB) : bpm.platform.client.GeoBlockRendererBase<T>(DeviceModel(name)) {
     init {
-        addRenderLayer(GlowLayer(this))
+        addGlow()
     }
 
     /*
@@ -45,9 +45,9 @@ open class DeviceRenderer<T : DeviceBlockEntity>(name: String, private val box: 
      * test for three block-entity types that are almost always on screen when their chunk is; the cost of
      * the precise box was a method that does not exist on Fabric.
      */
-    override fun shouldRenderOffScreen(blockEntity: T): Boolean = true
+    override fun alwaysRender(): Boolean = true
 
-    override fun getRenderType(animatable: T, texture: ResourceLocation, bufferSource: MultiBufferSource?, partialTick: Float): RenderType =
+    override fun renderTypeFor(texture: ResourceLocation): RenderType =
         bpm.platform.client.entityTranslucent(texture)
 }
 
@@ -56,7 +56,7 @@ class GateRenderer : DeviceRenderer<GateBlockEntity>("quantum_gate", { be ->
     val b = AABB(be.blockPos)
     if (be.axis == Direction.Axis.X) b.inflate(1.6, 0.0, 0.7).expandTowards(0.0, -3.1, 0.0) else b.inflate(0.7, 0.0, 1.6).expandTowards(0.0, -3.1, 0.0)
 }) {
-    override fun getFacing(animatable: GateBlockEntity): Direction = animatable.facing
+    override fun facingOf(blockEntity: GateBlockEntity): Direction = blockEntity.facing
 }
 
 /**
@@ -157,7 +157,7 @@ class MonitorModel : PathGeoModel<bpm.world.devices.MonitorBlockEntity>(
  */
 class MonitorRenderer : bpm.platform.client.GeoBlockRendererBase<bpm.world.devices.MonitorBlockEntity>(MonitorModel()) {
     init {
-        addRenderLayer(GlowLayer(this))
+        addGlow()
     }
 
     /**
@@ -166,8 +166,8 @@ class MonitorRenderer : bpm.platform.client.GeoBlockRendererBase<bpm.world.devic
      * than a bounding box: only one of the two exists on both loaders. A monitor with no widgets draws
      * nothing anyway, so opting out of the frustum test costs nothing there either.
      */
-    override fun shouldRenderOffScreen(blockEntity: bpm.world.devices.MonitorBlockEntity): Boolean = true
-    override fun getFacing(animatable: bpm.world.devices.MonitorBlockEntity): Direction = animatable.facing
+    override fun alwaysRender(): Boolean = true
+    override fun facingOf(blockEntity: bpm.world.devices.MonitorBlockEntity): Direction = blockEntity.facing
 
     /** After the panel: the screen's content, for the wall's origin tile. */
     override fun render(animatable: bpm.world.devices.MonitorBlockEntity, partialTick: Float, poseStack: PoseStack, bufferSource: MultiBufferSource, packedLight: Int, packedOverlay: Int) {
@@ -224,11 +224,11 @@ object DeviceItemExtensions {
             run {
                 object : bpm.platform.client.GeoItemRendererBase<DeviceBlockItem>(DeviceModel(model)) {
                     init {
-                        addRenderLayer(GlowLayer(this))
+                        addGlow()
                     }
 
-                    override fun getRenderType(animatable: DeviceBlockItem, texture: ResourceLocation, bufferSource: MultiBufferSource?, partialTick: Float): RenderType =
-                        bpm.platform.client.entityTranslucent(texture)
+                    override fun renderTypeFor(texture: ResourceLocation): RenderType =
+        bpm.platform.client.entityTranslucent(texture)
 
                     /** As an item the gate is just its projector: the rift, its rim and the clamps only exist in the world. */
                     override fun onBones(bones: bpm.platform.client.BoneAccess) {

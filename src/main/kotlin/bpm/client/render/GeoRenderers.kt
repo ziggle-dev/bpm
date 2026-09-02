@@ -59,7 +59,7 @@ class TetherModel : PathGeoModel<bpm.world.items.QuantumTetherItem>(
 /** The controller block. Beams carry alpha, so the whole model draws translucent; the glow mask rides on top. */
 class ControllerRenderer : bpm.platform.client.GeoBlockRendererBase<ControllerBlockEntity>(ControllerModel()) {
     init {
-        addRenderLayer(GlowLayer(this))
+        addGlow()
     }
 
     /** The model reaches 1.33 blocks up and the flanges poke half a block out, so it must not be culled. */
@@ -72,9 +72,9 @@ class ControllerRenderer : bpm.platform.client.GeoBlockRendererBase<ControllerBl
      * test for three block-entity types that are almost always on screen when their chunk is; the cost of
      * the precise box was a method that does not exist on Fabric.
      */
-    override fun shouldRenderOffScreen(blockEntity: ControllerBlockEntity): Boolean = true
+    override fun alwaysRender(): Boolean = true
 
-    override fun getRenderType(animatable: ControllerBlockEntity, texture: ResourceLocation, bufferSource: MultiBufferSource?, partialTick: Float): RenderType =
+    override fun renderTypeFor(texture: ResourceLocation): RenderType =
         bpm.platform.client.entityTranslucent(texture)
 
     /**
@@ -97,16 +97,16 @@ class ControllerRenderer : bpm.platform.client.GeoBlockRendererBase<ControllerBl
 
 class ControllerItemRenderer : bpm.platform.client.GeoItemRendererBase<ControllerBlockItem>(ControllerModel()) {
     init {
-        addRenderLayer(GlowLayer(this))
+        addGlow()
     }
 
-    override fun getRenderType(animatable: ControllerBlockItem, texture: ResourceLocation, bufferSource: MultiBufferSource?, partialTick: Float): RenderType =
+    override fun renderTypeFor(texture: ResourceLocation): RenderType =
         bpm.platform.client.entityTranslucent(texture)
 }
 
 class LinkerRenderer : bpm.platform.client.GeoItemRendererBase<LinkerItem>(LinkerModel()) {
     init {
-        addRenderLayer(GlowLayer(this))
+        addGlow()
     }
 }
 

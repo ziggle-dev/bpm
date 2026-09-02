@@ -25,11 +25,11 @@ class WardenModel : PathGeoModel<QuantumWardenEntity>(
 /** The Warden: translucent for the bolts' alpha, the glow mask on top, a wide shadow for a wide boss. */
 class WardenRenderer(context: EntityRendererProvider.Context) : bpm.platform.client.GeoEntityRendererBase<QuantumWardenEntity>(context, WardenModel()) {
     init {
-        addRenderLayer(GlowLayer(this))
+        addGlow()
         shadowRadius = 1.4f
     }
 
-    override fun getRenderType(animatable: QuantumWardenEntity, texture: ResourceLocation, bufferSource: MultiBufferSource?, partialTick: Float): RenderType =
+    override fun renderTypeFor(texture: ResourceLocation): RenderType =
         bpm.platform.client.entityTranslucent(texture)
 
     /**
