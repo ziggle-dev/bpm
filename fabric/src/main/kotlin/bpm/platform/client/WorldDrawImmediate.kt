@@ -44,13 +44,33 @@ interface ImmediateDraw : WorldDraw {
 /*/** Batches per render type, then puts each batch through a pass of its own. */
 internal class PreparedDraw : ImmediateDraw {
 
-    private val allocator = com.mojang.blaze3d.vertex.ByteBufferBuilder(4096)
-    private val builders = LinkedHashMap<bpm.platform.RenderType, com.mojang.blaze3d.vertex.BufferBuilder>()
+    /*
+     * ONE ARENA PER RENDER TYPE, and this is not an optimisation -- sharing one is a correctness bug.
+     *
+     * `ByteBufferBuilder` is a bump allocator with a single write offset and one pending result. A
+     * `BufferBuilder` writing into it owns it until `build()` hands the result back. Open two against
+     * the same arena and their vertices interleave, so at most one batch survives and the rest draw
+     * nothing or garbage.
+     *
+     * This batches per render type by design, so several are open at once by design -- a transfer draws
+     * item motes, a fluid stream, an energy arc and a rift in the same frame, each its own type. Sharing
+     * one arena meant only one of them appeared, which is exactly how it presented: the motes drew and
+     * the rift did not.
+     *
+     * Vanilla's own `MultiBufferSource.immediate` keeps a buffer per type for this reason. So does this.
+     */
+    private class Batch(
+        val arena: com.mojang.blaze3d.vertex.ByteBufferBuilder,
+        val builder: com.mojang.blaze3d.vertex.BufferBuilder,
+    )
+
+    private val batches = LinkedHashMap<bpm.platform.RenderType, Batch>()
 
     override fun consumer(kind: bpm.platform.RenderType): com.mojang.blaze3d.vertex.VertexConsumer =
-        builders.getOrPut(kind) {
-            com.mojang.blaze3d.vertex.BufferBuilder(allocator, kind.primitiveTopology(), kind.format())
-        }
+        batches.getOrPut(kind) {
+            val arena = com.mojang.blaze3d.vertex.ByteBufferBuilder(4096)
+            Batch(arena, com.mojang.blaze3d.vertex.BufferBuilder(arena, kind.primitiveTopology(), kind.format()))
+        }.builder
 
     override fun into(
         poseStack: com.mojang.blaze3d.vertex.PoseStack,
@@ -100,19 +120,20 @@ internal class PreparedDraw : ImmediateDraw {
     }
 
     override fun flush(kind: bpm.platform.RenderType) {
-        val builder = builders.remove(kind) ?: return
-        draw(kind, builder)
+        val batch = batches.remove(kind) ?: return
+        draw(kind, batch)
     }
 
     override fun flush() {
-        for ((kind, builder) in builders) draw(kind, builder)
-        builders.clear()
+        for ((kind, batch) in batches) draw(kind, batch)
+        batches.clear()
     }
 
-    private fun draw(kind: bpm.platform.RenderType, builder: com.mojang.blaze3d.vertex.BufferBuilder) {
+    /** Draws the batch and frees its arena, which is native memory and will not free itself. */
+    private fun draw(kind: bpm.platform.RenderType, batch: Batch) {
         val device = com.mojang.blaze3d.systems.RenderSystem.getDevice()
-        run {
-            val mesh = builder.build() ?: return
+        batch.arena.use {
+            val mesh = batch.builder.build() ?: return
             mesh.use { built ->
                 val vertices = device.createBuffer(
                     { "bpm_world_draw" },

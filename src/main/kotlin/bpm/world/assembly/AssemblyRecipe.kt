@@ -59,9 +59,16 @@ class AssemblyRecipe(
     val energy: Int,
     val experience: Int,
     val ticks: Int,
-    val result: ItemStack,
+    /**
+     * What comes out, as the band can hold it before item components are bound -- see
+     * [bpm.platform.RecipeResult]. The stack is made from it on first use, by which time they are.
+     */
+    val resultSpec: bpm.platform.RecipeResult,
     val requires: List<String>,
 ) : bpm.platform.PedestalRecipe<AssemblyInput>() {
+
+    /** Made once, on first use rather than while the datapack is being read. */
+    val result: ItemStack by lazy { resultSpec.create() }
 
     override val inputs: List<Ingredient> get() = parts
 
@@ -138,7 +145,7 @@ class AssemblyRecipe(
                 Codec.INT.optionalFieldOf("energy", 0).forGetter { r -> r.energy },
                 Codec.INT.optionalFieldOf("experience", 0).forGetter { r -> r.experience },
                 Codec.INT.optionalFieldOf("ticks", 200).forGetter { r -> r.ticks },
-                bpm.platform.RECIPE_RESULT_CODEC.fieldOf("result").forGetter { r -> r.result },
+                bpm.platform.RECIPE_RESULT_CODEC.fieldOf("result").forGetter { r -> r.resultSpec },
                 Codec.STRING.listOf().optionalFieldOf("requires", listOf()).forGetter { r -> r.requires },
             ).apply(it) { ingredients, catalyst, energy, experience, ticks, result, requires ->
                 AssemblyRecipe(list(ingredients), catalyst, energy, experience, ticks.coerceAtLeast(1), result, requires)
@@ -163,7 +170,7 @@ class AssemblyRecipe(
                 val energy = buf.readVarInt()
                 val experience = buf.readVarInt()
                 val ticks = buf.readVarInt()
-                val result = ItemStack.STREAM_CODEC.decode(buf)
+                val result = bpm.platform.RecipeResult.of(ItemStack.STREAM_CODEC.decode(buf))
                 val requires = ByteBufCodecs.collection<RegistryFriendlyByteBuf, String, MutableList<String>>({ ArrayList(it) }, ByteBufCodecs.stringUtf8(64))
                     .decode(buf)
                 AssemblyRecipe(list(ingredients), catalyst, energy, experience, ticks, result, requires)

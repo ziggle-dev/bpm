@@ -416,29 +416,6 @@ fun fullPermissionSource(
     //?}
 
 /**
- * The codec for a recipe's result, read out of a datapack.
- *
- * It cannot be `ItemStack.CODEC` from 26.1. An item's default components are DATA on that band, built
- * from a loaded registry access and bound onto the item afterwards -- and recipes parse BEFORE that
- * happens, so building a stack while reading one throws "Item bpm:quantum_tether does not have
- * components yet" and the recipe is dropped. The failure is quiet in the game: the recipe simply is not
- * there, and the client then logs "Tried to load unrecognized recipe".
- *
- * `ItemStackTemplate` is the type for exactly this -- an item, a count and a component PATCH, with no
- * defaults resolved -- and `create()` turns one into a stack once they are. So the datapack reads a
- * template and this hands back the stack the rest of the mod already expects.
- */
-val RECIPE_RESULT_CODEC: com.mojang.serialization.Codec<net.minecraft.world.item.ItemStack> =
-    //? if >=26.1 {
-    /*net.minecraft.world.item.ItemStackTemplate.CODEC.xmap(
-        { template -> template.create() },
-        { stack -> net.minecraft.world.item.ItemStackTemplate.fromStack(stack) },
-    )
-    *///?} else {
-    net.minecraft.world.item.ItemStack.CODEC
-    //?}
-
-/**
  * A stack from a parsed `/give`-style item argument.
  *
  * `ItemInput.createItemStack` dropped its "allow oversized" flag at 26.1. This mod always passed false,
