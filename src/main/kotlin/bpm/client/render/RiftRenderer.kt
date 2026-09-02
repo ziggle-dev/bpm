@@ -1,5 +1,8 @@
 package bpm.client.render
 
+import bpm.platform.client.setUv
+import bpm.platform.client.setNormal
+
 import bpm.platform.client.addVertex
 import bpm.platform.client.setColor
 

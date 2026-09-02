@@ -1,5 +1,10 @@
 package bpm.client.fx
 
+import bpm.platform.client.setUv
+import bpm.platform.client.setLight
+import bpm.platform.client.setOverlay
+import bpm.platform.client.setNormal
+
 import bpm.platform.client.addVertex
 import bpm.platform.client.setColor
 
