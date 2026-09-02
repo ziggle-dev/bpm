@@ -2,14 +2,43 @@ package bpm.platform.events
 
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
+/*
+ * The SAME events under two package names.
+ *
+ * 1.20.1 is NeoForge's fork point and still ships Forge's packages -- `net.minecraftforge` throughout,
+ * with the event bus at `net.minecraftforge.eventbus.api`. The rename to `net.neoforged` came with
+ * 1.20.2. Almost every event kept its simple name across it, so swapping the IMPORTS is enough and the
+ * body below reads the same on both sides; imports also carry nested classes, which a typealias would
+ * not -- `PlayerEvent.PlayerLoggedInEvent` and `PlayerInteractEvent.LeftClickBlock.Action.START` are
+ * both reached that way.
+ *
+ * The exception is the tick event, which is not a rename: see where it is registered.
+ */
+//? if >=1.20.2 {
 import net.neoforged.bus.api.IEventBus
+import net.neoforged.neoforge.event.RegisterCommandsEvent
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent
+import net.neoforged.neoforge.event.entity.player.AttackEntityEvent
 import net.neoforged.neoforge.event.entity.living.LivingDropsEvent
 import net.neoforged.neoforge.event.entity.player.PlayerEvent
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent
 import net.neoforged.neoforge.event.level.BlockEvent
 import net.neoforged.neoforge.event.server.ServerAboutToStartEvent
 import net.neoforged.neoforge.event.server.ServerStoppingEvent
 import net.neoforged.neoforge.event.tick.ServerTickEvent
+//?} else {
+/*import net.minecraftforge.eventbus.api.IEventBus
+import net.minecraftforge.event.RegisterCommandsEvent
+import net.minecraftforge.event.entity.player.AttackEntityEvent
+import net.minecraftforge.event.entity.living.LivingDeathEvent
+import net.minecraftforge.event.entity.living.LivingDropsEvent
+import net.minecraftforge.event.entity.player.PlayerEvent
+import net.minecraftforge.event.entity.player.PlayerInteractEvent
+import net.minecraftforge.event.level.BlockEvent
+import net.minecraftforge.event.server.ServerAboutToStartEvent
+import net.minecraftforge.event.server.ServerStoppingEvent
+import net.minecraftforge.event.TickEvent
+*///?}
 import java.util.function.Consumer
 
 /**
@@ -28,7 +57,7 @@ object NeoEventBridge {
          * and this is where that event comes from on this loader. RightClickBlock fires just before the
          * interaction, and cancelling it with a result is what "first" means.
          */
-        bus.addListener(net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.RightClickBlock::class.java, Consumer { e ->
+        bus.addListener(PlayerInteractEvent.RightClickBlock::class.java, Consumer { e ->
             val payload = UseOnBlock(e.level, e.entity, e.hand, e.pos, e.face ?: net.minecraft.core.Direction.UP)
             BpmEvents.useOnBlock.fire(payload)
             payload.result?.let { r ->
@@ -38,7 +67,18 @@ object NeoEventBridge {
         })
 
         bus.addListener(ServerAboutToStartEvent::class.java, Consumer { BpmEvents.serverStarting.fire(it.server) })
+        /*
+         * Not a rename. From 1.20.2 the tick events are their own classes with `Pre` and `Post` nested
+         * inside; on 1.20.1 there is ONE `TickEvent.ServerTickEvent` carrying a phase, and subscribing
+         * without checking it fires this twice per tick -- once at the start and once at the end.
+         */
+        //? if >=1.20.2 {
         bus.addListener(ServerTickEvent.Post::class.java, Consumer { BpmEvents.serverTickEnd.fire(it.server) })
+        //?} else {
+        /*bus.addListener(TickEvent.ServerTickEvent::class.java, Consumer { e ->
+            if (e.phase == TickEvent.Phase.END) BpmEvents.serverTickEnd.fire(e.server)
+        })
+        *///?}
         bus.addListener(ServerStoppingEvent::class.java, Consumer { BpmEvents.serverStopping.fire(it.server) })
 
         bus.addListener(PlayerEvent.PlayerLoggedInEvent::class.java, Consumer { e ->
@@ -72,7 +112,7 @@ object NeoEventBridge {
         })
         //?}
 
-        bus.addListener(net.neoforged.neoforge.event.RegisterCommandsEvent::class.java, Consumer { e ->
+        bus.addListener(RegisterCommandsEvent::class.java, Consumer { e ->
             BpmEvents.registerCommands.fire(CommandRegistration(e.dispatcher, e.buildContext))
         })
 
@@ -80,17 +120,17 @@ object NeoEventBridge {
             BpmEvents.itemCrafted.fire(Crafted(e.entity, e.crafting, e.inventory))
         })
 
-        bus.addListener(net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.LeftClickBlock::class.java, Consumer { e ->
+        bus.addListener(PlayerInteractEvent.LeftClickBlock::class.java, Consumer { e ->
             val phase = when (e.action) {
-                net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.LeftClickBlock.Action.START -> ClickPhase.START
-                net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.LeftClickBlock.Action.CLIENT_HOLD -> ClickPhase.HOLD
-                net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.LeftClickBlock.Action.STOP -> ClickPhase.STOP
+                PlayerInteractEvent.LeftClickBlock.Action.START -> ClickPhase.START
+                PlayerInteractEvent.LeftClickBlock.Action.CLIENT_HOLD -> ClickPhase.HOLD
+                PlayerInteractEvent.LeftClickBlock.Action.STOP -> ClickPhase.STOP
                 else -> ClickPhase.ABORT
             }
             if (!BpmEvents.leftClickBlock.fire(LeftClickBlock(e.entity, e.pos, e.face, phase))) e.isCanceled = true
         })
 
-        bus.addListener(net.neoforged.neoforge.event.entity.player.AttackEntityEvent::class.java, Consumer { e ->
+        bus.addListener(AttackEntityEvent::class.java, Consumer { e ->
             if (!BpmEvents.attackEntity.fire(AttackEntity(e.entity, e.target))) e.isCanceled = true
         })
 
