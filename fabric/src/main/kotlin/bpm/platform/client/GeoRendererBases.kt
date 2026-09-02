@@ -898,6 +898,14 @@ abstract class GeoBlockRendererBase<T>(
     /** Declare the bones this renderer watches or hides, for the block at [pos] in [state]. */
     protected open fun onBones(bones: BoneAccess, pos: net.minecraft.core.BlockPos, state: net.minecraft.world.level.block.state.BlockState) {}
 
+    /*
+     * GeckoLib 4.8 takes the colour as FOUR FLOATS rather than one packed int, and `render` takes a
+     * `MultiBufferSource` it later dropped. Only the tail of each signature differs, so the arms sit
+     * around the overrides rather than around the whole class -- which is safe here because the arm
+     * enclosing them is live rather than commented, and a directive inside a commented arm would close
+     * that comment early.
+     */
+    //? if >=1.21 {
     override fun renderRecursively(
         poseStack: com.mojang.blaze3d.vertex.PoseStack,
         animatable: T,
@@ -915,6 +923,31 @@ abstract class GeoBlockRendererBase<T>(
         if (!bones.visit(bone, isReRender, poseStack)) return
         super.renderRecursively(poseStack, animatable, bone, renderType, bufferSource, buffer, isReRender, partialTick, packedLight, packedOverlay, colour)
     }
+    //?} else {
+    /*override fun renderRecursively(
+        poseStack: com.mojang.blaze3d.vertex.PoseStack,
+        animatable: T,
+        bone: bpm.platform.GeoBone,
+        renderType: bpm.platform.RenderType,
+        bufferSource: net.minecraft.client.renderer.MultiBufferSource,
+        buffer: com.mojang.blaze3d.vertex.VertexConsumer,
+        isReRender: Boolean,
+        partialTick: Float,
+        packedLight: Int,
+        packedOverlay: Int,
+        red: Float,
+        green: Float,
+        blue: Float,
+        alpha: Float,
+    ) {
+        onBones(bones, animatable.blockPos, animatable.blockState)
+        if (!bones.visit(bone, isReRender, poseStack)) return
+        super.renderRecursively(
+            poseStack, animatable, bone, renderType, bufferSource, buffer, isReRender, partialTick,
+            packedLight, packedOverlay, red, green, blue, alpha,
+        )
+    }
+    *///?}
 
     /** Attach the glow layer. See [BpmGlowLayer] for why the class itself is not shared. */
     protected fun addGlow() {
@@ -977,6 +1010,14 @@ abstract class GeoEntityRendererBase<T>(
     /** Declare the bones this renderer watches or hides, for the entity with [entityId]. */
     protected open fun onBones(bones: BoneAccess, entityId: Int) {}
 
+    /*
+     * GeckoLib 4.8 takes the colour as FOUR FLOATS rather than one packed int, and `render` takes a
+     * `MultiBufferSource` it later dropped. Only the tail of each signature differs, so the arms sit
+     * around the overrides rather than around the whole class -- which is safe here because the arm
+     * enclosing them is live rather than commented, and a directive inside a commented arm would close
+     * that comment early.
+     */
+    //? if >=1.21 {
     override fun renderRecursively(
         poseStack: com.mojang.blaze3d.vertex.PoseStack,
         animatable: T,
@@ -994,6 +1035,31 @@ abstract class GeoEntityRendererBase<T>(
         if (!bones.visit(bone, isReRender, poseStack)) return
         super.renderRecursively(poseStack, animatable, bone, renderType, bufferSource, buffer, isReRender, partialTick, packedLight, packedOverlay, colour)
     }
+    //?} else {
+    /*override fun renderRecursively(
+        poseStack: com.mojang.blaze3d.vertex.PoseStack,
+        animatable: T,
+        bone: bpm.platform.GeoBone,
+        renderType: bpm.platform.RenderType,
+        bufferSource: net.minecraft.client.renderer.MultiBufferSource,
+        buffer: com.mojang.blaze3d.vertex.VertexConsumer,
+        isReRender: Boolean,
+        partialTick: Float,
+        packedLight: Int,
+        packedOverlay: Int,
+        red: Float,
+        green: Float,
+        blue: Float,
+        alpha: Float,
+    ) {
+        onBones(bones, animatable.id)
+        if (!bones.visit(bone, isReRender, poseStack)) return
+        super.renderRecursively(
+            poseStack, animatable, bone, renderType, bufferSource, buffer, isReRender, partialTick,
+            packedLight, packedOverlay, red, green, blue, alpha,
+        )
+    }
+    *///?}
 
     protected fun addGlow() {
         addRenderLayer(BpmGlowLayer(this))
