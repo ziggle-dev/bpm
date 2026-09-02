@@ -433,7 +433,7 @@ object BpmCommands {
      * that is the classic periodic stutter on Windows.
      */
     fun tickReport(server: MinecraftServer): String {
-        val ms = server.tickTimesNanos.map { it / 1e6 }
+        val ms = bpm.platform.tickTimesNanos(server).map { it / 1e6 }
         val spikes = ms.filter { it > 50 }
         val where = if (spikes.isEmpty()) "" else " (" + spikes.joinToString(", ") { "%.0f".format(it) } + " ms)"
         val sync = (server as? DedicatedServer)?.properties?.syncChunkWrites

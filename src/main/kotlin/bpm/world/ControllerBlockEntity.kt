@@ -176,12 +176,11 @@ class ControllerBlockEntity(pos: BlockPos, state: BlockState) :
         coreTier = CoreTier.byKey(components.get(ModComponents.CORE_TIER.get()))
     }
 
-    override fun collectImplicitComponents(builder: net.minecraft.core.component.DataComponentMap.Builder) {
-        super.collectImplicitComponents(builder)
-        builder.set(ModComponents.CORE_TIER.get(), coreTier.key)
+    override fun writeComponents(sink: bpm.platform.ComponentSink) {
+        sink.set(ModComponents.CORE_TIER.get(), coreTier.key)
     }
 
-    override fun getUpdateTag(registries: HolderLookup.Provider): CompoundTag = syncTag { tag ->
+    override fun updateTag(registries: HolderLookup.Provider): CompoundTag = syncTag { tag ->
         tag.putString("coreTier", coreTier.key)
         docId?.let { bpm.platform.putUuid(tag, "doc", it) }
         tag.put("links", links.save())

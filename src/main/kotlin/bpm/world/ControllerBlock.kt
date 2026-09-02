@@ -61,7 +61,7 @@ class ControllerBlock(properties: Properties) : bpm.platform.RemovalAwareBlock(p
     override fun getDirectSignal(state: BlockState, level: BlockGetter, pos: BlockPos, direction: Direction): Int =
         getSignal(state, level, pos, direction)
 
-    override fun useWithoutItem(state: BlockState, level: Level, pos: BlockPos, player: Player, hit: BlockHitResult): InteractionResult {
+    override fun onUseEmpty(state: BlockState, level: Level, pos: BlockPos, player: Player, hit: BlockHitResult): InteractionResult {
         if (player.isShiftKeyDown) {
             if (level.isClientSide) return InteractionResult.SUCCESS
             val be = level.getBlockEntity(pos) as? ControllerBlockEntity ?: return InteractionResult.PASS

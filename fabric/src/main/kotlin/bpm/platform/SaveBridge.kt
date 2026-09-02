@@ -81,6 +81,40 @@ abstract class SavingBlockEntity(type: net.minecraft.world.level.block.entity.Bl
         //?}
     }
 
+    /**
+     * The registries this block entity can reach, or the empty set before it is placed in a level.
+     *
+     * The older band's `getUpdateTag()` and `saveAdditional(tag)` are handed no registries at all, so the
+     * mod's own hooks -- which take them on every band -- get them from the level instead.
+     */
+    protected fun blockRegistries(): HolderLookup.Provider =
+        level?.registryAccess() ?: net.minecraft.core.RegistryAccess.EMPTY
+
+    /** The tag sent to a client watching this block, in the shape [loadExtra] reads back. */
+    protected open fun updateTag(registries: HolderLookup.Provider): CompoundTag = CompoundTag()
+
+    //? if >=1.20.5 {
+    override fun getUpdateTag(registries: HolderLookup.Provider): CompoundTag = updateTag(registries)
+    //?} else {
+    /*override fun getUpdateTag(): CompoundTag = updateTag(blockRegistries())
+    *///?}
+
+    /** Write the components this block entity puts on the stack it is picked up as. */
+    protected open fun writeComponents(sink: ComponentSink) {}
+
+    //? if >=1.20.5 {
+    override fun collectImplicitComponents(builder: net.minecraft.core.component.DataComponentMap.Builder) {
+        super.collectImplicitComponents(builder)
+        writeComponents(object : ComponentSink {
+            override fun <T : Any> set(type: bpm.platform.registry.ComponentKey<T>, value: T) {
+                builder.set(type, value)
+            }
+        })
+    }
+    //?} else {
+    /*// Nothing to collect: a stack carries no components on this band, so there is nowhere to put them.
+    *///?}
+
     //? if >=1.21.5 {
     /*override fun applyImplicitComponents(input: net.minecraft.core.component.DataComponentGetter) {
         super.applyImplicitComponents(input)
@@ -112,7 +146,7 @@ abstract class SavingBlockEntity(type: net.minecraft.world.level.block.entity.Bl
         super.loadAdditional(input)
         loadExtra(pullTag(input), input.lookup())
     }
-    *///?} else {
+    *///?} elif >=1.20.5 {
     override fun saveAdditional(tag: CompoundTag, registries: HolderLookup.Provider) {
         super.saveAdditional(tag, registries)
         saveExtra(tag, registries)
@@ -122,7 +156,21 @@ abstract class SavingBlockEntity(type: net.minecraft.world.level.block.entity.Bl
         super.loadAdditional(tag, registries)
         loadExtra(tag, registries)
     }
-    //?}
+    //?} else {
+    /*/**
+     * One tag, no registries, and `load` rather than `loadAdditional` -- the "read only my own fields"
+     * hook arrived with the registries at 1.20.5. Both still read and write the same flat tag.
+     */
+    override fun saveAdditional(tag: CompoundTag) {
+        super.saveAdditional(tag)
+        saveExtra(tag, blockRegistries())
+    }
+
+    override fun load(tag: CompoundTag) {
+        super.load(tag)
+        loadExtra(tag, blockRegistries())
+    }
+    *///?}
 }
 
 /** The same for a projectile. Entities carry their own registry access, so nothing has to be guessed. */
@@ -131,12 +179,20 @@ abstract class SavingProjectile(type: EntityType<out Projectile>, level: Level) 
     protected open fun saveExtra(tag: CompoundTag, registries: HolderLookup.Provider) {}
 
     protected open fun loadExtra(tag: CompoundTag, registries: HolderLookup.Provider) {}
+    /** `Entity.registryAccess()` arrived with the components; before it the level is what holds them. */
+    protected fun projectileRegistries(): HolderLookup.Provider {
+        //? if >=1.20.5 {
+        return registryAccess()
+        //?} else {
+        /*return level().registryAccess()
+        *///?}
+    }
 
     //? if >=1.21.6 {
     /*override fun addAdditionalSaveData(output: net.minecraft.world.level.storage.ValueOutput) {
         super.addAdditionalSaveData(output)
         val tag = CompoundTag()
-        saveExtra(tag, registryAccess())
+        saveExtra(tag, projectileRegistries())
         pushTag(output, tag)
     }
 
@@ -147,12 +203,12 @@ abstract class SavingProjectile(type: EntityType<out Projectile>, level: Level) 
     *///?} else {
     override fun addAdditionalSaveData(tag: CompoundTag) {
         super.addAdditionalSaveData(tag)
-        saveExtra(tag, registryAccess())
+        saveExtra(tag, projectileRegistries())
     }
 
     override fun readAdditionalSaveData(tag: CompoundTag) {
         super.readAdditionalSaveData(tag)
-        loadExtra(tag, registryAccess())
+        loadExtra(tag, projectileRegistries())
     }
     //?}
 }
@@ -166,6 +222,11 @@ abstract class SavingProjectile(type: EntityType<out Projectile>, level: Level) 
  * reader of its own. Which is the better shape anyway: 1.21.9 replaced that nested type with the
  * top-level `DataComponentGetter`, and a caller that asks for one component by type never cared.
  */
+/** Where a block entity writes the components it wants on the stack it is picked up as. */
+interface ComponentSink {
+    fun <T : Any> set(type: bpm.platform.registry.ComponentKey<T>, value: T)
+}
+
 interface ComponentSource {
     /** The value for [type], or null when the stack carried none. */
     fun <T : Any> get(type: bpm.platform.registry.ComponentKey<T>): T?

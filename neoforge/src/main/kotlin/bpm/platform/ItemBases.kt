@@ -56,7 +56,7 @@ open class BpmItem(properties: Properties) : Item(properties) {
         super.inventoryTick(stack, level, entity, slot)
         carriedTick(stack, level, entity, slot != null)
     }
-    *///?} else {
+    *///?} elif >=1.20.5 {
     final override fun appendHoverText(
         stack: ItemStack,
         context: TooltipContext,
@@ -79,7 +79,35 @@ open class BpmItem(properties: Properties) : Item(properties) {
         val offhand = (entity as? net.minecraft.world.entity.LivingEntity)?.offhandItem === stack
         carriedTick(stack, server, entity, selected || offhand)
     }
-    //?}
+    //?} else {
+    /*/**
+     * A nullable `Level` rather than a context object: the tooltip was handed the world it was drawn in,
+     * and `TooltipContext` -- which carries the registries a component-aware tooltip needs -- did not
+     * exist yet because neither did the components.
+     */
+    final override fun appendHoverText(
+        stack: ItemStack,
+        level: net.minecraft.world.level.Level?,
+        tooltip: MutableList<Component>,
+        flag: net.minecraft.world.item.TooltipFlag,
+    ) {
+        super.appendHoverText(stack, level, tooltip, flag)
+        lore(stack) { tooltip.add(it) }
+    }
+
+    final override fun inventoryTick(
+        stack: ItemStack,
+        level: net.minecraft.world.level.Level,
+        entity: net.minecraft.world.entity.Entity,
+        slot: Int,
+        selected: Boolean,
+    ) {
+        super.inventoryTick(stack, level, entity, slot, selected)
+        val server = level as? net.minecraft.server.level.ServerLevel ?: return
+        val offhand = (entity as? net.minecraft.world.entity.LivingEntity)?.offhandItem === stack
+        carriedTick(stack, server, entity, selected || offhand)
+    }
+    *///?}
 }
 
 /** The same tooltip hook, for an item that places a block and so cannot extend [BpmItem]. */
@@ -98,7 +126,7 @@ open class BpmBlockItem(block: Block, properties: Properties) : BlockItem(block,
         super.appendHoverText(stack, context, display, add, flag)
         lore(stack) { add.accept(it) }
     }
-    *///?} else {
+    *///?} elif >=1.20.5 {
     final override fun appendHoverText(
         stack: ItemStack,
         context: TooltipContext,
@@ -108,5 +136,20 @@ open class BpmBlockItem(block: Block, properties: Properties) : BlockItem(block,
         super.appendHoverText(stack, context, tooltip, flag)
         lore(stack) { tooltip.add(it) }
     }
-    //?}
+    //?} else {
+    /*/**
+     * A nullable `Level` rather than a context object: the tooltip was handed the world it was drawn in,
+     * and `TooltipContext` -- which carries the registries a component-aware tooltip needs -- did not
+     * exist yet because neither did the components.
+     */
+    final override fun appendHoverText(
+        stack: ItemStack,
+        level: net.minecraft.world.level.Level?,
+        tooltip: MutableList<Component>,
+        flag: net.minecraft.world.item.TooltipFlag,
+    ) {
+        super.appendHoverText(stack, level, tooltip, flag)
+        lore(stack) { tooltip.add(it) }
+    }
+    *///?}
 }

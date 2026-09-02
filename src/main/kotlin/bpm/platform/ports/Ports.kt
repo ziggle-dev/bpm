@@ -118,7 +118,7 @@ fun ItemPort.insertStacked(stack: ItemStack, simulate: Boolean): ItemStack {
     if (left.isStackable) {
         for (slot in 0 until slots) {
             val existing = stackIn(slot)
-            if (existing.isEmpty || !ItemStack.isSameItemSameComponents(existing, left)) continue
+            if (existing.isEmpty || !bpm.platform.sameItemAndData(existing, left)) continue
             left = insert(slot, left, simulate)
             if (left.isEmpty) return ItemStack.EMPTY
         }
@@ -204,7 +204,7 @@ class ContainerPort(private val container: Container) : ItemPort {
         val existing = container.getItem(slot)
         val limit = minOf(container.maxStackSize, stack.maxStackSize)
         if (!existing.isEmpty) {
-            if (!ItemStack.isSameItemSameComponents(existing, stack)) return stack
+            if (!bpm.platform.sameItemAndData(existing, stack)) return stack
             val room = limit - existing.count
             if (room <= 0) return stack
             val moved = minOf(room, stack.count)

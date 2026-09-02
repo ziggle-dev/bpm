@@ -46,7 +46,7 @@ open class SlotStore(private val size: Int, private val onChange: () -> Unit = {
         val existing = stacks[slot]
         val limit = minOf(slotLimit(slot), stack.maxStackSize)
         val room = if (existing.isEmpty) limit else {
-            if (!ItemStack.isSameItemSameComponents(existing, stack)) return stack
+            if (!bpm.platform.sameItemAndData(existing, stack)) return stack
             limit - existing.count
         }
         if (room <= 0) return stack

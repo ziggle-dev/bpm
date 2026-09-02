@@ -48,9 +48,9 @@ import bpm.platform.showMessage
  * and the slot's timers: a fight nobody is in goes dormant again, a claimed room resets.
  */
 object ChamberFight {
-    private val CORE_QUALITY: ResourceKey<LootTable> = ResourceKey.create(Registries.LOOT_TABLE, idOf(Bpm.ID, "gameplay/core_quality"))
-    private val CORE_QUALITY_FAST: ResourceKey<LootTable> = ResourceKey.create(Registries.LOOT_TABLE, idOf(Bpm.ID, "gameplay/core_quality_fast"))
-    private val PITY: ResourceKey<LootTable> = ResourceKey.create(Registries.LOOT_TABLE, idOf(Bpm.ID, "gameplay/warden_pity"))
+    private val CORE_QUALITY: bpm.platform.LootKey = bpm.platform.lootKey(idOf(Bpm.ID, "gameplay/core_quality"))
+    private val CORE_QUALITY_FAST: bpm.platform.LootKey = bpm.platform.lootKey(idOf(Bpm.ID, "gameplay/core_quality_fast"))
+    private val PITY: bpm.platform.LootKey = bpm.platform.lootKey(idOf(Bpm.ID, "gameplay/warden_pity"))
 
     private class PendingSpawn(val level: ServerLevel, val pedestal: BlockPos, val owner: UUID, var at: Long)
 
@@ -513,8 +513,8 @@ object ChamberFight {
         }
     }
 
-    private fun roll(level: ServerLevel, key: ResourceKey<LootTable>): List<ItemStack> {
-        val table = level.server.reloadableRegistries().getLootTable(key)
+    private fun roll(level: ServerLevel, key: bpm.platform.LootKey): List<ItemStack> {
+        val table = bpm.platform.lootTable(level.server, key)
         val out = ArrayList<ItemStack>()
         table.getRandomItems(LootParams.Builder(level).create(LootContextParamSets.EMPTY)) { out += it }
         return out

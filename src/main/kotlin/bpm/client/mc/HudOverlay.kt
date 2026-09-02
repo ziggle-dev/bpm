@@ -65,7 +65,7 @@ object HudOverlay {
     }
 
     /** Hung off the top of the HUD: draws every panel, and nothing else. */
-    fun render(g: bpm.platform.client.GuiGraphics, delta: net.minecraft.client.DeltaTracker) {
+    fun render(g: bpm.platform.client.GuiGraphics, delta: bpm.platform.client.FrameDelta) {
         if (panels.isEmpty() || hidden) return
         val mc = Minecraft.getInstance()
         // A screen draws its own copy, with a cursor; the HUD would only be a second one underneath.

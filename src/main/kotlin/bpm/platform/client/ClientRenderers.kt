@@ -86,7 +86,7 @@ object ClientKeys {
  * would cost a translation layer to buy nothing.
  */
 fun interface HudLayer {
-    fun draw(g: GuiGraphics, delta: net.minecraft.client.DeltaTracker)
+    fun draw(g: GuiGraphics, delta: FrameDelta)
 }
 
 /**

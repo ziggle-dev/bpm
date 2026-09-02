@@ -1,5 +1,7 @@
 package bpm.platform
 
+import net.minecraft.world.item.ItemStack
+
 /**
  * The extra data carried alongside a fluid or an item, under whichever form this band has.
  *
@@ -69,4 +71,23 @@ fun patchIsEmpty(patch: ComponentPatch): Boolean = patch.isEmpty
 fun patchOf(stack: net.minecraft.world.item.ItemStack): ComponentPatch = stack.tag ?: emptyPatch()
 
 fun patchIsEmpty(patch: ComponentPatch): Boolean = patch.isEmpty
+*///?}
+
+/**
+ * Two stacks holding the same item with the same data attached.
+ *
+ * The data moved from an NBT tag to a component map at 1.20.5 and the comparison was renamed with it,
+ * but it answers the same question: would these two merge into one stack.
+ */
+//? if >=1.20.5 {
+fun sameItemAndData(a: ItemStack, b: ItemStack): Boolean = ItemStack.isSameItemSameComponents(a, b)
+//?} else {
+/*fun sameItemAndData(a: ItemStack, b: ItemStack): Boolean = ItemStack.isSameItemSameTags(a, b)
+*///?}
+
+/** How many of [item] fit in one stack. The default moved into the components at 1.20.5. */
+//? if >=1.20.5 {
+fun maxStackSize(item: net.minecraft.world.item.Item): Int = item.defaultMaxStackSize
+//?} else {
+/*fun maxStackSize(item: net.minecraft.world.item.Item): Int = item.maxStackSize
 *///?}

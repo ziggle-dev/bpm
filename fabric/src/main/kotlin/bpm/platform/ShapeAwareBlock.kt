@@ -17,7 +17,7 @@ import net.minecraft.world.level.block.state.BlockState
  * The three facts the only caller in this mod actually wants -- its own state, which side changed, and
  * what is there now -- are the same on both, so [onNeighborShape] is what the shared subclass writes.
  */
-abstract class ShapeAwareBlock(properties: Properties) : Block(properties) {
+abstract class ShapeAwareBlock(properties: Properties) : InteractiveBlock(properties) {
 
     /** The new state for [state] given that the block on [direction] is now [neighborState]. */
     protected abstract fun onNeighborShape(state: BlockState, direction: Direction, neighborState: BlockState): BlockState

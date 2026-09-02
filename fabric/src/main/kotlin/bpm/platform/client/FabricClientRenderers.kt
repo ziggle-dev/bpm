@@ -121,19 +121,19 @@ object FabricHudRegistry : HudRegistry {
             net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry.attachElementAfter(
                 net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements.CROSSHAIR,
                 id,
-                { graphics, delta -> layer.draw(graphics, delta) },
+                { graphics, delta -> layer.draw(graphics, bpm.platform.client.FrameDelta(delta)) },
             )
         }
         for ((id, layer) in topLayers) {
             net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry.addLast(
                 id,
-                { graphics, delta -> layer.draw(graphics, delta) },
+                { graphics, delta -> layer.draw(graphics, bpm.platform.client.FrameDelta(delta)) },
             )
         }
         *///?} else {
         net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback.EVENT.register { graphics, delta ->
-            for ((_, layer) in aboveCrosshairLayers) layer.draw(graphics, delta)
-            for ((_, layer) in topLayers) layer.draw(graphics, delta)
+            for ((_, layer) in aboveCrosshairLayers) layer.draw(graphics, bpm.platform.client.FrameDelta(delta))
+            for ((_, layer) in topLayers) layer.draw(graphics, bpm.platform.client.FrameDelta(delta))
         }
         //?}
     }

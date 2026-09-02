@@ -80,7 +80,7 @@ class MonitorBlock(properties: Properties) : bpm.platform.ShapeAwareBlock(proper
     override fun <T : BlockEntity> getTicker(level: Level, state: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T>? =
         DeviceBlockEntity.ticker(level, type, DeviceBlockEntities.MONITOR.get())
 
-    override fun useWithoutItem(state: BlockState, level: Level, pos: BlockPos, player: Player, hit: BlockHitResult): InteractionResult {
+    override fun onUseEmpty(state: BlockState, level: Level, pos: BlockPos, player: Player, hit: BlockHitResult): InteractionResult {
         if (level.isClientSide) return InteractionResult.SUCCESS
         level.setBlock(pos, state.cycle(ON), Block.UPDATE_ALL)
         return InteractionResult.CONSUME

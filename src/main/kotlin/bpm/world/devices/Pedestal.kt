@@ -33,7 +33,7 @@ import bpm.platform.showMessage
  * Warden (the core rises into it); using it after the Warden fell hands the core over. Outside a chamber it
  * is a decorative socket that simply holds a core.
  */
-class PedestalBlock(properties: Properties) : Block(properties), EntityBlock {
+class PedestalBlock(properties: Properties) : bpm.platform.InteractiveBlock(properties), EntityBlock {
     init {
         registerDefaultState(stateDefinition.any().setValue(HAS_CORE, false))
     }
@@ -48,7 +48,7 @@ class PedestalBlock(properties: Properties) : Block(properties), EntityBlock {
     override fun <T : BlockEntity> getTicker(level: Level, state: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T>? =
         DeviceBlockEntity.ticker(level, type, DeviceBlockEntities.PEDESTAL.get())
 
-    override fun useItemOn(stack: net.minecraft.world.item.ItemStack, state: BlockState, level: Level, pos: BlockPos, player: Player, hand: net.minecraft.world.InteractionHand, hit: BlockHitResult): bpm.platform.BlockUseResult {
+    override fun onUseItem(stack: net.minecraft.world.item.ItemStack, state: BlockState, level: Level, pos: BlockPos, player: Player, hand: net.minecraft.world.InteractionHand, hit: BlockHitResult): bpm.platform.BlockUseResult {
         val be = level.getBlockEntity(pos) as? PedestalBlockEntity
         val linker = stack.item as? bpm.world.LinkerItem
         if (linker != null && bpm.chamber.ChamberDimension.isChamber(level)) {
@@ -63,7 +63,7 @@ class PedestalBlock(properties: Properties) : Block(properties), EntityBlock {
         return bpm.platform.BlockUse.sidedSuccess(level.isClientSide)
     }
 
-    override fun useWithoutItem(state: BlockState, level: Level, pos: BlockPos, player: Player, hit: BlockHitResult): InteractionResult {
+    override fun onUseEmpty(state: BlockState, level: Level, pos: BlockPos, player: Player, hit: BlockHitResult): InteractionResult {
         if (level.isClientSide) return InteractionResult.SUCCESS
         val be = level.getBlockEntity(pos) as? PedestalBlockEntity ?: return InteractionResult.PASS
         be.use(player)

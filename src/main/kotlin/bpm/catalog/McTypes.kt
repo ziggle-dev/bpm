@@ -152,7 +152,7 @@ object McTypes {
         listOf(
             HostField("id", STRING, "the registry id") { it?.toString().orEmpty() },
             HostField("name", STRING, "the display name") { RegistryIds.item(it?.toString().orEmpty())?.let { i -> net.minecraft.network.chat.Component.translatable(i.descriptionId).string }.orEmpty() },
-            HostField("maxStack", INT, "how many fit in one stack") { (RegistryIds.item(it?.toString().orEmpty())?.defaultMaxStackSize ?: 0).toLong() },
+            HostField("maxStack", INT, "how many fit in one stack") { (RegistryIds.item(it?.toString().orEmpty())?.let { i -> bpm.platform.maxStackSize(i) } ?: 0).toLong() },
             HostField("isBlock", BOOL, "can it be placed") { RegistryIds.item(it?.toString().orEmpty()) is BlockItem },
         ),
         "a kind of item, by registry id",

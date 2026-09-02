@@ -77,7 +77,7 @@ class AssemblerBlock(properties: Properties) : bpm.platform.RemovalAwareHorizont
         DeviceBlockEntity.ticker(level, type, DeviceBlockEntities.ASSEMBLER.get())
 
     /** The catalyst goes in by hand; anything else is a miss and falls through to placing a block. */
-    override fun useItemOn(
+    override fun onUseItem(
         stack: ItemStack,
         state: BlockState,
         level: Level,

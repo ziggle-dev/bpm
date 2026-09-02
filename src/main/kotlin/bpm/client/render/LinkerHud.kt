@@ -10,7 +10,6 @@ import bpm.world.LinkerItem
 import bpm.world.items.WardenVisorItem
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.PoseStack
-import net.minecraft.client.DeltaTracker
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
 import bpm.platform.client.GuiGraphics
@@ -223,7 +222,7 @@ object LinkerHud {
 
     // ---- the crosshair line -----------------------------------------------------------------------------
 
-    private fun drawHud(g: GuiGraphics, delta: DeltaTracker) {
+    private fun drawHud(g: GuiGraphics, delta: bpm.platform.client.FrameDelta) {
         val mc = Minecraft.getInstance()
         val player = mc.player ?: return
         if (bpm.platform.client.hudHidden()) return
