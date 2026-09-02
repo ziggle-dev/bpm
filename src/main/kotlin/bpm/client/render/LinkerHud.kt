@@ -15,7 +15,7 @@ import bpm.platform.client.GuiGraphics
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.renderer.GameRenderer
 import net.minecraft.client.renderer.LevelRenderer
-import bpm.platform.client.LightTexture
+import bpm.platform.client.FULL_BRIGHT
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
 import bpm.platform.ResourceLocation
@@ -28,6 +28,7 @@ import org.joml.Matrix4f
 import org.joml.Vector2f
 import org.joml.Vector4f
 import java.util.function.Consumer
+import bpm.platform.client.drawText
 
 /**
  * What a player holding the Quantum Linker sees: the bound controller's links outlined in the world with a
@@ -181,8 +182,8 @@ object LinkerHud {
             pose.scale(-0.025f, -0.025f, 0.025f)
             val m = pose.last().pose()
             val x = -font.width(link.name) / 2f
-            font.drawInBatch(link.name, x, 0f, 0x20FFFFFF, false, m, buffers, Font.DisplayMode.SEE_THROUGH, bg, LightTexture.FULL_BRIGHT)
-            font.drawInBatch(link.name, x, 0f, 0xFFF0A3D6.toInt(), false, m, buffers, Font.DisplayMode.NORMAL, 0, LightTexture.FULL_BRIGHT)
+            font.drawInBatch(link.name, x, 0f, 0x20FFFFFF, false, m, buffers, Font.DisplayMode.SEE_THROUGH, bg, FULL_BRIGHT)
+            font.drawInBatch(link.name, x, 0f, 0xFFF0A3D6.toInt(), false, m, buffers, Font.DisplayMode.NORMAL, 0, FULL_BRIGHT)
             pose.popPose()
         }
         for (link in be.links.blocks) {
@@ -196,8 +197,8 @@ object LinkerHud {
             pose.scale(-0.025f, -0.025f, 0.025f)
             val m = pose.last().pose()
             val x = -font.width(text) / 2f
-            font.drawInBatch(text, x, 0f, 0x20FFFFFF, false, m, buffers, Font.DisplayMode.SEE_THROUGH, bg, LightTexture.FULL_BRIGHT)
-            font.drawInBatch(text, x, 0f, if (gone) 0xFFFFB84D.toInt() else 0xFF4DFFD8.toInt(), false, m, buffers, Font.DisplayMode.NORMAL, 0, LightTexture.FULL_BRIGHT)
+            font.drawInBatch(text, x, 0f, 0x20FFFFFF, false, m, buffers, Font.DisplayMode.SEE_THROUGH, bg, FULL_BRIGHT)
+            font.drawInBatch(text, x, 0f, if (gone) 0xFFFFB84D.toInt() else 0xFF4DFFD8.toInt(), false, m, buffers, Font.DisplayMode.NORMAL, 0, FULL_BRIGHT)
             pose.popPose()
         }
         buffers.endBatch()
@@ -236,22 +237,22 @@ object LinkerHud {
             val ready = stack.getOrDefault(bpm.world.ModComponents.TRACK_READY_AT.get(), 0L)
             val now = player.level().gameTime
             val track = if (now >= ready) "special ready" else "special in ${(ready - now) / 20 + 1} s"
-            g.drawString(font, "linker · specials $charges / ${LinkerItem.MAX_CHARGES} · $track", x, y1, if (charges == 0) 0xF26D6D else 0x4DFFD8, true)
-            g.drawString(font, "use: pulse · sneak + click: special · pedestal: recharge", x, y2, 0x9AA3B5, true)
+            g.drawText(font, "linker · specials $charges / ${LinkerItem.MAX_CHARGES} · $track", x, y1, if (charges == 0) 0xF26D6D else 0x4DFFD8, true)
+            g.drawText(font, "use: pulse · sneak + click: special · pedestal: recharge", x, y2, 0x9AA3B5, true)
             return
         }
         val be = controller(player)
         if (be == null) {
             val bound = LinkerItem.selectedPos(stack)
-            g.drawString(font, if (bound == null) "linker · sneak-use a controller to bind" else "linker · controller ${bound.toShortString()} out of sight", x, y1, 0x9AA3B5, true)
+            g.drawText(font, if (bound == null) "linker · sneak-use a controller to bind" else "linker · controller ${bound.toShortString()} out of sight", x, y1, 0x9AA3B5, true)
             return
         }
         val range = LinkerItem.reach(be, player)
-        g.drawString(font, "controller ${be.blockPos.toShortString()} · ${be.links.all.size}/${be.links.capacity} links · reach ${bpm.world.CoreTier.rangeText(range)}", x, y1, 0x4DFFD8, true)
+        g.drawText(font, "controller ${be.blockPos.toShortString()} · ${be.links.all.size}/${be.links.capacity} links · reach ${bpm.world.CoreTier.rangeText(range)}", x, y1, 0x4DFFD8, true)
         val hit = mc.hitResult as? BlockHitResult
         if (hit == null || hit.type != HitResult.Type.BLOCK) {
             val ahead = LinkerItem.linkAhead(player.level(), player, be) ?: return
-            g.drawString(font, "'${ahead.name}' — its block is gone · sneak-use to unlink · ctrl-use to rename", x, y2, 0xFFB84D, true)
+            g.drawText(font, "'${ahead.name}' — its block is gone · sneak-use to unlink · ctrl-use to rename", x, y2, 0xFFB84D, true)
             return
         }
         if (hit.blockPos == be.blockPos) return
@@ -264,6 +265,6 @@ object LinkerHud {
             player.isShiftKeyDown -> "$name — nothing linked here"
             else -> "use to link '${be.links.previewName(name)}' (${hit.direction.name.lowercase()} face)"
         }
-        g.drawString(font, text, x, y2, if (existing != null) 0xFFD27A else 0xE6E9F2, true)
+        g.drawText(font, text, x, y2, if (existing != null) 0xFFD27A else 0xE6E9F2, true)
     }
 }

@@ -5,7 +5,6 @@ import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
 import com.mojang.math.Axis
 import net.minecraft.core.BlockPos
-import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.world.phys.Vec3
 import org.joml.Matrix4f
 import kotlin.math.asin
@@ -40,7 +39,7 @@ object RiftRenderer {
 
     private fun f(x: Float, y: Float, z: Float) = floatArrayOf(x, y, z)
 
-    fun draw(rift: Rift, at: Vec3, anchorPos: BlockPos, facing: Vec3, scale: Float, buffers: MultiBufferSource, pose: PoseStack, partialTick: Float) {
+    fun draw(rift: Rift, at: Vec3, anchorPos: BlockPos, facing: Vec3, scale: Float, draw: bpm.platform.client.ImmediateDraw, pose: PoseStack, partialTick: Float) {
         val open = rift.openness(partialTick)
         if (open <= 0.01f) return
 
@@ -48,7 +47,7 @@ object RiftRenderer {
         // breathe, both scaled by how much is going through it — see `Rift.yawWobble`.
         val scaled = (open * rift.breathe(partialTick)).coerceAtLeast(0.02f)
         val alpha = (open.coerceIn(0f, 1.4f) / 1.4f * 255).toInt().coerceIn(0, 255)
-        val buf = buffers.getBuffer(bpm.platform.client.RiftLooks.typeFor(style))
+        val buf = draw.consumer(bpm.platform.client.RiftLooks.typeFor(style))
         when (style) {
             RiftStyle.CUBE -> cube(rift, at, scale * scaled, alpha, buf, pose, partialTick)
             RiftStyle.TEAR -> tear(rift, at, anchorPos, facing, scale * scaled, alpha, buf, pose, partialTick)

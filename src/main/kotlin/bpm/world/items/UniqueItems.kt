@@ -31,8 +31,9 @@ import net.minecraft.world.phys.Vec3
 import kotlin.math.atan2
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
+import bpm.platform.showMessage
 
-private fun say(player: Player, text: String) = player.displayClientMessage(Component.literal("[bpm] $text"), true)
+private fun say(player: Player, text: String) = player.showMessage(Component.literal("[bpm] $text"), true)
 
 /** The Warden's Visor: worn on the head; the linker reaches half again as far and its lines show through walls. */
 class WardenVisorItem(properties: Properties) : bpm.platform.HeadWornItem(properties) {

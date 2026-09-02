@@ -22,6 +22,7 @@ import bpm.platform.PlayState
 import bpm.platform.RawAnimation
 import bpm.platform.GeckoLibUtil
 import java.util.function.Consumer
+import bpm.platform.showMessage
 
 /**
  * The Quantum Linker: names world blocks for a controller.
@@ -172,7 +173,7 @@ class LinkerItem(properties: Properties) : bpm.platform.BpmItem(properties), Geo
         return level.getBlockEntity(sel.pos()) as? ControllerBlockEntity
     }
 
-    private fun say(player: Player, text: String) = player.displayClientMessage(Component.literal("[bpm] $text"), true)
+    private fun say(player: Player, text: String) = player.showMessage(Component.literal("[bpm] $text"), true)
 
     /** Inside a chamber the wand is a weapon of sorts: a decohering pulse, from whichever hand holds it. */
     /** Specials left. */

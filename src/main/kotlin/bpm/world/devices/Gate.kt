@@ -44,6 +44,7 @@ import java.util.UUID
 import kotlin.math.abs
 import bpm.platform.longOr
 import bpm.platform.boolOr
+import bpm.platform.showMessage
 
 /**
  * The Quantum Gate projector: the top-centre block of a 5 × 5 ring of gate frames in a vertical plane, which
@@ -82,7 +83,7 @@ class GateBlock(properties: Properties) : bpm.platform.RemovalAwareBlock(propert
         if (level.isClientSide) return InteractionResult.SUCCESS
         val be = level.getBlockEntity(pos) as? GateBlockEntity ?: return InteractionResult.PASS
         be.revalidate()
-        player.displayClientMessage(Component.literal("[bpm] " + be.describe()), true)
+        player.showMessage(Component.literal("[bpm] " + be.describe()), true)
         if (!state.getValue(OPEN)) be.triggerAnim("overlay", "pulse")
         return InteractionResult.CONSUME
     }
@@ -195,11 +196,11 @@ class GateBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(Devi
     fun tryOpen(player: Player?): Boolean {
         revalidate()
         if (isOpen) {
-            player?.displayClientMessage(Component.literal("[bpm] the gate is already open"), true)
+            player?.showMessage(Component.literal("[bpm] the gate is already open"), true)
             return false
         }
         if (!frameOk) {
-            player?.displayClientMessage(Component.literal("[bpm] the projection has nothing to focus — complete the frame"), true)
+            player?.showMessage(Component.literal("[bpm] the projection has nothing to focus — complete the frame"), true)
             triggerAnim("overlay", "pulse")
             return false
         }

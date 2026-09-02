@@ -196,7 +196,7 @@ class AssemblerRenderer : DeviceRenderer<AssemblerBlockEntity>("quantum_assemble
         pose.mulPose(Axis.YP.rotationDegrees((time * 2.4).toFloat()))
         pose.mulPose(Axis.XP.rotationDegrees(sin(time * 0.09).toFloat() * 18f * wobble))
         pose.scale(grow, grow, grow)
-        draw.item(pose, stack, ItemDisplayContext.GROUND, LevelRenderer.getLightColor(level, be.blockPos.above()), OverlayTexture.NO_OVERLAY)
+        draw.item(pose, stack, ItemDisplayContext.GROUND, bpm.platform.client.lightAt(level, be.blockPos.above()), OverlayTexture.NO_OVERLAY)
         pose.popPose()
     }
 
@@ -359,7 +359,7 @@ class PedestalRenderer : DeviceRenderer<PedestalBlockEntity>("core_pedestal", { 
         poseStack.translate(0.5, AssemblerRenderer.PEDESTAL_SOCKET + sin(time * 0.05) * 0.03, 0.5)
         poseStack.mulPose(Axis.YP.rotationDegrees((time * 1.6).toFloat()))
         poseStack.scale(0.5f, 0.5f, 0.5f)
-        draw.item(poseStack, stack, ItemDisplayContext.GROUND, LevelRenderer.getLightColor(level, animatable.blockPos.above()), OverlayTexture.NO_OVERLAY)
+        draw.item(poseStack, stack, ItemDisplayContext.GROUND, bpm.platform.client.lightAt(level, animatable.blockPos.above()), OverlayTexture.NO_OVERLAY)
         poseStack.popPose()
     }
 }

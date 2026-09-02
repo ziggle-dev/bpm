@@ -45,6 +45,7 @@ import bpm.platform.boolOr
 import bpm.platform.byteOr
 import bpm.platform.compoundOr
 import bpm.platform.listOr
+import bpm.platform.showMessage
 
 /**
  * The Quantum Assembler: the block bpm's own things are made on, instead of a crafting grid.
@@ -88,7 +89,7 @@ class AssemblerBlock(properties: Properties) : bpm.platform.RemovalAwareHorizont
         val be = level.getBlockEntity(pos) as? AssemblerBlockEntity ?: return bpm.platform.BlockUse.PASS_TO_BLOCK
         val refusal = be.offer(stack)
         if (refusal != null) {
-            player.displayClientMessage(Component.literal("[bpm] $refusal"), true)
+            player.showMessage(Component.literal("[bpm] $refusal"), true)
             return bpm.platform.BlockUse.FAIL
         }
         return bpm.platform.BlockUse.SUCCESS

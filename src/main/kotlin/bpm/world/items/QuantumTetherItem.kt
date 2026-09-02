@@ -31,6 +31,7 @@ import bpm.platform.RawAnimation
 import bpm.platform.GeckoLibUtil
 import java.util.UUID
 import java.util.function.Consumer
+import bpm.platform.showMessage
 
 /**
  * The Quantum Tether: carry it, and a controller may reach *you*.
@@ -160,7 +161,7 @@ class QuantumTetherItem(properties: Properties) : TooltipItem(properties), GeoIt
 
     private fun grantsOf(stack: ItemStack): Set<Grant> = Grants.parse(stack.get(ModComponents.TETHER_GRANTS.get()))
 
-    private fun say(player: Player, text: String) = player.displayClientMessage(Component.literal("[bpm] $text"), true)
+    private fun say(player: Player, text: String) = player.showMessage(Component.literal("[bpm] $text"), true)
 
     /** The presence table changed: saved, and pushed to whoever is watching this controller in the editor. */
     private fun changed(level: Level, controller: ControllerBlockEntity) {

@@ -7,6 +7,7 @@ import bpm.world.devices.Widget
 import net.minecraft.client.Minecraft
 import bpm.platform.client.GuiGraphics
 import net.minecraft.core.BlockPos
+import bpm.platform.client.drawText
 
 /**
  * How a panel is drawn: the game's own font and item renderer, on the monitor's dark scanline glass.
@@ -156,10 +157,10 @@ object PanelDraw {
                     else -> x
                 }
                 if (size == 1) {
-                    g.drawString(font, shown, tx, y, colour, false)
+                    g.drawText(font, shown, tx, y, colour, false)
                 } else {
                     bpm.platform.client.guiScaled(g, tx.toFloat(), y.toFloat(), size.toFloat()) {
-                        g.drawString(font, shown, 0, 0, colour, false)
+                        g.drawText(font, shown, 0, 0, colour, false)
                     }
                 }
             }
@@ -175,7 +176,7 @@ object PanelDraw {
                     g.renderItemDecorations(font, w.item, x, y, label)
                 }
                 val label = w.label.ifEmpty { if (w.item.isEmpty) "—" else w.item.hoverName.string }
-                g.drawString(font, clip(font, label, width - ICON - 3), x + ICON + 3, y + (ICON - LINE) / 2, ScreenColours.MINT, false)
+                g.drawText(font, clip(font, label, width - ICON - 3), x + ICON + 3, y + (ICON - LINE) / 2, ScreenColours.MINT, false)
             }
 
             Widget.FLUID, Widget.ENERGY, Widget.BAR -> {
@@ -190,8 +191,8 @@ object PanelDraw {
                 val lw = font.width(label)
                 val header = listOf(full, short, percent).firstOrNull { lw + 4 + font.width(it) <= width } ?: percent
                 val hw = font.width(header)
-                g.drawString(font, clip(font, label, width - hw - 4), x, y, ScreenColours.MINT, false)
-                g.drawString(font, header, x + width - hw, y, ScreenColours.DIM, false)
+                g.drawText(font, clip(font, label, width - hw - 4), x, y, ScreenColours.MINT, false)
+                g.drawText(font, header, x + width - hw, y, ScreenColours.DIM, false)
 
                 val by = y + LINE + 1
                 val bh = height - LINE - 2
@@ -213,7 +214,7 @@ object PanelDraw {
                 val iw = (font.width(inBar) * BAR_TEXT).toInt()
                 if (iw <= width - 4) {
                     bpm.platform.client.guiScaled(g, x + (width - iw) / 2f, by + (bh - LINE * BAR_TEXT) / 2f, BAR_TEXT) {
-                        g.drawString(font, inBar, 0, 0, ScreenColours.WHITE, true)
+                        g.drawText(font, inBar, 0, 0, ScreenColours.WHITE, true)
                     }
                 }
             }
@@ -224,8 +225,8 @@ object PanelDraw {
                 val frac = if (w.max > 0.0) (w.value / w.max).coerceIn(0.0, 1.0).toFloat() else 0f
                 val shown = MonitorFormat.full(w.value) + if (w.unit.isNotEmpty()) " " + w.unit else ""
                 val sw = font.width(shown)
-                g.drawString(font, clip(font, w.label, width - sw - 4), x, y, ScreenColours.MINT, false)
-                g.drawString(font, shown, x + width - sw, y, ScreenColours.DIM, false)
+                g.drawText(font, clip(font, w.label, width - sw - 4), x, y, ScreenColours.MINT, false)
+                g.drawText(font, shown, x + width - sw, y, ScreenColours.DIM, false)
                 val by = y + LINE + 1
                 val bh = height - LINE - 2
                 g.fill(x, by, x + width, by + bh, ScreenColours.TRACK)
@@ -241,7 +242,7 @@ object PanelDraw {
                 frame(g, x, y, x + width, y + height, ScreenColours.FRAME)
                 val shown = w.text.ifEmpty { w.label.ifEmpty { "…" } }
                 val colour = if (w.text.isEmpty()) ScreenColours.DIM else ScreenColours.MINT
-                g.drawString(font, clip(font, shown, width - 4), x + 2, y + (height - LINE) / 2 + 1, colour, false)
+                g.drawText(font, clip(font, shown, width - 4), x + 2, y + (height - LINE) / 2 + 1, colour, false)
                 if (over) return Hit(p.controller, w, along(mx, x, width))
             }
 
@@ -251,7 +252,7 @@ object PanelDraw {
                 g.fill(x, y, x + width, y + height, if (over) BTN_HOT else BTN)
                 frame(g, x, y, x + width, y + height, tint)
                 val label = clip(font, w.label, width - 4)
-                g.drawString(font, label, x + (width - font.width(label)) / 2, y + (height - LINE) / 2 + 1, ScreenColours.MINT, false)
+                g.drawText(font, label, x + (width - font.width(label)) / 2, y + (height - LINE) / 2 + 1, ScreenColours.MINT, false)
                 if (over) return Hit(p.controller, w, along(mx, x, width))
             }
 
@@ -260,7 +261,7 @@ object PanelDraw {
                 val on = w.value >= 0.5
                 if (over) g.fill(x, y, x + width, y + height, BTN)
                 val knobW = 18
-                g.drawString(font, clip(font, w.label, width - knobW - 6), x + 2, y + (height - LINE) / 2 + 1, ScreenColours.MINT, false)
+                g.drawText(font, clip(font, w.label, width - knobW - 6), x + 2, y + (height - LINE) / 2 + 1, ScreenColours.MINT, false)
                 val kx = x + width - knobW - 2
                 val ky = y + 2
                 val kh = height - 4

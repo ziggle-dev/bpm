@@ -40,6 +40,7 @@ import bpm.platform.boolOr
 import bpm.platform.compoundOr
 import bpm.platform.listOr
 import bpm.platform.keyId
+import bpm.platform.showMessage
 
 /** The Decoherence Chamber's dimension — `bpm:decoherence`, a void with one room per player stamped into it. */
 object ChamberDimension {
@@ -177,7 +178,7 @@ class Chambers : bpm.platform.TagStore() {
             for (i in 0 until list.size) ChamberSlot.load(list.compoundAt(i))?.let { c.slots[it.owner] = it }
         }
 
-        private fun say(player: Player, text: String) = player.displayClientMessage(Component.literal("[bpm] $text"), true)
+        private fun say(player: Player, text: String) = player.showMessage(Component.literal("[bpm] $text"), true)
 
         /** Builds the slot's room if it is not there yet. False when the dimension is missing. */
         fun ensureBuilt(server: MinecraftServer, slot: ChamberSlot): Boolean {

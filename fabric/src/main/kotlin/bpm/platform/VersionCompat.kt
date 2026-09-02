@@ -416,15 +416,23 @@ fun fullPermissionSource(
     //?}
 
 /**
- * A message across the middle of the screen, above the hotbar.
+ * A message to one player -- across the middle of the screen above the hotbar, or in chat.
  *
  * `displayClientMessage(component, actionBar)` became `sendSystemMessage(component, actionBar)` at 26.1 --
  * the same two arguments meaning the same two things, under the name the server side always used.
+ *
+ * This is an EXTENSION rather than a function taking the player, and that is deliberate: it makes every
+ * call site a one-token rename off the vanilla method instead of a rewrite that moves the receiver into
+ * the argument list. Receivers here are not all simple names -- `event.player`, `(owner as? Player)?` --
+ * and a mechanical rewrite of those is exactly the kind that mangles a file silently.
  */
-fun showActionBar(player: net.minecraft.world.entity.player.Player, message: net.minecraft.network.chat.Component) {
+fun net.minecraft.world.entity.player.Player.showMessage(
+    message: net.minecraft.network.chat.Component,
+    actionBar: Boolean = true,
+) {
     //? if >=26.1 {
-    /*player.sendSystemMessage(message, true)
+    /*sendSystemMessage(message, actionBar)
     *///?} else {
-    player.displayClientMessage(message, true)
+    displayClientMessage(message, actionBar)
     //?}
 }

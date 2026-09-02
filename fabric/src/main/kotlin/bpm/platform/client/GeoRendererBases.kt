@@ -97,6 +97,8 @@ interface WorldDraw {
         context: net.minecraft.world.item.ItemDisplayContext,
         packedLight: Int,
         packedOverlay: Int,
+        /** Picks between a model's random variants. Motes pass their own so a stream is not uniform. */
+        seed: Int = 0,
     )
 
     /**
@@ -236,6 +238,7 @@ internal class CollectorDraw(private val collector: net.minecraft.client.rendere
         context: net.minecraft.world.item.ItemDisplayContext,
         packedLight: Int,
         packedOverlay: Int,
+        seed: Int,
     ) {
         val mc = net.minecraft.client.Minecraft.getInstance()
         val state = net.minecraft.client.renderer.item.ItemStackRenderState()
@@ -498,6 +501,7 @@ internal class BufferedDraw(private val bufferSource: net.minecraft.client.rende
         context: net.minecraft.world.item.ItemDisplayContext,
         packedLight: Int,
         packedOverlay: Int,
+        seed: Int,
     ) {
         val mc = net.minecraft.client.Minecraft.getInstance()
         mc.itemRenderer.renderStatic(stack, context, packedLight, packedOverlay, poseStack, bufferSource, mc.level, 0)
@@ -805,6 +809,7 @@ internal class BufferedDraw(private val bufferSource: net.minecraft.client.rende
         context: net.minecraft.world.item.ItemDisplayContext,
         packedLight: Int,
         packedOverlay: Int,
+        seed: Int,
     ) {
         val mc = net.minecraft.client.Minecraft.getInstance()
         mc.itemRenderer.renderStatic(stack, context, packedLight, packedOverlay, poseStack, bufferSource, mc.level, 0)

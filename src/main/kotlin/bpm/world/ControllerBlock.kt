@@ -17,6 +17,7 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.level.block.state.properties.EnumProperty
 import net.minecraft.world.phys.BlockHitResult
+import bpm.platform.showMessage
 
 /** What a controller is doing, as a block-state property so that the model and light need no entity sync. */
 enum class ControllerStatus(private val key: String) : StringRepresentable {
@@ -65,7 +66,7 @@ class ControllerBlock(properties: Properties) : bpm.platform.RemovalAwareBlock(p
             if (level.isClientSide) return InteractionResult.SUCCESS
             val be = level.getBlockEntity(pos) as? ControllerBlockEntity ?: return InteractionResult.PASS
             be.setEnabled(!be.enabled)
-            player.displayClientMessage(Component.literal("[bpm] controller ${if (be.enabled) "enabled" else "disabled"}"), true)
+            player.showMessage(Component.literal("[bpm] controller ${if (be.enabled) "enabled" else "disabled"}"), true)
             return InteractionResult.CONSUME
         }
         // The editor is a client screen; the class named here is only ever loaded on the client.

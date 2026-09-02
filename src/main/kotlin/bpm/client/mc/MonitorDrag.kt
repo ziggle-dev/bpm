@@ -10,6 +10,7 @@ import net.minecraft.client.gui.screens.Screen
 import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
 import bpm.platform.net.Net
+import bpm.platform.client.drawCenteredText
 
 /**
  * The two things a monitor's controls need a client for.
@@ -74,8 +75,8 @@ class FieldScreen private constructor(private val widget: Widget, private val se
 
     override fun render(g: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
         super.render(g, mouseX, mouseY, partialTick)
-        g.drawCenteredString(font, title, width / 2, height / 2 - 26, 0xFFB8FFF0.toInt())
-        g.drawCenteredString(font, HINT, width / 2, height / 2 + 16, 0xFF9AA3B5.toInt())
+        g.drawCenteredText(font, title, width / 2, height / 2 - 26, 0xFFB8FFF0.toInt())
+        g.drawCenteredText(font, HINT, width / 2, height / 2 + 16, 0xFF9AA3B5.toInt())
     }
 
     override fun onKeyDown(key: Int, scan: Int, modifiers: Int): Boolean {

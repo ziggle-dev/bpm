@@ -26,6 +26,7 @@ import bpm.platform.PlayState
 import bpm.platform.RawAnimation
 import java.util.UUID
 import bpm.platform.compoundOr
+import bpm.platform.showMessage
 
 /**
  * The Core Pedestal: holds the Quantum Core the Warden guards. Using it with the core in place wakes the
@@ -173,7 +174,7 @@ class PedestalBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(
             if (!player.inventory.add(stack)) player.drop(stack, false)
             return
         }
-        player.displayClientMessage(Component.literal("[bpm] " + if (hasCore) "the core hums in its socket" else "an empty socket"), true)
+        player.showMessage(Component.literal("[bpm] " + if (hasCore) "the core hums in its socket" else "an empty socket"), true)
     }
 
     override fun saveSynced(tag: CompoundTag, registries: HolderLookup.Provider) {

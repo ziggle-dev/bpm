@@ -15,6 +15,7 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
+import bpm.platform.showMessage
 
 /**
  * The chamber's house rules: its blocks hold while a Warden stands in the room; a player who dies in it
@@ -43,7 +44,7 @@ object ChamberEvents {
             return true
         }
         if (slot.locked && !event.player.isCreative) {
-            event.player.displayClientMessage(Component.literal("[bpm] the chamber holds while the Warden stands"), true)
+            event.player.showMessage(Component.literal("[bpm] the chamber holds while the Warden stands"), true)
             return false
         }
         return true

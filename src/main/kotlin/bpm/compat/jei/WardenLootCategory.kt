@@ -17,6 +17,7 @@ import net.minecraft.network.chat.Component
 import bpm.platform.ResourceLocation
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.item.ItemStack
+import bpm.platform.client.drawText
 
 /**
  * Where the cores come from, with the thing that drops them stood in the middle of it.
@@ -54,13 +55,13 @@ class WardenLootCategory(gui: IGuiHelper) : IRecipeCategory<CoreDrops.Table> {
 
     override fun draw(table: CoreDrops.Table, slots: IRecipeSlotsView, g: GuiGraphics, mouseX: Double, mouseY: Double) {
         val font = Minecraft.getInstance().font
-        g.drawString(font, Component.translatable(table.headingKey), 4, 4, HEADING, false)
+        g.drawText(font, Component.translatable(table.headingKey), 4, 4, HEADING, false)
 
         for ((i, drop) in table.drops.withIndex()) {
             val y = TOP + i * ROW
             slot.draw(g, COLUMN_X - 1, y - 1)
             val chance = "%.1f%%".format(100.0 * drop.weight / table.total)
-            g.drawString(font, chance, COLUMN_X + 22, y + 5, BODY, false)
+            g.drawText(font, chance, COLUMN_X + 22, y + 5, BODY, false)
         }
 
         drawWarden(g)
@@ -71,7 +72,7 @@ class WardenLootCategory(gui: IGuiHelper) : IRecipeCategory<CoreDrops.Table> {
         val note = Component.translatable(table.noteKey)
         var y = TOP + table.drops.size * ROW + 4
         for (line in font.split(note, WIDTH - 8)) {
-            g.drawString(font, line, 4, y, DIM, false)
+            g.drawText(font, line, 4, y, DIM, false)
             y += 10
         }
     }

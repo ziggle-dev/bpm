@@ -36,6 +36,7 @@ import net.minecraft.world.phys.AABB
 import java.util.UUID
 import kotlin.math.atan2
 import kotlin.math.sqrt
+import bpm.platform.showMessage
 
 /**
  * The fight around a chamber's pedestal: waking the Warden, the room's part in it — traps on their cycles,
@@ -95,7 +96,7 @@ object ChamberFight {
         PedestalHooks.claim = ::claim
     }
 
-    private fun say(player: Player?, text: String) = player?.displayClientMessage(Component.literal("[bpm] $text"), true)
+    private fun say(player: Player?, text: String) = player?.showMessage(Component.literal("[bpm] $text"), true)
 
     /** Tells everyone in the room. */
     private fun announce(level: ServerLevel, slot: ChamberSlot, text: String) {

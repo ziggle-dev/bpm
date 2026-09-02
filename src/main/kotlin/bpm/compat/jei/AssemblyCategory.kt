@@ -27,6 +27,7 @@ import net.minecraft.world.item.crafting.RecipeHolder
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import bpm.platform.client.drawText
 
 /**
  * The assembler's recipes, drawn as the build actually looks.
@@ -82,12 +83,12 @@ class AssemblyCategory(gui: IGuiHelper) : IRecipeCategory<RecipeHolder<AssemblyR
         // The machine itself in the middle of its own ring: a picture says "these go around THIS" in a way
         // the word "Assembler" did not, and it leaves the ring's interior free of text to collide with.
         icon.draw(g, CENTRE_X - 8, CENTRE_Y - 8)
-        g.drawString(font, ARROW, ARROW_X, RESULT_Y + 4, HEADING, false)
+        g.drawText(font, ARROW, ARROW_X, RESULT_Y + 4, HEADING, false)
 
         // Named against the slot, because the ring already says what a pedestal is and nothing else says
         // what this one is; where it goes is spelled out in the block below.
         val label = Component.translatable("bpm.jei.assembly.catalyst")
-        g.drawString(font, label, CATALYST_X + 8 - font.width(label) / 2, CATALYST_Y + 19, NOTE, false)
+        g.drawText(font, label, CATALYST_X + 8 - font.width(label) / 2, CATALYST_Y + 19, NOTE, false)
 
         val seconds = recipe.ticks / 20.0
         val lines = ArrayList<Component>(5)
@@ -101,10 +102,10 @@ class AssemblyCategory(gui: IGuiHelper) : IRecipeCategory<RecipeHolder<AssemblyR
         lines += Component.translatable("bpm.jei.assembly.where")
         var y = COST_Y
         for (line in lines) {
-            g.drawString(font, line, 2, y, BODY, false)
+            g.drawText(font, line, 2, y, BODY, false)
             y += LINE
         }
-        if (recipe.paired) g.drawString(font, Component.translatable("bpm.jei.assembly.paired"), 2, y, WARN, false)
+        if (recipe.paired) g.drawText(font, Component.translatable("bpm.jei.assembly.paired"), 2, y, WARN, false)
     }
 
     companion object {

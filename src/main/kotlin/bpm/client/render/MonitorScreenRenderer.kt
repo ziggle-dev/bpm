@@ -7,7 +7,7 @@ import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.math.Axis
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
-import bpm.platform.client.LightTexture
+import bpm.platform.client.FULL_BRIGHT
 import bpm.platform.client.WorldDraw
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.core.Direction
@@ -67,7 +67,7 @@ object MonitorScreenRenderer {
         val height = TILE * h - 2 * BEZEL
         // Always lit: nothing draws at all unless the screen is on, so there is no dim case left to carry
         // a block light through for.
-        val light = LightTexture.FULL_BRIGHT
+        val light = FULL_BRIGHT
         val mc = Minecraft.getInstance()
 
         pose.pushPose()

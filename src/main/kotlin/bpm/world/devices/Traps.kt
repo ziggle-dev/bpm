@@ -52,6 +52,7 @@ import bpm.platform.stringOr
 import bpm.platform.boolOr
 import bpm.platform.compoundOr
 import bpm.platform.intsOr
+import bpm.platform.showMessage
 
 /*
  * The chamber's hazards as blocks — usable anywhere, which is why they have recipes.
@@ -315,7 +316,7 @@ class VentBlockEntity(pos: BlockPos, state: BlockState) : TrapBlockEntity(Device
         l.playSound(null, to, net.minecraft.sounds.SoundEvents.ENDERMAN_TELEPORT, net.minecraft.sounds.SoundSource.BLOCKS, 0.7f, 1.6f)
         triggerAnim("main", "charge")
         (l.getBlockEntity(to) as? VentBlockEntity)?.triggerAnim("main", "charge")
-        if (entity is Player) entity.displayClientMessage(net.minecraft.network.chat.Component.literal("[bpm] the vent throws you across the room"), true)
+        if (entity is Player) entity.showMessage(net.minecraft.network.chat.Component.literal("[bpm] the vent throws you across the room"), true)
     }
 
     override val phase: String

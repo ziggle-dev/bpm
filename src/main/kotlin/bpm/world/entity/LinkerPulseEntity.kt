@@ -19,6 +19,7 @@ import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.EntityHitResult
 import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
+import bpm.platform.showMessage
 
 /**
  * The Quantum Linker's pulse, fired inside a chamber. The quick pulse (right-click, free) flies straight: a
@@ -90,7 +91,7 @@ class LinkerPulseEntity(type: EntityType<out LinkerPulseEntity>, level: Level) :
     override fun canHitEntity(target: Entity): Boolean = super.canHitEntity(target) && target !is WardenBoltEntity && target !is LinkerPulseEntity
 
     private fun tell(text: String) {
-        (owner as? Player)?.displayClientMessage(Component.literal("[bpm] $text"), true)
+        (owner as? Player)?.showMessage(Component.literal("[bpm] $text"), true)
     }
 
     override fun onHitEntity(result: EntityHitResult) {
