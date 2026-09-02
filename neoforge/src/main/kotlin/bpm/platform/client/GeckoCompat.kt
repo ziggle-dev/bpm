@@ -56,6 +56,22 @@ abstract class PathGeoModelBase<T : GeoAnimatable>(
         super.addAdditionalStateData(animatable, relatedObject, state)
         state.addGeckolibData(ALT_TEXTURE, altApplies(animatable))
     }
+    *///?} elif >=1.21.5 {
+    /*override fun getModelResource(state: software.bernie.geckolib.renderer.base.GeoRenderState): ResourceLocation = geckoAsset(geo)
+
+    override fun getTextureResource(state: software.bernie.geckolib.renderer.base.GeoRenderState): ResourceLocation =
+        if (state.getOrDefaultGeckolibData(ALT_TEXTURE, false) == true) (altTexture() ?: tex) else tex
+
+    // The same hook as the band above, one argument shorter: 5.4 added the related object, 5.1-5.2 pass
+    // only the animatable. Everything it does is the same -- this is the moment the animatable is still
+    // in hand, and asking later is not possible.
+    override fun addAdditionalStateData(
+        animatable: T,
+        state: software.bernie.geckolib.renderer.base.GeoRenderState,
+    ) {
+        super.addAdditionalStateData(animatable, state)
+        state.addGeckolibData(ALT_TEXTURE, altApplies(animatable))
+    }
     *///?} elif >=1.21.2 {
     /*override fun getModelResource(animatable: T, renderer: software.bernie.geckolib.renderer.GeoRenderer<T>?): ResourceLocation = geckoAsset(geo)
 
@@ -73,7 +89,7 @@ abstract class PathGeoModelBase<T : GeoAnimatable>(
     //?}
 }
 
-//? if >=1.21.9 {
+//? if >=1.21.5 {
 /*/** The ticket the alternate-texture answer rides on, from extraction to draw. */
 private val ALT_TEXTURE: software.bernie.geckolib.constant.dataticket.DataTicket<Boolean> =
     software.bernie.geckolib.constant.dataticket.DataTicket.create("bpm_alt_texture", Boolean::class.javaObjectType)
@@ -91,14 +107,14 @@ private val ALT_TEXTURE: software.bernie.geckolib.constant.dataticket.DataTicket
  * has no stack, and a variable that asks about one should read that as "no".
  */
 fun actorStack(actor: software.bernie.geckolib.loading.math.MolangQueries.Actor<*>): net.minecraft.world.item.ItemStack? {
-    //? if >=1.21.9 {
+    //? if >=1.21.5 {
     /*return actor.renderState().getOrDefaultGeckolibData(ITEM_STACK, null)
     *///?} else {
     return actor.animationState().getData(software.bernie.geckolib.constant.DataTickets.ITEMSTACK)
     //?}
 }
 
-//? if >=1.21.9 {
+//? if >=1.21.5 {
 /*/** The ticket the drawn stack rides on, from the item renderer to whoever asks about it. */
 internal val ITEM_STACK: software.bernie.geckolib.constant.dataticket.DataTicket<net.minecraft.world.item.ItemStack> =
     software.bernie.geckolib.constant.dataticket.DataTicket.create("bpm_item_stack", net.minecraft.world.item.ItemStack::class.java)
@@ -107,8 +123,8 @@ internal val ITEM_STACK: software.bernie.geckolib.constant.dataticket.DataTicket
 /**
  * The id GeckoLib wants for a model or animation file, given the path this mod files it under.
  *
- * Until 1.21.9 a `GeoModel` answered with the RESOURCE PATH -- `bpm:geo/block/x.geo.json` --  and
- * GeckoLib opened exactly that. From 1.21.9 it scans two fixed folders, `assets/<ns>/geckolib/models`
+ * Until GeckoLib 5 a `GeoModel` answered with the RESOURCE PATH -- `bpm:geo/block/x.geo.json` -- and
+ * GeckoLib opened exactly that. From 5.x it scans two fixed folders, `assets/<ns>/geckolib/models`
  * and `assets/<ns>/geckolib/animations`, and keys what it finds by the path with the folder prefix and
  * the `.geo`/`.animation`/`.json` suffixes stripped. So the same file is now asked for as
  * `bpm:block/x`, and a full path is not merely tolerated-with-a-warning: the lookup misses and GeckoLib
@@ -119,7 +135,7 @@ internal val ITEM_STACK: software.bernie.geckolib.constant.dataticket.DataTicket
  * `geckolib/` on the bands that read them there -- see the resource wiring in the loader build scripts.
  */
 fun geckoAsset(path: ResourceLocation): ResourceLocation {
-    //? if >=1.21.9 {
+    //? if >=1.21.5 {
     /*var p = path.path
     for (prefix in listOf("geo/", "animations/")) if (p.startsWith(prefix)) p = p.removePrefix(prefix)
     for (suffix in listOf(".geo.json", ".animation.json", ".json")) if (p.endsWith(suffix)) { p = p.removeSuffix(suffix); break }

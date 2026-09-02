@@ -48,6 +48,19 @@ abstract class SkylightAwareBlock(properties: Properties) : Block(properties) {
         super.entityInside(state, level, pos, entity, effects, firstTick)
         (level as? net.minecraft.server.level.ServerLevel)?.let { insideBlock(state, it, pos, entity) }
     }
+    *///?} elif >=1.21.5 {
+    /*// The effect applier arrived at 1.21.5; the `firstTick` flag only at 1.21.9. Two changes to one
+    // signature, two versions apart, so this band is neither neighbour.
+    override fun entityInside(
+        state: BlockState,
+        level: net.minecraft.world.level.Level,
+        pos: net.minecraft.core.BlockPos,
+        entity: net.minecraft.world.entity.Entity,
+        effects: net.minecraft.world.entity.InsideBlockEffectApplier,
+    ) {
+        super.entityInside(state, level, pos, entity, effects)
+        (level as? net.minecraft.server.level.ServerLevel)?.let { insideBlock(state, it, pos, entity) }
+    }
     *///?} else {
     override fun entityInside(
         state: BlockState,

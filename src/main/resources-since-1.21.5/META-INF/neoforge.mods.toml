@@ -1,0 +1,54 @@
+# The metadata for 1.21.5 and up. A copy of ../../resources/META-INF/neoforge.mods.toml with two
+# differences, and it exists for the first of them.
+#
+# 1. NO `[features] openGLVersion`. That block refuses to load the mod unless FML reports an OpenGL
+#    version in range, and from 1.21.5 it reports NONE -- the client no longer probes a GL context at
+#    that point, because it may not be running one. On 21.1 and 21.4 the check was simply not evaluated
+#    in a headless boot; from 21.5 it is, so the whole unit-test harness fails to start with
+#    "bpm is missing a feature it requires to run" before a single test runs. The gate is redundant
+#    anyway: the game's own core shaders are `#version 330` from this band, so vanilla itself will not
+#    start below what this mod needed.
+#
+# 2. GeckoLib is the 5.x line here, and the NeoForge and Minecraft ranges start at this band.
+#
+# 1.21.11 has its own copy of this file rather than inheriting this one, because Kotlin for Forge moves
+# to the 6.x line there and GeckoLib to 5.4. The exact-version directory is searched before this one and
+# `processResources` excludes duplicates, so that copy wins where it exists. See the resource wiring in
+# neoforge/build.gradle.kts.
+modLoader="kotlinforforge"
+loaderVersion="[5,)"
+license="MIT"
+
+[[mods]]
+modId="bpm"
+version="0.2.1"
+displayName="bpm"
+description='''Visual scripting for automation: graphs run on the server, edited in-game, rendered in the world.'''
+
+[[dependencies.bpm]]
+    modId="kotlinforforge"
+    type="required"
+    versionRange="[5.12,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.bpm]]
+    modId="geckolib"
+    type="required"
+    versionRange="[5.0,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.bpm]]
+    modId="neoforge"
+    type="required"
+    versionRange="[21.5,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.bpm]]
+    modId="minecraft"
+    type="required"
+    versionRange="[1.21.5,1.22)"
+    ordering="NONE"
+    side="BOTH"
+
+# Ponder is not published for these bands, and the package that uses it is excluded from the build here.
+# So there is nothing to depend on, even optionally.

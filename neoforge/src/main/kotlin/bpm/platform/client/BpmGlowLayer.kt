@@ -9,8 +9,9 @@ package bpm.platform.client
  * glow; a missing mask is left to GeckoLib, which may still find glow sections in the base texture's mcmeta.
  *
  * The class lives per version rather than in the shared tree for two reasons, and it needs THREE bodies:
- * the draw method gained a colour argument at 1.21.2, and at 1.21.9 the whole layer became generic in
- * three parameters and draws by submitting a task rather than by rendering. The decision it makes --
+ * the draw method gained a colour argument at 1.21.2, the layer became generic in three parameters at
+ * 1.21.5 (GeckoLib 5), and at 1.21.9 it stopped drawing in favour of submitting a task -- FOUR bodies,
+ * because those last two changes did not arrive together. The decision it makes --
  * [bpm.client.render.Glowmasks.glows] -- is shared and has never changed.
  */
 //? if >=1.21.9 {
@@ -24,6 +25,29 @@ package bpm.platform.client
     ) {
         if (!bpm.client.render.Glowmasks.glows(getTextureResource(pass.renderState()))) return
         super.submitRenderTask(pass, collector)
+    }
+}
+*///?} elif >=1.21.5 {
+/*// Three type parameters, as on the band above, but the layer still DRAWS rather than submitting, and
+// AutoGlowingGeoLayer has not moved into `layer.builtin` yet. Both halves of that are why this file
+// needs a fourth body rather than a relaxed condition on one of the others.
+class BpmGlowLayer<T : software.bernie.geckolib.animatable.GeoAnimatable, O : Any, R : software.bernie.geckolib.renderer.base.GeoRenderState>(
+    renderer: software.bernie.geckolib.renderer.base.GeoRenderer<T, O, R>,
+) : software.bernie.geckolib.renderer.layer.AutoGlowingGeoLayer<T, O, R>(renderer) {
+
+    override fun render(
+        renderState: R,
+        poseStack: com.mojang.blaze3d.vertex.PoseStack,
+        bakedModel: bpm.platform.BakedGeoModel,
+        renderType: bpm.platform.RenderType?,
+        bufferSource: net.minecraft.client.renderer.MultiBufferSource,
+        buffer: com.mojang.blaze3d.vertex.VertexConsumer?,
+        packedLight: Int,
+        packedOverlay: Int,
+        colour: Int,
+    ) {
+        if (!bpm.client.render.Glowmasks.glows(getTextureResource(renderState))) return
+        super.render(renderState, poseStack, bakedModel, renderType, bufferSource, buffer, packedLight, packedOverlay, colour)
     }
 }
 *///?} elif >=1.21.2 {

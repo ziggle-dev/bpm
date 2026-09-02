@@ -77,7 +77,7 @@ object NeoHudRegistry : HudRegistry {
      * `LayeredDraw` was deleted with the GUI rewrite and NeoForge's `GuiLayer` took its place. Same two
      * arguments, same moment; only the name of the thing being handed over changed.
      */
-    //? if >=1.21.9 {
+    //? if >=1.21.6 {
     /*private fun wrap(layer: HudLayer) =
         net.neoforged.neoforge.client.gui.GuiLayer { g, delta -> layer.draw(g, delta) }
     *///?} else {

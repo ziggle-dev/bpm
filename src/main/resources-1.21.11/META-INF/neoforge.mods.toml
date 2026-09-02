@@ -1,7 +1,7 @@
 # The 1.21.11 metadata. A copy of ../../resources/META-INF/neoforge.mods.toml with three differences.
 #
 # 1. NO `[features] openGLVersion`. That block refuses to load the mod unless FML reports an OpenGL
-#    version in range, and from 1.21.9 it reports NONE -- the client no longer probes a GL context at
+#    version in range, and from 1.21.5 it reports NONE -- the client no longer probes a GL context at
 #    that point, because it may not be running one. The gate is also redundant now: the game's own core
 #    shaders are `#version 330`, so vanilla itself will not start below what this mod needed.
 #

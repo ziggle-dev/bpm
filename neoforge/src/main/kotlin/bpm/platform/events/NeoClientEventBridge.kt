@@ -22,7 +22,7 @@ import java.util.function.Consumer
  */
 object NeoClientEventBridge {
 
-    //? if >=1.21.9 {
+    //? if >=1.21.6 {
     /*/** The field of view NeoForge last computed, in degrees. Only read to rebuild the projection. */
     private var fov: Float = 70f
     *///?}
@@ -74,6 +74,25 @@ object NeoClientEventBridge {
             )
             BpmEvents.worldRenderTranslucent.fire(
                 WorldRender(pose, e.levelRenderState.cameraRenderState.pos, projection, e.modelViewMatrix, mc.deltaTracker)
+            )
+        })
+        *///?} elif >=1.21.6 {
+        /*// The stage field and the projection matrix both went at 1.21.6, one version before the level
+        // render state arrived. So this band names the subclass like the one above it, and rebuilds the
+        // projection from the field of view the same way -- but the camera and the partial tick are still
+        // on the event itself, which is what makes it a third arm rather than either neighbour.
+        gameBus.addListener(net.neoforged.neoforge.client.event.ViewportEvent.ComputeFov::class.java, Consumer { fov = it.fov.toFloat() })
+
+        gameBus.addListener(net.neoforged.neoforge.client.event.RenderLevelStageEvent.AfterTranslucentBlocks::class.java, Consumer { e ->
+            val window = net.minecraft.client.Minecraft.getInstance().window
+            val projection = org.joml.Matrix4f().perspective(
+                Math.toRadians(fov.toDouble()).toFloat(),
+                window.width.toFloat() / window.height.toFloat().coerceAtLeast(1f),
+                0.05f,
+                1024f,
+            )
+            BpmEvents.worldRenderTranslucent.fire(
+                WorldRender(e.poseStack, e.camera.position, projection, e.modelViewMatrix, e.partialTick)
             )
         })
         *///?} else {

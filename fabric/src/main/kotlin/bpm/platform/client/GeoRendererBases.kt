@@ -4,6 +4,25 @@ import net.minecraft.world.phys.Vec3
 import software.bernie.geckolib.animatable.GeoAnimatable
 import software.bernie.geckolib.model.GeoModel
 
+/*
+ * What GeckoLib hands an item renderer alongside the animatable.
+ *
+ * 5.1 passes the `ItemStack` itself as the renderer's render-data type; 5.2 wrapped it in a `RenderData`
+ * record. One accessor's worth of difference, in the middle of an arm that is otherwise identical across
+ * both bands -- so it is hoisted here rather than splitting the arm in two.
+ *
+ * Both arms are bounded above: 1.21.9 has its own body for all of this.
+ */
+//? if >=1.21.6 <1.21.9 {
+/*internal typealias ItemRenderData = software.bernie.geckolib.renderer.GeoItemRenderer.RenderData
+
+internal fun stackOf(data: ItemRenderData): net.minecraft.world.item.ItemStack = data.itemStack()
+*///?} elif >=1.21.5 <1.21.6 {
+/*internal typealias ItemRenderData = net.minecraft.world.item.ItemStack
+
+internal fun stackOf(data: ItemRenderData): net.minecraft.world.item.ItemStack = data
+*///?}
+
 /**
  * What a renderer wants from the model's bones, said once.
  *
@@ -384,6 +403,307 @@ abstract class GeoItemRendererBase<T>(model: GeoModel<T>) :
         state.addGeckolibData(ITEM_STACK, renderData.itemStack())
     }
 
+}
+*///?} elif >=1.21.5 {
+/*// GeckoLib 5 on a band that still draws with a MultiBufferSource.
+//
+// This is the third renderer shape in the ladder, and it is genuinely between the other two rather than
+// a step towards either. It has 5.x's RENDER STATES -- a renderer is typed on one, `renderRecursively`
+// leads with it and no longer carries the animatable, and `getRenderType` takes it instead of a buffer
+// source -- but none of 1.21.9's submit model. There is no RenderPassInfo either, so the bone hooks stay
+// where 4.x had them, inside the recursion, and read what they need off the render state's data tickets
+// instead of off the animatable that used to be handed to them.
+
+private class RecursionBones : BoneAccess {
+    val watches = HashMap<String, (Vec3) -> Unit>()
+    val turns = HashMap<String, Pair<Float?, Float?>>()
+    var hidden: Set<String> = emptySet()
+
+    override fun watch(bone: String, onWorldPosition: (Vec3) -> Unit) {
+        watches[bone] = onWorldPosition
+    }
+
+    override fun hide(bones: Set<String>) {
+        hidden = bones
+    }
+
+    override fun turn(bone: String, rotX: Float?, rotY: Float?) {
+        if (rotX == null && rotY == null) return
+        turns[bone] = rotX to rotY
+    }
+
+    // Answers whether this bone should be drawn, turning it and reporting its position first.
+    fun visit(bone: bpm.platform.GeoBone, isReRender: Boolean, poseStack: com.mojang.blaze3d.vertex.PoseStack): Boolean {
+        val boneName = bone.name
+        turns[boneName]?.let { (rotX, rotY) ->
+            rotX?.let { bone.setRotX(it) }
+            rotY?.let { bone.setRotY(it) }
+        }
+        if (!isReRender) {
+            watches[boneName]?.let { report ->
+                val local = poseStack.last().pose().transformPosition(org.joml.Vector3f(0f, 0f, 0f))
+                val cam = net.minecraft.client.Minecraft.getInstance().gameRenderer.mainCamera.position
+                report(Vec3(local.x + cam.x, local.y + cam.y, local.z + cam.z))
+            }
+        }
+        return boneName !in hidden
+    }
+}
+
+internal class BufferedDraw(private val bufferSource: net.minecraft.client.renderer.MultiBufferSource) : WorldDraw {
+
+    override fun into(
+        poseStack: com.mojang.blaze3d.vertex.PoseStack,
+        kind: bpm.platform.RenderType,
+        draw: (com.mojang.blaze3d.vertex.PoseStack.Pose, com.mojang.blaze3d.vertex.VertexConsumer) -> Unit,
+    ) {
+        draw(poseStack.last(), bufferSource.getBuffer(kind))
+    }
+
+    override fun text(
+        poseStack: com.mojang.blaze3d.vertex.PoseStack,
+        text: net.minecraft.util.FormattedCharSequence,
+        x: Float,
+        y: Float,
+        colour: Int,
+        dropShadow: Boolean,
+        mode: net.minecraft.client.gui.Font.DisplayMode,
+        backgroundColour: Int,
+        packedLight: Int,
+    ) {
+        net.minecraft.client.Minecraft.getInstance().font.drawInBatch(
+            text, x, y, colour, dropShadow, poseStack.last().pose(), bufferSource, mode, backgroundColour, packedLight,
+        )
+    }
+
+    override fun item(
+        poseStack: com.mojang.blaze3d.vertex.PoseStack,
+        stack: net.minecraft.world.item.ItemStack,
+        context: net.minecraft.world.item.ItemDisplayContext,
+        packedLight: Int,
+        packedOverlay: Int,
+    ) {
+        val mc = net.minecraft.client.Minecraft.getInstance()
+        mc.itemRenderer.renderStatic(stack, context, packedLight, packedOverlay, poseStack, bufferSource, mc.level, 0)
+    }
+}
+
+// The entity renderer is typed on its render state from 5.x, and that state has to be both an
+// EntityRenderState and a GeoRenderState. All three data accessors are overridden onto ONE map for the
+// reason recorded on the 1.21.9 arm: GeckoLib's mixin turns two of them into class methods over its own
+// field while the third stays an interface default reading this one, and splitting them leaves reads and
+// writes looking at different maps.
+class BpmEntityRenderState :
+    net.minecraft.client.renderer.entity.state.EntityRenderState(),
+    software.bernie.geckolib.renderer.base.GeoRenderState {
+
+    var entityId: Int = 0
+
+    private val data = HashMap<software.bernie.geckolib.constant.dataticket.DataTicket<*>, Any>()
+
+    override fun getDataMap(): MutableMap<software.bernie.geckolib.constant.dataticket.DataTicket<*>, Any> = data
+
+    // FOUR accessors on this band, not three: `getGeckolibData` is still abstract here, where 5.4 made
+    // it an interface default over `getDataMap`. The value is nullable in both directions, so a null
+    // write is a removal rather than a stored null -- the map itself cannot hold one.
+    override fun <D : Any> addGeckolibData(ticket: software.bernie.geckolib.constant.dataticket.DataTicket<D>, value: D?) {
+        if (value == null) data.remove(ticket) else data[ticket] = value
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <D : Any> getGeckolibData(ticket: software.bernie.geckolib.constant.dataticket.DataTicket<D>): D? =
+        data[ticket] as D?
+
+    override fun hasGeckolibData(ticket: software.bernie.geckolib.constant.dataticket.DataTicket<*>): Boolean =
+        data.containsKey(ticket)
+}
+
+abstract class GeoBlockRendererBase<T>(model: GeoModel<T>) :
+    OffScreenAwareBlockRenderer<T>(model)
+    where T : net.minecraft.world.level.block.entity.BlockEntity, T : GeoAnimatable {
+
+    private val bones = RecursionBones()
+
+    /** Declare the bones this renderer watches or hides, for the block at [pos] in [state]. */
+    protected open fun onBones(bones: BoneAccess, pos: net.minecraft.core.BlockPos, state: net.minecraft.world.level.block.state.BlockState) {}
+
+    override fun renderRecursively(
+        renderState: software.bernie.geckolib.renderer.base.GeoRenderState,
+        poseStack: com.mojang.blaze3d.vertex.PoseStack,
+        bone: bpm.platform.GeoBone,
+        renderType: bpm.platform.RenderType,
+        bufferSource: net.minecraft.client.renderer.MultiBufferSource,
+        buffer: com.mojang.blaze3d.vertex.VertexConsumer,
+        isReRender: Boolean,
+        packedLight: Int,
+        packedOverlay: Int,
+        colour: Int,
+    ) {
+        // The block's position and state used to arrive as the animatable itself. GeckoLib captures both
+        // into the render state on this band, so they are read back rather than asked for -- and read
+        // with a default, because a renderer whose model never asked for them would otherwise throw.
+        val pos = renderState.getOrDefaultGeckolibData(
+            software.bernie.geckolib.constant.DataTickets.BLOCKPOS, net.minecraft.core.BlockPos.ZERO,
+        ) ?: net.minecraft.core.BlockPos.ZERO
+        val state = renderState.getOrDefaultGeckolibData(
+            software.bernie.geckolib.constant.DataTickets.BLOCKSTATE,
+            net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(),
+        ) ?: net.minecraft.world.level.block.Blocks.AIR.defaultBlockState()
+        onBones(bones, pos, state)
+        if (!bones.visit(bone, isReRender, poseStack)) return
+        super.renderRecursively(renderState, poseStack, bone, renderType, bufferSource, buffer, isReRender, packedLight, packedOverlay, colour)
+    }
+
+    /** Attach the glow layer. See [BpmGlowLayer] for why the class itself is not shared. */
+    protected fun addGlow() {
+        addRenderLayer(BpmGlowLayer(this))
+    }
+
+    protected open fun renderTypeFor(texture: bpm.platform.ResourceLocation): bpm.platform.RenderType =
+        entityTranslucent(texture)
+
+    override fun getRenderType(
+        renderState: software.bernie.geckolib.renderer.base.GeoRenderState,
+        texture: bpm.platform.ResourceLocation,
+    ): bpm.platform.RenderType = renderTypeFor(texture)
+
+    // `alwaysRender` and the override it feeds live on OffScreenAwareBlockRenderer; see that file.
+
+    protected open fun facingOf(blockEntity: T): net.minecraft.core.Direction =
+        net.minecraft.core.Direction.NORTH
+
+    override fun getFacing(animatable: T): net.minecraft.core.Direction = facingOf(animatable)
+
+    /** Turn the model for a block that is not standing the usual way up; false means "not mine". */
+    protected open fun rotateFor(facing: net.minecraft.core.Direction, poseStack: com.mojang.blaze3d.vertex.PoseStack): Boolean = false
+
+    override fun rotateBlock(facing: net.minecraft.core.Direction, poseStack: com.mojang.blaze3d.vertex.PoseStack) {
+        if (rotateFor(facing, poseStack)) return
+        super.rotateBlock(facing, poseStack)
+    }
+
+    /** Draw whatever this renderer hangs off the model, once the model itself is drawn. */
+    protected open fun afterModel(blockEntity: T, poseStack: com.mojang.blaze3d.vertex.PoseStack, draw: WorldDraw, partialTick: Float, packedLight: Int) {}
+
+    override fun render(
+        animatable: T,
+        partialTick: Float,
+        poseStack: com.mojang.blaze3d.vertex.PoseStack,
+        bufferSource: net.minecraft.client.renderer.MultiBufferSource,
+        packedLight: Int,
+        packedOverlay: Int,
+        cameraPos: Vec3,
+    ) {
+        super.render(animatable, partialTick, poseStack, bufferSource, packedLight, packedOverlay, cameraPos)
+        afterModel(animatable, poseStack, BufferedDraw(bufferSource), partialTick, packedLight)
+    }
+}
+
+abstract class GeoEntityRendererBase<T>(
+    context: net.minecraft.client.renderer.entity.EntityRendererProvider.Context,
+    model: GeoModel<T>,
+) : software.bernie.geckolib.renderer.GeoEntityRenderer<T, BpmEntityRenderState>(context, model)
+    where T : net.minecraft.world.entity.Entity, T : GeoAnimatable {
+
+    private val bones = RecursionBones()
+
+    /** Declare the bones this renderer watches or hides, for the entity with [entityId]. */
+    protected open fun onBones(bones: BoneAccess, entityId: Int) {}
+
+    override fun createRenderState(): BpmEntityRenderState = BpmEntityRenderState()
+
+    // The entity id is not one of GeckoLib's own tickets, so it is stashed while the rest of the state
+    // is being captured -- the one hook on this band that runs with the animatable still in hand.
+    override fun captureDefaultRenderState(
+        animatable: T,
+        relatedObject: Void?,
+        renderState: BpmEntityRenderState,
+        partialTick: Float,
+    ): BpmEntityRenderState {
+        val captured = super.captureDefaultRenderState(animatable, relatedObject, renderState, partialTick)
+        captured.entityId = animatable.id
+        return captured
+    }
+
+    override fun renderRecursively(
+        renderState: BpmEntityRenderState,
+        poseStack: com.mojang.blaze3d.vertex.PoseStack,
+        bone: bpm.platform.GeoBone,
+        renderType: bpm.platform.RenderType,
+        bufferSource: net.minecraft.client.renderer.MultiBufferSource,
+        buffer: com.mojang.blaze3d.vertex.VertexConsumer,
+        isReRender: Boolean,
+        packedLight: Int,
+        packedOverlay: Int,
+        colour: Int,
+    ) {
+        onBones(bones, renderState.entityId)
+        if (!bones.visit(bone, isReRender, poseStack)) return
+        super.renderRecursively(renderState, poseStack, bone, renderType, bufferSource, buffer, isReRender, packedLight, packedOverlay, colour)
+    }
+
+    protected fun addGlow() {
+        addRenderLayer(BpmGlowLayer(this))
+    }
+
+    protected open fun renderTypeFor(texture: bpm.platform.ResourceLocation): bpm.platform.RenderType =
+        entityTranslucent(texture)
+
+    override fun getRenderType(
+        renderState: BpmEntityRenderState,
+        texture: bpm.platform.ResourceLocation,
+    ): bpm.platform.RenderType = renderTypeFor(texture)
+}
+
+abstract class GeoItemRendererBase<T>(model: GeoModel<T>) :
+    software.bernie.geckolib.renderer.GeoItemRenderer<T>(model)
+    where T : net.minecraft.world.item.Item, T : GeoAnimatable {
+
+    private val bones = RecursionBones()
+
+    protected open fun onBones(bones: BoneAccess) {}
+
+    // 5.x dropped GeckoLib's own ITEMSTACK ticket and hands the stack to the item renderer as render
+    // data instead, so the mod carries it the last leg itself. See `actorStack`.
+    override fun captureDefaultRenderState(
+        animatable: T,
+        renderData: ItemRenderData,
+        state: software.bernie.geckolib.renderer.base.GeoRenderState,
+        partialTick: Float,
+    ): software.bernie.geckolib.renderer.base.GeoRenderState {
+        val captured = super.captureDefaultRenderState(animatable, renderData, state, partialTick)
+        captured.addGeckolibData(ITEM_STACK, stackOf(renderData))
+        return captured
+    }
+
+    override fun renderRecursively(
+        renderState: software.bernie.geckolib.renderer.base.GeoRenderState,
+        poseStack: com.mojang.blaze3d.vertex.PoseStack,
+        bone: bpm.platform.GeoBone,
+        renderType: bpm.platform.RenderType,
+        bufferSource: net.minecraft.client.renderer.MultiBufferSource,
+        buffer: com.mojang.blaze3d.vertex.VertexConsumer,
+        isReRender: Boolean,
+        packedLight: Int,
+        packedOverlay: Int,
+        colour: Int,
+    ) {
+        onBones(bones)
+        if (!bones.visit(bone, isReRender, poseStack)) return
+        super.renderRecursively(renderState, poseStack, bone, renderType, bufferSource, buffer, isReRender, packedLight, packedOverlay, colour)
+    }
+
+    protected fun addGlow() {
+        addRenderLayer(BpmGlowLayer(this))
+    }
+
+    protected open fun renderTypeFor(texture: bpm.platform.ResourceLocation): bpm.platform.RenderType =
+        entityTranslucent(texture)
+
+    override fun getRenderType(
+        renderState: software.bernie.geckolib.renderer.base.GeoRenderState,
+        texture: bpm.platform.ResourceLocation,
+    ): bpm.platform.RenderType = renderTypeFor(texture)
 }
 *///?} else {
 

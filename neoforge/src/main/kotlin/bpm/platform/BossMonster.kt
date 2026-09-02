@@ -34,8 +34,8 @@ abstract class BossMonster(type: EntityType<out Monster>, level: Level) : Monste
      * Hold the body and head to the entity's own yaw, instead of letting vanilla turn them toward the
      * movement. False leaves vanilla's turning alone.
      *
-     * `tickHeadTurn` used to take the body rotation AND an animation step and hand the step back; at
-     * 1.21.9 it takes the rotation and returns nothing. Nothing this mod does with it ever touched the
+     * `tickHeadTurn` used to take the body rotation AND an animation step and hand the step back; from
+     * 1.21.5 it takes the rotation and returns nothing. Nothing this mod does with it ever touched the
      * step -- it was passed straight through -- so the seam is the question rather than the signature.
      */
     protected open fun holdHeadToYaw(): Boolean = false
@@ -56,6 +56,21 @@ abstract class BossMonster(type: EntityType<out Monster>, level: Level) : Monste
      * registered without that call already survives Peaceful, so the override that used to be needed is
      * simply absent -- the behaviour is unchanged and it is now decided in the one place it belongs.
      */
+    *///?} elif >=1.21.5 {
+    /*// Half of each neighbour: `tickHeadTurn` lost its animation step at 1.21.5, but
+    // `shouldDespawnInPeaceful` is still a method to override until 1.21.9 moves the question to
+    // registration.
+    override fun tickHeadTurn(yBodyRot: Float) {
+        if (holdHeadToYaw()) {
+            this.yBodyRot = yRot
+            this.yHeadRot = yRot
+            return
+        }
+        super.tickHeadTurn(yBodyRot)
+    }
+
+    // A boss, not a spawn: Peaceful must not unmake it the tick it rises.
+    override fun shouldDespawnInPeaceful(): Boolean = false
     *///?} else {
     override fun tickHeadTurn(yBodyRot: Float, animStep: Float): Float {
         if (!holdHeadToYaw()) return super.tickHeadTurn(yBodyRot, animStep)
@@ -88,7 +103,7 @@ abstract class BossMonster(type: EntityType<out Monster>, level: Level) : Monste
 
     protected open fun loadExtra(tag: net.minecraft.nbt.CompoundTag) {}
 
-    //? if >=1.21.9 {
+    //? if >=1.21.6 {
     /*override fun addAdditionalSaveData(output: net.minecraft.world.level.storage.ValueOutput) {
         super.addAdditionalSaveData(output)
         val tag = net.minecraft.nbt.CompoundTag()

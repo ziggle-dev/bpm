@@ -57,12 +57,13 @@ class StoreType<T : TagStore>(
  * library -- and none of them is about a particular world.
  */
 fun <T : TagStore> storeOf(server: MinecraftServer, type: StoreType<T>): T {
-    //? if >=1.21.9 {
+    //? if >=1.21.5 {
     /*@Suppress("UNCHECKED_CAST")
     val savedType = savedTypes.getOrPut(type) {
-        // 1.21.9 deleted the three-argument constructor -- NeoForge's patched Minecraft keeps it, which is
-        // why only this branch has to answer the question -- so a saved data type now always names the
-        // DataFixTypes its file is upgraded through, and it will not take null.
+        // A saved data type always names the DataFixTypes its file is upgraded through, and will not
+        // take null. There is no shorter constructor on this loader at all: the three-argument one the
+        // NeoForge branch uses from 1.21.5 to 1.21.8 is one of NeoForge's own patches, not vanilla, so
+        // this arm reaches a version further back than its counterpart does.
         //
         // None of these stores is a vanilla structure and no fixer has ever been written for one, so the
         // honest answer would be "none" and the question is which value comes closest to saying it. A
@@ -75,16 +76,6 @@ fun <T : TagStore> storeOf(server: MinecraftServer, type: StoreType<T>): T {
             java.util.function.Supplier { type.create() },
             CompoundTag.CODEC.xmap({ tag -> type.read(tag) }, { store -> CompoundTag().also(store::writeTo) }),
             net.minecraft.util.datafix.DataFixTypes.SAVED_DATA_RANDOM_SEQUENCES,
-        )
-    } as net.minecraft.world.level.saveddata.SavedDataType<T>
-    return server.overworld().dataStorage.computeIfAbsent(savedType)
-    *///?} elif >=1.21.5 {
-    /*@Suppress("UNCHECKED_CAST")
-    val savedType = savedTypes.getOrPut(type) {
-        net.minecraft.world.level.saveddata.SavedDataType(
-            type.name,
-            java.util.function.Supplier { type.create() },
-            CompoundTag.CODEC.xmap({ tag -> type.read(tag) }, { store -> CompoundTag().also(store::writeTo) }),
         )
     } as net.minecraft.world.level.saveddata.SavedDataType<T>
     return server.overworld().dataStorage.computeIfAbsent(savedType)

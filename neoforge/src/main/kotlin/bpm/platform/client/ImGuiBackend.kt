@@ -308,8 +308,10 @@ private class Gl3ImGuiBackend : ImGuiBackend {
     override fun render(data: ImDrawData) {
         gl?.renderDrawData(data)
         // The backend bound its own buffers behind Minecraft's back, and on 1.21.1 it also left the
-        // model-view matrix where it found it rather than where the game expects it.
-        com.mojang.blaze3d.vertex.BufferUploader.reset()
+        // model-view matrix where it found it rather than where the game expects it. `BufferUploader`
+        // itself is gone from 1.21.5, so the correction goes through the seam that already knows which
+        // bands still have a cached binding to put right.
+        resetVertexBuffers()
         applyModelView()
     }
 }

@@ -274,7 +274,7 @@ fun <T : net.minecraft.world.level.block.entity.BlockEntity> blockEntityType(
  * `ServerPlayer.level()` is covariantly typed to return a `ServerLevel` directly, where before it
  * returned the general `Level` and needed a second, narrower accessor beside it.
  */
-//? if >=1.21.9 {
+//? if >=1.21.6 {
 /*fun serverOf(player: net.minecraft.server.level.ServerPlayer): net.minecraft.server.MinecraftServer =
     player.level().server
 
@@ -362,7 +362,7 @@ fun waterEvaporatesIn(level: net.minecraft.world.level.Level, pos: net.minecraft
 
 /** Whether it is daytime in [level]. `isDay` became `isBrightOutside`. */
 fun isDaytime(level: net.minecraft.world.level.Level): Boolean =
-    //? if >=1.21.9 {
+    //? if >=1.21.5 {
     /*level.isBrightOutside
     *///?} else {
     level.isDay
@@ -370,7 +370,7 @@ fun isDaytime(level: net.minecraft.world.level.Level): Boolean =
 
 /** Which hotbar slot the player has selected. The field behind it went private behind an accessor. */
 fun selectedSlot(inventory: net.minecraft.world.entity.player.Inventory): Int =
-    //? if >=1.21.9 {
+    //? if >=1.21.5 {
     /*inventory.selectedSlot
     *///?} else {
     inventory.selected
@@ -383,7 +383,7 @@ fun selectedSlot(inventory: net.minecraft.world.entity.player.Inventory): Int =
  * used -- at 1.21.9. Nothing else about it changed.
  */
 val SLOWNESS: net.minecraft.core.Holder<net.minecraft.world.effect.MobEffect>
-    //? if >=1.21.9 {
+    //? if >=1.21.5 {
     /*get() = net.minecraft.world.effect.MobEffects.SLOWNESS
     *///?} else {
     get() = net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN

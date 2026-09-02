@@ -24,7 +24,7 @@ abstract class RemovalAwareBlock(properties: Properties) : net.minecraft.world.l
     /** Called once, server-side, when this block is actually gone. */
     protected abstract fun onBlockRemoved(state: BlockState, level: ServerLevel, pos: BlockPos, movedByPiston: Boolean)
 
-    //? if >=1.21.9 {
+    //? if >=1.21.5 {
     /*override fun affectNeighborsAfterRemoval(state: BlockState, level: ServerLevel, pos: BlockPos, movedByPiston: Boolean) {
         onBlockRemoved(state, level, pos, movedByPiston)
         super.affectNeighborsAfterRemoval(state, level, pos, movedByPiston)
@@ -50,7 +50,7 @@ abstract class RemovalAwareHorizontalBlock(properties: Properties) :
 
     protected abstract fun onBlockRemoved(state: BlockState, level: ServerLevel, pos: BlockPos, movedByPiston: Boolean)
 
-    //? if >=1.21.9 {
+    //? if >=1.21.5 {
     /*override fun affectNeighborsAfterRemoval(state: BlockState, level: ServerLevel, pos: BlockPos, movedByPiston: Boolean) {
         onBlockRemoved(state, level, pos, movedByPiston)
         super.affectNeighborsAfterRemoval(state, level, pos, movedByPiston)

@@ -229,6 +229,9 @@ for (name in listOf("main", "test", "core", "dev")) {
         if (stonecutter.eval(minecraftVersion, ">=1.21.6")) {
             resources.srcDir(rootProject.file("src/$name/resources-since-1.21.6"))
         }
+        if (stonecutter.eval(minecraftVersion, ">=1.21.5")) {
+            resources.srcDir(rootProject.file("src/$name/resources-since-1.21.5"))
+        }
         if (stonecutter.eval(minecraftVersion, ">=1.21.2")) {
             resources.srcDir(rootProject.file("src/$name/resources-since-1.21.2"))
         }
@@ -248,7 +251,7 @@ for (name in listOf("main", "test", "core", "dev")) {
  * .client.geckoAsset` does the matching half, turning the path the mod files an asset under into the id
  * the band's cache is keyed by.
  */
-if (stonecutter.eval(minecraftVersion, ">=1.21.9")) {
+if (stonecutter.eval(minecraftVersion, ">=1.21.5")) {
     for (task in listOf("processResources", "processDevResources")) {
         tasks.named<ProcessResources>(task) {
             from(rootProject.file("src/main/resources/assets/bpm/geo")) { into("assets/bpm/geckolib/models") }
@@ -288,9 +291,10 @@ kotlin.sourceSets.named("main") {
 /*
  * The game tests run on one Minecraft version, not on all of them.
  *
- * 1.21.9 replaced the annotation-driven GameTest framework with a data-driven one: a test is a registered
+ * 1.21.5 replaced the annotation-driven GameTest framework with a data-driven one: a test is a registered
  * `TestInstance` described by JSON, and `@GameTest`, NeoForge's `@GameTestHolder` and
- * `@PrefixGameTestTemplate` are all gone. Porting sixty-five tests to that shape would be a rewrite of the
+ * `@PrefixGameTestTemplate` are all gone -- four versions earlier than this note first assumed, which is
+ * why the threshold moved when 1.21.5 was added. Porting sixty-five tests to that shape would be a rewrite of the
  * safety net rather than a use of it, and the plan already says as much -- "given the vanilla GameTest API
  * churn across 1.21.x/26.x, consider running GameTest on ONE MC version per loader".
  *
@@ -299,7 +303,7 @@ kotlin.sourceSets.named("main") {
  * node loses very little. The `dev` source set's other members (the commands and the Lua console) are not
  * excluded: `runClient` depends on them, and a launchable client on every band is the point.
  */
-val gameTestsCompile = stonecutter.eval(stonecutter.current.version, "<1.21.9")
+val gameTestsCompile = stonecutter.eval(stonecutter.current.version, "<1.21.5")
 kotlin.sourceSets.named("dev") {
     if (!gameTestsCompile) {
         kotlin.exclude("bpm/dev/gametest/**")

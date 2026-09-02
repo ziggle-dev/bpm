@@ -135,7 +135,7 @@ fun ctrlHeld(): Boolean =
  */
 inline fun guiScaled(g: net.minecraft.client.gui.GuiGraphics, x: Float, y: Float, scale: Float, body: () -> Unit) {
     val pose = g.pose()
-    //? if >=1.21.9 {
+    //? if >=1.21.6 {
     /*pose.pushMatrix()
     pose.translate(x, y)
     pose.scale(scale, scale)
@@ -174,7 +174,7 @@ fun windowHandle(): Long {
  */
 fun flushGui(g: net.minecraft.client.gui.GuiGraphics) {
     // From 1.21.9 there is nothing in flight to flush, so this is deliberately empty there.
-    //? if <1.21.9 {
+    //? if <1.21.5 {
     g.flush()
     //?}
 }
@@ -183,12 +183,12 @@ fun flushGui(g: net.minecraft.client.gui.GuiGraphics) {
  * Put the shared vertex buffer back to a known state after a foreign renderer has drawn.
  *
  * `BufferUploader.reset()` existed because the ImGui backend binds its own VAO and buffers behind
- * Minecraft's back, and vanilla cached which one it thought was bound. From 1.21.9 there is no such
+ * Minecraft's back, and vanilla cached which one it thought was bound. From 1.21.5 there is no such
  * cache and no such class -- Blaze3D owns its buffers through a `GpuDevice` and does not assume.
  */
 fun resetVertexBuffers() {
-    // From 1.21.9 there is no cached binding to correct, so this is deliberately empty there.
-    //? if <1.21.9 {
+    // From 1.21.5 there is no cached binding to correct, so this is deliberately empty there.
+    //? if <1.21.5 {
     com.mojang.blaze3d.vertex.BufferUploader.reset()
     //?}
 }
