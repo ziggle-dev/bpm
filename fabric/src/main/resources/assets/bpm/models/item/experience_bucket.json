@@ -1,14 +1,18 @@
 {
   "_comment": [
-    "NeoForge composites this model at runtime from an empty bucket and a tinted overlay of the",
-    "fluid (loader 'neoforge:fluid_container'), which is why the shared tree has no bucket texture",
-    "at all. Fabric has no equivalent model loader, so this is vanilla's water bucket.",
-    "FABRIC TODO: the liquid reads blue instead of experience green. The fix is a purpose-drawn",
-    "texture, or a two-layer model with an item colour provider tinting only the fluid layer --",
-    "tinting this single-layer sprite would take the metal with it."
+    "NeoForge composites this bucket at runtime from an empty bucket and a tinted fluid mask (its",
+    "'neoforge:fluid_container' item model), which is why the NeoForge tree needs no bucket texture.",
+    "Fabric has no equivalent, so the same composite is spelled out as two layers here.",
+    "layer0 is vanilla's EMPTY bucket, so the metal keeps vanilla's own shading. layer1 is a greyscale",
+    "mask of just the liquid surface, which the client item tints to the fluid's colour -- tint index 1,",
+    "because a generated item model gives each layer the tint index of its own number. Tinting is a",
+    "multiply, which is why the mask is greyscale and why vanilla's water_bucket sprite cannot be used",
+    "directly: its blue is baked in and no tint turns blue into green. This is the same arrangement the",
+    "fluid itself uses in the world -- vanilla's greyscale block/water_still, tinted."
   ],
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "minecraft:item/water_bucket"
+    "layer0": "minecraft:item/bucket",
+    "layer1": "bpm:item/experience_bucket_fluid"
   }
 }
