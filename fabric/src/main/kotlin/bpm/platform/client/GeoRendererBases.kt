@@ -517,7 +517,29 @@ private class RecursionBones : BoneAccess {
         if (!isReRender) {
             watches[boneName]?.let { report ->
                 val local = poseStack.last().pose().transformPosition(org.joml.Vector3f(0f, 0f, 0f))
-                val cam = net.minecraft.client.Minecraft.getInstance().gameRenderer.mainCamera.position
+                val camera = net.minecraft.client.Minecraft.getInstance().gameRenderer.mainCamera
+                //? if <1.21 {
+                /*/*
+                 * The world pose carries the CAMERA ROTATION on this band, and undoing it is what makes
+                 * this the same world offset the newer bands hand over directly.
+                 *
+                 * `renderLevel` takes a PoseStack here and multiplies the camera's rotation into it before
+                 * block entities are drawn; at 1.21 the parameter is gone entirely and the rotation went
+                 * with it, leaving the stack a pure camera-relative translation. So the vector above is an
+                 * offset in VIEW space on this band, and adding the camera position to it means nothing --
+                 * which is why the controller's transfer flew off with the camera while every fixed-point
+                 * rift stayed correct.
+                 *
+                 * Vanilla builds that rotation as Rx(pitch) then Ry(yaw + 180); this is its inverse, in the
+                 * opposite order. Verified in game rather than argued: of the four plausible spellings, this
+                 * is the one that puts the bone back on the block's own centre to six decimal places.
+                 */
+                val undoCameraRotation = org.joml.Quaternionf()
+                    .rotationY(Math.toRadians(-(camera.yRot + 180.0)).toFloat())
+                    .mul(org.joml.Quaternionf().rotationX(Math.toRadians(-camera.xRot.toDouble()).toFloat()))
+                undoCameraRotation.transform(local)
+                *///?}
+                val cam = camera.position
                 report(Vec3(local.x + cam.x, local.y + cam.y, local.z + cam.z))
             }
         }
@@ -830,7 +852,29 @@ private class RecursionBones : BoneAccess {
         if (!isReRender) {
             watches[boneName]?.let { report ->
                 val local = poseStack.last().pose().transformPosition(org.joml.Vector3f(0f, 0f, 0f))
-                val cam = net.minecraft.client.Minecraft.getInstance().gameRenderer.mainCamera.position
+                val camera = net.minecraft.client.Minecraft.getInstance().gameRenderer.mainCamera
+                //? if <1.21 {
+                /*/*
+                 * The world pose carries the CAMERA ROTATION on this band, and undoing it is what makes
+                 * this the same world offset the newer bands hand over directly.
+                 *
+                 * `renderLevel` takes a PoseStack here and multiplies the camera's rotation into it before
+                 * block entities are drawn; at 1.21 the parameter is gone entirely and the rotation went
+                 * with it, leaving the stack a pure camera-relative translation. So the vector above is an
+                 * offset in VIEW space on this band, and adding the camera position to it means nothing --
+                 * which is why the controller's transfer flew off with the camera while every fixed-point
+                 * rift stayed correct.
+                 *
+                 * Vanilla builds that rotation as Rx(pitch) then Ry(yaw + 180); this is its inverse, in the
+                 * opposite order. Verified in game rather than argued: of the four plausible spellings, this
+                 * is the one that puts the bone back on the block's own centre to six decimal places.
+                 */
+                val undoCameraRotation = org.joml.Quaternionf()
+                    .rotationY(Math.toRadians(-(camera.yRot + 180.0)).toFloat())
+                    .mul(org.joml.Quaternionf().rotationX(Math.toRadians(-camera.xRot.toDouble()).toFloat()))
+                undoCameraRotation.transform(local)
+                *///?}
+                val cam = camera.position
                 report(Vec3(local.x + cam.x, local.y + cam.y, local.z + cam.z))
             }
         }
