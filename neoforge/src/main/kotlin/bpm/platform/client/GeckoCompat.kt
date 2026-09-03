@@ -88,6 +88,17 @@ abstract class PathGeoModelBase<T : GeoAnimatable>(
     override fun getModelResource(animatable: T): ResourceLocation = geckoAsset(geo)
 
     override fun getTextureResource(animatable: T): ResourceLocation = textureFor(animatable)
+
+    // 4.8 has no Molang ACTOR, so a variable cannot be answered per animatable by the registration --
+    // it is set here instead, on the model, each frame, just before the controllers are evaluated for
+    // this animatable. Without it every `variable.*` in every animation reads as unset: the controller
+    // core stops bobbing (which is the idle animation) and stops being where the transfer aims for.
+    //? if <1.21 {
+    /*override fun applyMolangQueries(animatable: T, animTime: Double) {
+        super.applyMolangQueries(animatable, animTime)
+        applyMolang(animatable)
+    }
+    *///?}
     //?}
 }
 
