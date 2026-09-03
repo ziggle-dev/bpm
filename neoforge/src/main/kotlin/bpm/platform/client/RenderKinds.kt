@@ -93,7 +93,7 @@ internal fun boxEdges(box: net.minecraft.world.phys.AABB): List<Pair<net.minecra
     net.minecraft.client.renderer.RenderStateShard.TextureStateShard(texture, net.minecraft.util.TriState.FALSE, false)
 *///?}
 
-//? if <1.21.9 {
+//? if <1.21.5 {
 /**
  * The render-state shards a custom `RenderType` is assembled from.
  *
@@ -423,13 +423,13 @@ private fun linesType(throughWalls: Boolean, width: Float): RenderType = lineTyp
         if (throughWalls) BpmPipelines.LINES_THROUGH_WALLS else net.minecraft.client.renderer.RenderPipelines.LINES,
         net.minecraft.client.renderer.RenderType.CompositeState.builder()
             .setLineState(net.minecraft.client.renderer.RenderStateShard.LineStateShard(java.util.OptionalDouble.of(width.toDouble())))
-            .setLayeringState(Shards.viewOffsetZLayering)
+            .setLayeringState(net.minecraft.client.renderer.RenderStateShard.VIEW_OFFSET_Z_LAYERING)
             // The ITEM-ENTITY target, as on the band below, not the main one the 1.21.9 arm names.
             // Drawing into it stopped working at 1.21.11, where the frame graph composites that target
             // before RenderLevelStageEvent fires. That really is a 1.21.9 change: VERIFIED in game on
             // 1.21.8, where the linker's lines and the transfer motes both draw correctly through this
             // target. Do not "fix" this to MAIN_TARGET without a symptom to go with it.
-            .setOutputState(Shards.itemEntityTarget)
+            .setOutputState(net.minecraft.client.renderer.RenderStateShard.ITEM_ENTITY_TARGET)
             .createCompositeState(false),
     )
 }

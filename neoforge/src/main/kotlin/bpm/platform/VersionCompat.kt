@@ -747,3 +747,40 @@ fun nameContainer(container: net.minecraft.world.level.block.entity.BlockEntity,
     (container as? net.minecraft.world.level.block.entity.BaseContainerBlockEntity)?.setCustomName(name)
 }
 *///?}
+
+/**
+ * A block raycast made by nobody.
+ *
+ * `ClipContext` takes either an entity or a collision context, and which one is nullable moved: the
+ * entity overload accepts null below 1.20.5 and does not above it, where the empty collision context is
+ * the way to say "no one is doing this".
+ */
+//? if >=1.20.5 {
+fun clipNoEntity(
+    level: net.minecraft.world.level.Level,
+    from: net.minecraft.world.phys.Vec3,
+    to: net.minecraft.world.phys.Vec3,
+): net.minecraft.world.phys.BlockHitResult = level.clip(
+    net.minecraft.world.level.ClipContext(
+        from,
+        to,
+        net.minecraft.world.level.ClipContext.Block.COLLIDER,
+        net.minecraft.world.level.ClipContext.Fluid.NONE,
+        net.minecraft.world.phys.shapes.CollisionContext.empty(),
+    ),
+)
+//?} else {
+/*fun clipNoEntity(
+    level: net.minecraft.world.level.Level,
+    from: net.minecraft.world.phys.Vec3,
+    to: net.minecraft.world.phys.Vec3,
+): net.minecraft.world.phys.BlockHitResult = level.clip(
+    net.minecraft.world.level.ClipContext(
+        from,
+        to,
+        net.minecraft.world.level.ClipContext.Block.COLLIDER,
+        net.minecraft.world.level.ClipContext.Fluid.NONE,
+        null,
+    ),
+)
+*///?}

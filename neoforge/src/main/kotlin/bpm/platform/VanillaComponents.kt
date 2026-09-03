@@ -70,8 +70,11 @@ fun vanillaComponentIds(stack: ItemStack): List<String> = emptyList()
 //? if >=1.20.5 {
 /** Look up one of the GAME's component types by id, or null when there is no such thing. */
 fun vanillaComponentType(id: String): Any? {
-    val key = net.minecraft.resources.ResourceLocation.tryParse(id.trim()) ?: return null
-    return net.minecraft.core.registries.BuiltInRegistries.DATA_COMPONENT_TYPE.get(key)
+    val key = bpm.platform.ResourceLocation.tryParse(id.trim()) ?: return null
+    // Through `valueOf`: `Registry.get(id)` answers the VALUE on 1.21.1 and an Optional<Holder> from
+    // 1.21.2, and casting the latter to a component type quietly answers "no such component" for every
+    // id -- which is how the filter test caught this on 1.21.4 and nowhere else.
+    return bpm.platform.valueOf(net.minecraft.core.registries.BuiltInRegistries.DATA_COMPONENT_TYPE, key)
 }
 
 /** Whether [stack] carries the component [type] answered by [vanillaComponentType]. */

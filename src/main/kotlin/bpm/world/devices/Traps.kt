@@ -649,7 +649,7 @@ class TurretBlockEntity(pos: BlockPos, state: BlockState) : DeviceBlockEntity(De
         val dir = aim.subtract(from).normalize()
         val to = from.add(dir.scale(range))
         val start = from.add(dir.scale(RAY_SKIP))
-        val blockHit = l.clip(ClipContext(start, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, null as net.minecraft.world.entity.Entity?))
+        val blockHit = bpm.platform.clipNoEntity(l, start, to)
         val end = if (blockHit.type == HitResult.Type.MISS) to else blockHit.location
         var victim: LivingEntity? = null
         var best = Double.MAX_VALUE

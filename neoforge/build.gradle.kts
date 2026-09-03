@@ -553,6 +553,17 @@ if (!legacyBand) {
             testedMod = mods.getByName("bpm")
         }
     }
+} else {
+    /*
+     * ...and with nothing to enable, the test source set has no Minecraft on its compile classpath, so
+     * it is turned off here rather than left to fail with 588 unresolved references to `net.minecraft`.
+     *
+     * The tests themselves are not lost: the SAME shared suite runs on :fabric:1.20.1, which reaches
+     * this band through Loom and bootstraps the game itself. So the coverage exists for 1.20.1; what is
+     * missing is a second run of it on the other loader, and the loader is not what these tests test.
+     */
+    tasks.named("compileTestKotlin") { enabled = false }
+    tasks.named("test") { enabled = false }
 }
 
 /** One entry in the list of libraries that are both compiled against and embedded in the shipped jar. */

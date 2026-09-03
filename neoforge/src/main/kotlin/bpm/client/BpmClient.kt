@@ -22,9 +22,15 @@ import net.neoforged.neoforge.client.event.ScreenEvent
 import net.neoforged.neoforge.common.NeoForge
 
 private typealias RenderersEvent = net.neoforged.neoforge.client.event.EntityRenderersEvent.RegisterRenderers
-private typealias ShadersEvent = net.neoforged.neoforge.client.event.RegisterShadersEvent
 private typealias KeyMappingsEvent = net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent
+// Core shaders are gone at 1.21.5 and the reload event was renamed at 1.21.2; each alias exists only
+// where the arm that uses it is live, which is what these nested guards say.
+//? if <1.21.5 {
+private typealias ShadersEvent = net.neoforged.neoforge.client.event.RegisterShadersEvent
+//?}
+//? if <1.21.2 {
 private typealias ReloadListenersEvent = net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent
+//?}
 private typealias HudEvent = net.neoforged.neoforge.client.event.RegisterGuiLayersEvent
 //?} else {
 /*import net.minecraftforge.eventbus.api.IEventBus

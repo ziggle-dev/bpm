@@ -154,7 +154,7 @@ object NeoClientEventBridge {
                 1024f,
             )
             BpmEvents.worldRenderTranslucent.fire(
-                WorldRender(e.poseStack, e.camera.position, projection, e.modelViewMatrix, e.partialTick)
+                WorldRender(e.poseStack, e.camera.position, projection, e.modelViewMatrix, bpm.platform.client.FrameDelta(e.partialTick))
             )
         })
         *///?} else {

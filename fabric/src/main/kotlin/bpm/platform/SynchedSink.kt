@@ -12,13 +12,13 @@ import net.minecraft.network.syncher.EntityDataAccessor
  */
 //? if >=1.20.5 {
 class SynchedSink(private val builder: net.minecraft.network.syncher.SynchedEntityData.Builder) {
-    fun <T> define(key: EntityDataAccessor<T>, value: T) {
+    fun <T : Any> define(key: EntityDataAccessor<T>, value: T) {
         builder.define(key, value)
     }
 }
 //?} else {
 /*class SynchedSink(private val data: net.minecraft.network.syncher.SynchedEntityData) {
-    fun <T> define(key: EntityDataAccessor<T>, value: T) {
+    fun <T : Any> define(key: EntityDataAccessor<T>, value: T) {
         data.define(key, value)
     }
 }
