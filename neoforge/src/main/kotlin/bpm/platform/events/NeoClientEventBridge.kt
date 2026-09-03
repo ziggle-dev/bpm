@@ -153,7 +153,7 @@ object NeoClientEventBridge {
         gameBus.addListener(net.neoforged.neoforge.client.event.RenderLevelStageEvent::class.java, Consumer { e ->
             if (e.stage != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) return@Consumer
             BpmEvents.worldRenderTranslucent.fire(
-                WorldRender(e.poseStack, e.camera.position, e.projectionMatrix, e.modelViewMatrix, e.partialTick)
+                WorldRender(e.poseStack, e.camera.position, e.projectionMatrix, e.modelViewMatrix, bpm.platform.client.FrameDelta(e.partialTick))
             )
         })
         //?}

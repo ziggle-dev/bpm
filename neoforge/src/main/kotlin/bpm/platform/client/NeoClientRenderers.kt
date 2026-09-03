@@ -100,10 +100,10 @@ object NeoHudRegistry : HudRegistry {
      */
     //? if >=1.21.6 {
     /*private fun wrap(layer: HudLayer) =
-        net.neoforged.neoforge.client.gui.GuiLayer { g, delta -> layer.draw(g, delta) }
+        net.neoforged.neoforge.client.gui.GuiLayer { g, delta -> layer.draw(g, bpm.platform.client.FrameDelta(delta)) }
     *///?} else {
     private fun wrap(layer: HudLayer) =
-        net.minecraft.client.gui.LayeredDraw.Layer { g, delta -> layer.draw(g, delta) }
+        net.minecraft.client.gui.LayeredDraw.Layer { g, delta -> layer.draw(g, bpm.platform.client.FrameDelta(delta)) }
     //?}
 
     fun onRegisterGuiLayers(event: net.neoforged.neoforge.client.event.RegisterGuiLayersEvent) {
