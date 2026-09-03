@@ -1,0 +1,46 @@
+# The mod metadata for 1.20.1, and the FILENAME is half of what makes it work.
+#
+# NeoForge reads `META-INF/neoforge.mods.toml` from 1.20.2; NeoForge 47 -- which is 1.20.1, still Forge
+# underneath -- reads `META-INF/mods.toml`. So this is a different file rather than an override of the
+# shared one, and the shared one rides along in the jar unread.
+#
+# The dependency ids differ with it: the loader is `forge` here, not `neoforge`, and Kotlin for Forge is
+# the 4.x line (see the note beside `kff_version_1_20_1` in gradle.properties -- the artifact is the
+# FORGE flavour on this band, because the bus is net.minecraftforge's).
+modLoader="kotlinforforge"
+loaderVersion="[4,)"
+license="MIT"
+
+[[mods]]
+modId="bpm"
+version="0.2.1"
+displayName="bpm"
+description='''Visual scripting for automation: graphs run on the server, edited in-game, rendered in the world.'''
+
+[[dependencies.bpm]]
+    modId="kotlinforforge"
+    type="required"
+    versionRange="[4.10,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.bpm]]
+    modId="geckolib"
+    type="required"
+    versionRange="[4.5,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.bpm]]
+    modId="forge"
+    type="required"
+    versionRange="[47,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.bpm]]
+    modId="minecraft"
+    type="required"
+    versionRange="[1.20.1,1.20.2)"
+    ordering="NONE"
+    side="BOTH"
+
+[features.bpm]
+openGLVersion="[3.2,)"
