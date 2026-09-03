@@ -6,6 +6,7 @@ import bpm.platform.client.setOverlay
 import bpm.platform.client.setNormal
 
 import bpm.platform.client.addVertex
+import bpm.platform.client.endOfVertex
 import bpm.platform.client.setColor
 
 import bpm.client.render.BoneAnchors
@@ -580,7 +581,7 @@ object EffectManager {
                     .setUv(uv[i][0], uv[i][1])
                     .setOverlay(OverlayTexture.NO_OVERLAY)
                     .setLight(light)
-                    .setNormal(last, nx, ny, nz)
+                    .setNormal(last, nx, ny, nz).endOfVertex()
             }
         }
 
@@ -689,7 +690,7 @@ object EffectManager {
                         .setUv(uu, vv)
                         .setOverlay(OverlayTexture.NO_OVERLAY)
                         .setLight(light)
-                        .setNormal(last, n.x.toFloat(), n.y.toFloat(), n.z.toFloat())
+                        .setNormal(last, n.x.toFloat(), n.y.toFloat(), n.z.toFloat()).endOfVertex()
                 }
             }
         }
@@ -761,7 +762,7 @@ object EffectManager {
         val z0 = (at.z - half).toFloat()
         val z1 = (at.z + half).toFloat()
         fun quad(vs: Array<FloatArray>) {
-            for (c in vs) buffer.addVertex(m, c[0], c[1], c[2]).setColor(r, g, b, alpha)
+            for (c in vs) buffer.addVertex(m, c[0], c[1], c[2]).setColor(r, g, b, alpha).endOfVertex()
         }
         quad(arrayOf(floatArrayOf(x0, y0, z1), floatArrayOf(x1, y0, z1), floatArrayOf(x1, y1, z1), floatArrayOf(x0, y1, z1)))
         quad(arrayOf(floatArrayOf(x1, y0, z0), floatArrayOf(x0, y0, z0), floatArrayOf(x0, y1, z0), floatArrayOf(x1, y1, z0)))

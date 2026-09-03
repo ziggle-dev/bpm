@@ -1,6 +1,7 @@
 package bpm.client.render
 
 import bpm.platform.client.addVertex
+import bpm.platform.client.endOfVertex
 import bpm.platform.client.setColor
 
 import bpm.world.devices.AssemblerBlockEntity
@@ -173,7 +174,7 @@ class AssemblerRenderer(ctx: net.minecraft.client.renderer.blockentity.BlockEnti
 
     private fun quad(m: org.joml.Matrix4f, buffer: VertexConsumer, a: Vec3, b: Vec3, c: Vec3, d: Vec3, rgb: FloatArray, alpha: Float) {
         for (v in arrayOf(a, b, c, d)) {
-            buffer.addVertex(m, v.x.toFloat(), v.y.toFloat(), v.z.toFloat()).setColor(rgb[0], rgb[1], rgb[2], alpha)
+            buffer.addVertex(m, v.x.toFloat(), v.y.toFloat(), v.z.toFloat()).setColor(rgb[0], rgb[1], rgb[2], alpha).endOfVertex()
         }
     }
 

@@ -372,6 +372,23 @@ if (stonecutter.eval(minecraftVersion, ">=1.21.5")) {
 /** A node's own resources, then the version's, then the shared tree: the most specific copy wins. */
 tasks.named<ProcessResources>("processResources") {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    /*
+     * The mixin config's compatibility level is the one thing in it that is per-BAND.
+     *
+     * Mixin refuses a level the running JRE does not have -- 1.20.1 is Java 17, and JAVA_21 there dies
+     * before the title screen with "Level is not supported by the active JRE". It is filled in here
+     * rather than by a second copy of the file under versions/1.20.1, because the rest of the config is
+     * the list of mixins: two copies would drift the first time one is added to only one of them, and
+     * a mixin silently missing on one band is exactly the kind of failure this build tries not to have.
+     *
+     * Everything above 17 stays JAVA_21 -- the level is a FLOOR for the bytecode of the mixin classes,
+     * so it need not track the toolchain upwards, and Mixin has no JAVA_25 to move it to.
+     */
+    val mixinJava = if (toolchainVersion == 17) "JAVA_17" else "JAVA_21"
+    filesMatching("bpm.mixins.json") {
+        filter { line -> line.replace("@MIXIN_JAVA@", mixinJava) }
+    }
 }
 
 /*

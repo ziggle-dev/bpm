@@ -4,6 +4,7 @@ import bpm.platform.client.setUv
 import bpm.platform.client.setNormal
 
 import bpm.platform.client.addVertex
+import bpm.platform.client.endOfVertex
 import bpm.platform.client.setColor
 
 import bpm.client.fx.Rift
@@ -101,7 +102,7 @@ object RiftRenderer {
                     .setUv(u, v)
                     // The cube's own frame, remapped to 0..1 so it survives the byte channel.
                     .setColor(pack(c[0]), pack(c[1]), pack(c[2]), alpha)
-                    .setNormal(0f, 0f, 1f)
+                    .setNormal(0f, 0f, 1f).endOfVertex()
             }
         }
         pose.popPose()
@@ -150,7 +151,7 @@ object RiftRenderer {
             buf.addVertex(m, lx * half, ly * half, 0f)
                 .setUv(lx, ly)
                 .setColor(seed and 0xFF, (seed shr 8) and 0xFF, packedDist, alpha)
-                .setNormal(cam.x, cam.y, cam.z)
+                .setNormal(cam.x, cam.y, cam.z).endOfVertex()
         }
         pose.popPose()
     }

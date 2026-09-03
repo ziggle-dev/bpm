@@ -1,6 +1,7 @@
 package bpm.client.render
 
 import bpm.platform.client.addVertex
+import bpm.platform.client.endOfVertex
 import bpm.platform.client.setColor
 
 import bpm.world.entity.LinkerPulseEntity
@@ -47,7 +48,7 @@ fun drawBolt(pose: PoseStack, draw: bpm.platform.client.WorldDraw, motion: Vec3,
 /** A box [r] wide either side and [l] long either way along +Z, one flat colour, alpha [a]. */
 private fun box(c: VertexConsumer, pose: PoseStack.Pose, r: Float, l: Float, red: Float, green: Float, blue: Float, a: Float) {
     val m = pose.pose()
-    fun v(x: Float, y: Float, z: Float) { c.addVertex(m, x, y, z).setColor(red, green, blue, a) }
+    fun v(x: Float, y: Float, z: Float) { c.addVertex(m, x, y, z).setColor(red, green, blue, a).endOfVertex() }
     v(r, -r, -l); v(r, r, -l); v(r, r, l); v(r, -r, l)
     v(-r, -r, l); v(-r, r, l); v(-r, r, -l); v(-r, -r, -l)
     v(-r, r, -l); v(r, r, -l); v(r, r, l); v(-r, r, l)

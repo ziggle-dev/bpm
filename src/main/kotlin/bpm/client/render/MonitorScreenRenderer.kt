@@ -6,6 +6,7 @@ import bpm.platform.client.setOverlay
 import bpm.platform.client.setNormal
 
 import bpm.platform.client.addVertex
+import bpm.platform.client.endOfVertex
 import bpm.platform.client.setColor
 
 import bpm.world.devices.MonitorBlockEntity
@@ -299,10 +300,10 @@ object MonitorScreenRenderer {
     private fun quad(pose: PoseStack, draw: WorldDraw, x0: Float, y0: Float, x1: Float, y1: Float, argb: Int) {
         draw.into(pose, bpm.platform.client.translucentQuads(QUADS)) { p, b ->
             val m = p.pose()
-            b.addVertex(m, x0, y0, 0f).setColor(argb)
-            b.addVertex(m, x0, y1, 0f).setColor(argb)
-            b.addVertex(m, x1, y1, 0f).setColor(argb)
-            b.addVertex(m, x1, y0, 0f).setColor(argb)
+            b.addVertex(m, x0, y0, 0f).setColor(argb).endOfVertex()
+            b.addVertex(m, x0, y1, 0f).setColor(argb).endOfVertex()
+            b.addVertex(m, x1, y1, 0f).setColor(argb).endOfVertex()
+            b.addVertex(m, x1, y0, 0f).setColor(argb).endOfVertex()
         }
     }
 
@@ -318,7 +319,7 @@ object MonitorScreenRenderer {
         draw.into(pose, bpm.platform.client.translucentCull(net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS)) { p, b ->
             val m = p.pose()
             fun v(x: Float, y: Float, u: Float, vv: Float) {
-                b.addVertex(m, x, y, -0.01f).setColor(r, g, bl, 1f).setUv(u, vv).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(p, 0f, 0f, -1f)
+                b.addVertex(m, x, y, -0.01f).setColor(r, g, bl, 1f).setUv(u, vv).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(p, 0f, 0f, -1f).endOfVertex()
             }
             v(x0, y0, sprite.u0, sprite.v0)
             v(x0, y1, sprite.u0, v1)

@@ -49,6 +49,15 @@ fun VertexConsumer.setOverlay(packed: Int): VertexConsumer = this.setOverlay(pac
 
 fun VertexConsumer.setNormal(x: Float, y: Float, z: Float): VertexConsumer = this.setNormal(x, y, z)
 
+/**
+ * Finish a vertex.
+ *
+ * From 1.20.5 the consumer ends one itself when the next begins, so this is nothing -- it is here so the
+ * call sites can say where a vertex ends without knowing which band they are on.
+ */
+fun VertexConsumer.endOfVertex(): VertexConsumer = this
+
+
 fun VertexConsumer.setNormal(
     pose: com.mojang.blaze3d.vertex.PoseStack.Pose,
     x: Float,
@@ -89,6 +98,20 @@ fun VertexConsumer.setLight(packed: Int): VertexConsumer = uv2(packed)
 fun VertexConsumer.setOverlay(packed: Int): VertexConsumer = overlayCoords(packed)
 
 fun VertexConsumer.setNormal(x: Float, y: Float, z: Float): VertexConsumer = normal(x, y, z)
+
+/**
+ * Finish a vertex, which on this band means saying so.
+ *
+ * `endVertex()` is what commits the attributes written since the last position; without it the builder
+ * holds an incomplete vertex and emits NOTHING. That failure is silent -- it compiles, it draws, and the
+ * screen stays empty -- which is how the link lines and the rift both vanished on 1.20.1 while items and
+ * models, which vanilla emits itself, carried on fine.
+ */
+fun VertexConsumer.endOfVertex(): VertexConsumer {
+    endVertex()
+    return this
+}
+
 
 /**
  * The pose overload takes a `Matrix3f` here, not the `Pose` itself.

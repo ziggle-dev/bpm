@@ -2,7 +2,7 @@
   "required": true,
   "minVersion": "0.8",
   "package": "bpm.mixin",
-  "compatibilityLevel": "JAVA_21",
+  "compatibilityLevel": "@MIXIN_JAVA@",
   "mixins": [
     "LivingEntityAccessor",
     "InventoryMixin",

@@ -286,11 +286,11 @@ private class BufferLinePass(
         consumer.addVertex(m, from.x.toFloat(), from.y.toFloat(), from.z.toFloat())
             .setColor(rgb[0], rgb[1], rgb[2], alpha)
             .setNormal(m, d.x.toFloat(), d.y.toFloat(), d.z.toFloat())
-            .setLineWidth(width)
+            .setLineWidth(width).endOfVertex()
         consumer.addVertex(m, to.x.toFloat(), to.y.toFloat(), to.z.toFloat())
             .setColor(rgb[0], rgb[1], rgb[2], alpha)
             .setNormal(m, d.x.toFloat(), d.y.toFloat(), d.z.toFloat())
-            .setLineWidth(width)
+            .setLineWidth(width).endOfVertex()
     }
 
     override fun box(
@@ -455,10 +455,10 @@ private class BufferLinePass(private val consumer: com.mojang.blaze3d.vertex.Ver
         val d = if (delta.lengthSqr() < 1e-12) net.minecraft.world.phys.Vec3(0.0, 1.0, 0.0) else delta.normalize()
         consumer.addVertex(m, from.x.toFloat(), from.y.toFloat(), from.z.toFloat())
             .setColor(rgb[0], rgb[1], rgb[2], alpha)
-            .setNormal(m, d.x.toFloat(), d.y.toFloat(), d.z.toFloat())
+            .setNormal(m, d.x.toFloat(), d.y.toFloat(), d.z.toFloat()).endOfVertex()
         consumer.addVertex(m, to.x.toFloat(), to.y.toFloat(), to.z.toFloat())
             .setColor(rgb[0], rgb[1], rgb[2], alpha)
-            .setNormal(m, d.x.toFloat(), d.y.toFloat(), d.z.toFloat())
+            .setNormal(m, d.x.toFloat(), d.y.toFloat(), d.z.toFloat()).endOfVertex()
     }
 
     override fun box(
@@ -564,10 +564,10 @@ private class BufferLinePass(private val consumer: com.mojang.blaze3d.vertex.Ver
         val d = if (delta.lengthSqr() < 1e-12) net.minecraft.world.phys.Vec3(0.0, 1.0, 0.0) else delta.normalize()
         consumer.addVertex(m, from.x.toFloat(), from.y.toFloat(), from.z.toFloat())
             .setColor(rgb[0], rgb[1], rgb[2], alpha)
-            .setNormal(m, d.x.toFloat(), d.y.toFloat(), d.z.toFloat())
+            .setNormal(m, d.x.toFloat(), d.y.toFloat(), d.z.toFloat()).endOfVertex()
         consumer.addVertex(m, to.x.toFloat(), to.y.toFloat(), to.z.toFloat())
             .setColor(rgb[0], rgb[1], rgb[2], alpha)
-            .setNormal(m, d.x.toFloat(), d.y.toFloat(), d.z.toFloat())
+            .setNormal(m, d.x.toFloat(), d.y.toFloat(), d.z.toFloat()).endOfVertex()
     }
 
     override fun box(
@@ -683,10 +683,10 @@ private class BufferLinePass(private val consumer: com.mojang.blaze3d.vertex.Ver
         val d = if (delta.lengthSqr() < 1e-12) net.minecraft.world.phys.Vec3(0.0, 1.0, 0.0) else delta.normalize()
         consumer.addVertex(m, from.x.toFloat(), from.y.toFloat(), from.z.toFloat())
             .setColor(rgb[0], rgb[1], rgb[2], alpha)
-            .setNormal(m, d.x.toFloat(), d.y.toFloat(), d.z.toFloat())
+            .setNormal(m, d.x.toFloat(), d.y.toFloat(), d.z.toFloat()).endOfVertex()
         consumer.addVertex(m, to.x.toFloat(), to.y.toFloat(), to.z.toFloat())
             .setColor(rgb[0], rgb[1], rgb[2], alpha)
-            .setNormal(m, d.x.toFloat(), d.y.toFloat(), d.z.toFloat())
+            .setNormal(m, d.x.toFloat(), d.y.toFloat(), d.z.toFloat()).endOfVertex()
     }
 
     override fun box(

@@ -31,8 +31,8 @@ internal class FlatConsumer(
     private val out: com.mojang.blaze3d.vertex.VertexConsumer,
 ) : com.mojang.blaze3d.vertex.VertexConsumer {
 
-    override fun addVertex(x: Float, y: Float, z: Float): com.mojang.blaze3d.vertex.VertexConsumer {
-        out.addVertex(x, y, z)
+    override fun addVertex(x: Float, y: Float, z: Float).endOfVertex(): com.mojang.blaze3d.vertex.VertexConsumer {
+        out.addVertex(x, y, z).endOfVertex()
         return this
     }
 
@@ -253,8 +253,8 @@ internal class FlatConsumer(
     private val out: com.mojang.blaze3d.vertex.VertexConsumer,
 ) : com.mojang.blaze3d.vertex.VertexConsumer {
 
-    override fun addVertex(x: Float, y: Float, z: Float): com.mojang.blaze3d.vertex.VertexConsumer {
-        out.addVertex(x, y, z)
+    override fun addVertex(x: Float, y: Float, z: Float).endOfVertex(): com.mojang.blaze3d.vertex.VertexConsumer {
+        out.addVertex(x, y, z).endOfVertex()
         return this
     }
 
@@ -416,8 +416,8 @@ internal class FlatConsumer(
     private val out: com.mojang.blaze3d.vertex.VertexConsumer,
 ) : com.mojang.blaze3d.vertex.VertexConsumer {
 
-    override fun addVertex(x: Float, y: Float, z: Float): com.mojang.blaze3d.vertex.VertexConsumer {
-        out.addVertex(x, y, z)
+    override fun addVertex(x: Float, y: Float, z: Float).endOfVertex(): com.mojang.blaze3d.vertex.VertexConsumer {
+        out.addVertex(x, y, z).endOfVertex()
         return this
     }
 
