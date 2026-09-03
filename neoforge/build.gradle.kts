@@ -592,6 +592,13 @@ dependencies {
          */
         val geckoLoader = if (legacyBand) "forge" else "neoforge"
         implementation("software.bernie.geckolib:geckolib-$geckoLoader-$minecraftVersion:$geckolibVersion")
+        /*
+         * GeckoLib 4.8 ships mclib inside its jar rather than declaring it, and the Forge artifact's POM
+         * does not mention it -- so the Molang parser's own SUPERTYPE is missing from the compile
+         * classpath, which Kotlin reports as "cannot access MathBuilder" at every use of MolangParser.
+         * The Fabric artifact declares it and resolves the same version; this asks for it by name.
+         */
+        if (legacyBand) compileOnly("com.eliotlash.mclib:mclib:20")
     }
 
     // Dev runs only: Mekanism (core + generators) to test the energy and fluid verbs against real machines,

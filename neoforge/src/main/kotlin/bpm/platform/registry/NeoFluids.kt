@@ -5,13 +5,32 @@ import net.minecraft.core.registries.Registries
 import net.minecraft.world.item.Item
 import net.minecraft.world.level.block.LiquidBlock
 import net.minecraft.world.level.material.Fluid
+/*
+ * The same three types under two package names, and one of them under two NAMES: what NeoForge calls
+ * `BaseFlowingFluid` was Forge's `ForgeFlowingFluid`, which is why this is an alias rather than an
+ * import -- the nested `Source`, `Flowing` and `Properties` are reached through it either way.
+ */
+//? if >=1.20.2 {
 //? if <26.1 {
 import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions
 //?}
 import net.neoforged.neoforge.common.SoundActions
-import net.neoforged.neoforge.fluids.BaseFlowingFluid
 import net.neoforged.neoforge.fluids.FluidType
-import net.neoforged.neoforge.registries.NeoForgeRegistries
+
+private typealias FlowingFluidProperties = net.neoforged.neoforge.fluids.BaseFlowingFluid.Properties
+private typealias FlowingFluidSource = net.neoforged.neoforge.fluids.BaseFlowingFluid.Source
+private typealias FlowingFluidFlowing = net.neoforged.neoforge.fluids.BaseFlowingFluid.Flowing
+private val FLUID_TYPES = net.neoforged.neoforge.registries.NeoForgeRegistries.Keys.FLUID_TYPES
+//?} else {
+/*import net.minecraftforge.client.extensions.common.IClientFluidTypeExtensions
+import net.minecraftforge.common.SoundActions
+import net.minecraftforge.fluids.FluidType
+
+private typealias FlowingFluidProperties = net.minecraftforge.fluids.ForgeFlowingFluid.Properties
+private typealias FlowingFluidSource = net.minecraftforge.fluids.ForgeFlowingFluid.Source
+private typealias FlowingFluidFlowing = net.minecraftforge.fluids.ForgeFlowingFluid.Flowing
+private val FLUID_TYPES = net.minecraftforge.registries.ForgeRegistries.Keys.FLUID_TYPES
+*///?}
 
 /**
  * A [FluidSpec] turned into NeoForge's three objects: a fluid type, a source and a flowing fluid.
@@ -28,7 +47,7 @@ object NeoFluidRegistrar : FluidRegistrar {
     // registries seam itself has been wired. Bpm's init wires every seam before using any of them, and an
     // object whose construction quietly breaks that rule would fail at startup with a lateinit error
     // pointing at the wrong seam.
-    private val types: Registrar<FluidType> by lazy { Registrars.of(NeoForgeRegistries.Keys.FLUID_TYPES, Bpm.ID) }
+    private val types: Registrar<FluidType> by lazy { Registrars.of(FLUID_TYPES, Bpm.ID) }
     private val fluids: Registrar<Fluid> by lazy { Registrars.of(Registries.FLUID, Bpm.ID) }
 
     private val declared = HashMap<String, RegistryRef<FluidType>>()
@@ -56,7 +75,7 @@ object NeoFluidRegistrar : FluidRegistrar {
 
         lateinit var pair: FluidPair
         val properties by lazy {
-            BaseFlowingFluid.Properties(type, pair.source, pair.flowing)
+            FlowingFluidProperties(type, pair.source, pair.flowing)
                 .bucket(java.util.function.Supplier { bucket().get() })
                 .block(java.util.function.Supplier { block().get() })
                 .tickRate(spec.tickRate)
@@ -64,8 +83,8 @@ object NeoFluidRegistrar : FluidRegistrar {
                 .levelDecreasePerBlock(spec.levelDecreasePerBlock)
         }
         pair = FluidPair(
-            fluids.register(spec.name) { -> BaseFlowingFluid.Source(properties) },
-            fluids.register("${spec.name}_flowing") { -> BaseFlowingFluid.Flowing(properties) },
+            fluids.register(spec.name) { -> FlowingFluidSource(properties) },
+            fluids.register("${spec.name}_flowing") { -> FlowingFluidFlowing(properties) },
         )
         return pair
     }

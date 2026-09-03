@@ -1,5 +1,18 @@
 package bpm.platform.net
 
+/*
+ * Two eras, and this one is not a rename either.
+ *
+ * From 1.20.2 a packet is a `CustomPacketPayload` with its own id and codec, registered against a
+ * `PayloadRegistrar` when NeoForge opens one. MinecraftForge 1.20.1 has `SimpleChannel`: one channel per
+ * mod, messages registered by an integer index and a Java CLASS, encoder and decoder handed in apart.
+ *
+ * A class per payload is not something this seam can produce -- it is handed a type and a codec, not a
+ * class -- so the older arm registers ONE message, an envelope carrying the payload's id and its bytes,
+ * and dispatches on the id itself. That is the same shape the Fabric 1.20.1 backend uses, for the same
+ * reason, and it costs one `ResourceLocation` on the wire per packet.
+ */
+//? if >=1.20.2 {
 import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.protocol.PacketFlow
 import net.minecraft.server.level.ServerPlayer
@@ -103,3 +116,113 @@ object NeoNet : PlatformNet {
         for (block in pending) block(registrar)
     }
 }
+//?} else {
+/*import io.netty.buffer.Unpooled
+import net.minecraft.network.FriendlyByteBuf
+import net.minecraft.server.level.ServerPlayer
+import bpm.platform.ResourceLocation
+import net.minecraftforge.network.NetworkRegistry
+import net.minecraftforge.network.PacketDistributor
+import net.minecraftforge.network.simple.SimpleChannel
+
+/** One message, carrying which payload it is and the bytes of it. */
+private class Envelope(val id: ResourceLocation, val body: ByteArray)
+
+object NeoNet : PlatformNet {
+
+    private val writers = HashMap<ResourceLocation, (FriendlyByteBuf, BpmPayload) -> Unit>()
+    private val serverbound = HashMap<ResourceLocation, (FriendlyByteBuf, ServerPlayer) -> Unit>()
+    private val clientbound = HashMap<ResourceLocation, (FriendlyByteBuf) -> Unit>()
+
+    /**
+     * The channel, built on first use.
+     *
+     * Both accepted-version predicates answer true because the mod is not required on the other end for
+     * a vanilla connection to work -- the editor simply does nothing there, which is what the versioned
+     * registrar arranges on the newer band.
+     */
+    private val channel: SimpleChannel by lazy {
+        val built = NetworkRegistry.ChannelBuilder
+            .named(bpm.platform.idOf(bpm.Bpm.ID, "main"))
+            .networkProtocolVersion { bpm.net.BpmNetwork.VERSION }
+            .clientAcceptedVersions { true }
+            .serverAcceptedVersions { true }
+            .simpleChannel()
+        built.registerMessage(
+            0,
+            Envelope::class.java,
+            { message, buf -> buf.writeResourceLocation(message.id); buf.writeByteArray(message.body) },
+            { buf -> Envelope(buf.readResourceLocation(), buf.readByteArray()) },
+            { message, ctx ->
+                val context = ctx.get()
+                val sender = context.sender
+                // The bytes are already a copy, so reading them on the work thread is safe; the netty
+                // buffer this arrived in is released the moment this returns.
+                context.enqueueWork {
+                    val buf = FriendlyByteBuf(Unpooled.wrappedBuffer(message.body))
+                    if (sender != null) serverbound[message.id]?.invoke(buf, sender) else clientbound[message.id]?.invoke(buf)
+                }
+                context.packetHandled = true
+            },
+        )
+        built
+    }
+
+    /** Build the channel. Called from the entry point, where the newer band registers its payloads. */
+    fun registerChannel() {
+        channel
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun <P : BpmPayload> remember(type: PayloadType<P>, codec: PayloadCodec<P>) {
+        writers[type.id] = { buf, payload -> codec.write(buf, payload as P) }
+    }
+
+    override fun <P : BpmPayload> toServer(
+        type: PayloadType<P>,
+        codec: PayloadCodec<P>,
+        handler: (P, ServerPlayer) -> Unit,
+    ) {
+        remember(type, codec)
+        serverbound[type.id] = { buf, player -> handler(codec.read(buf), player) }
+    }
+
+    override fun <P : BpmPayload> toClient(
+        type: PayloadType<P>,
+        codec: PayloadCodec<P>,
+        handler: (P) -> Unit,
+    ) {
+        remember(type, codec)
+        clientbound[type.id] = { buf -> handler(codec.read(buf)) }
+    }
+
+    override fun <P : BpmPayload> bidirectional(
+        type: PayloadType<P>,
+        codec: PayloadCodec<P>,
+        onServer: (P, ServerPlayer) -> Unit,
+        onClient: (P) -> Unit,
+    ) {
+        remember(type, codec)
+        serverbound[type.id] = { buf, player -> onServer(codec.read(buf), player) }
+        clientbound[type.id] = { buf -> onClient(codec.read(buf)) }
+    }
+
+    private fun envelope(payload: BpmPayload): Envelope {
+        val id = payload.type().id
+        val buf = FriendlyByteBuf(Unpooled.buffer())
+        val write = writers[id] ?: error("bpm: payload $id was sent before it was registered")
+        write(buf, payload)
+        val body = ByteArray(buf.readableBytes())
+        buf.readBytes(body)
+        return Envelope(id, body)
+    }
+
+    override fun sendToServer(payload: BpmPayload) {
+        channel.sendToServer(envelope(payload))
+    }
+
+    override fun sendToPlayer(player: ServerPlayer, payload: BpmPayload) {
+        channel.send(PacketDistributor.PLAYER.with { player }, envelope(payload))
+    }
+}
+*///?}

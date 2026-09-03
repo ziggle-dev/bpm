@@ -5,11 +5,22 @@ import bpm.net.BpmNetwork
 import bpm.net.ServerNet
 import bpm.runtime.RuntimeManager
 import bpm.world.BpmRegistries
+import java.util.function.Consumer
+import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
+
+/*
+ * The same three names under two packages. Kotlin for Forge keeps its own package on both bands, so
+ * `MOD_BUS` above needs no arm -- the 4.12 artifact for 1.20.1 is still `kotlinforforge.neoforge`.
+ */
+//? if >=1.20.2 {
 import net.neoforged.fml.common.Mod
 import net.neoforged.neoforge.common.NeoForge
 import net.neoforged.neoforge.event.RegisterCommandsEvent
-import java.util.function.Consumer
-import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
+//?} else {
+/*import net.minecraftforge.fml.common.Mod
+import net.minecraftforge.common.MinecraftForge as NeoForge
+import net.minecraftforge.event.RegisterCommandsEvent
+*///?}
 
 /**
  * The NeoForge entry point. The language registries, the catalogue, the payloads and the controller
@@ -41,14 +52,25 @@ object BpmNeoForge {
         // and a registrar cannot be created before the thing that makes them exists.
         bpm.platform.registry.Registrars.install(bpm.platform.registry.NeoRegistries(MOD_BUS))
         BpmRegistries.install()
+        //? if >=1.20.2 {
         MOD_BUS.addListener(
             net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent::class.java,
             java.util.function.Consumer(bpm.platform.ports.NeoPortProviders::onRegisterCapabilities),
         )
+        //?} else {
+        /*// No per-type registration on this band: a provider is attached to each block entity as it is
+        // built, which is a listener on the GAME bus rather than a one-shot event on the mod bus.
+        bpm.platform.ports.NeoPortProviders.install(NeoForge.EVENT_BUS)
+        *///?}
         // The bridge first: it is what turns this loader's events into the ones the subsystems below
         // listen for, so nothing after this line names a bus.
         bpm.platform.events.NeoEventBridge.install(NeoForge.EVENT_BUS)
+        //? if >=1.20.2 {
         MOD_BUS.addListener(net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent::class.java, Consumer(bpm.platform.net.NeoNet::onRegisterPayloads))
+        //?} else {
+        /*// There is no registration event: the channel is built once and every message goes through it.
+        bpm.platform.net.NeoNet.registerChannel()
+        *///?}
         bpm.chamber.ChamberEvents.install()
         bpm.chamber.ChamberFight.install()
         bpm.world.CoreTiers.install()

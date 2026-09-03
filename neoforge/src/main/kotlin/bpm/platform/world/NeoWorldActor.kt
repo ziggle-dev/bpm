@@ -9,8 +9,13 @@ import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.GameType
 import net.minecraft.world.level.block.state.BlockState
+//? if >=1.20.2 {
 import net.neoforged.neoforge.common.CommonHooks
 import net.neoforged.neoforge.common.util.FakePlayerFactory
+//?} else {
+/*import net.minecraftforge.common.ForgeHooks
+import net.minecraftforge.common.util.FakePlayerFactory
+*///?}
 import java.util.UUID
 
 /**
@@ -32,8 +37,21 @@ object NeoWorldActor : WorldActor {
 
     override fun player(level: ServerLevel): ServerPlayer = FakePlayerFactory.get(level, PROFILE)
 
+    //? if >=1.20.2 {
     override fun mayBreak(level: ServerLevel, pos: BlockPos, state: BlockState, player: ServerPlayer): Boolean =
         !CommonHooks.fireBlockBreak(level, GameType.SURVIVAL, player, pos, state).isCanceled
+    //?} else {
+    /*/**
+     * The same event, fired by a hook that answers the experience rather than the event.
+     *
+     * `onBlockBreakEvent` returns -1 when a listener cancelled it and the xp to drop otherwise, so the
+     * question "may this be broken" is "is the answer not -1". The state is not passed because the hook
+     * reads it from the level itself.
+     */
+    @Suppress("UNUSED_PARAMETER")
+    override fun mayBreak(level: ServerLevel, pos: BlockPos, state: BlockState, player: ServerPlayer): Boolean =
+        ForgeHooks.onBlockBreakEvent(level, GameType.SURVIVAL, player, pos) != -1
+    *///?}
 
     override fun primeAttackStrength(player: Player) {
         ticker?.setInt(player, 1000)
@@ -57,7 +75,15 @@ object NeoWorldActor : WorldActor {
         player: net.minecraft.server.level.ServerPlayer,
         tool: net.minecraft.world.item.ItemStack,
     ) {
+        //? if >=1.20.2 {
         val xp = state.getExpDrop(level, pos, blockEntity, player, tool)
+        //?} else {
+        /*// The older hook is not told who is breaking it or with what; it is handed the two enchantment
+        // levels the drop depends on, read off the tool here rather than looked up there.
+        val fortune = bpm.platform.enchantmentLevel(tool, net.minecraft.world.item.enchantment.Enchantments.BLOCK_FORTUNE)
+        val silkTouch = bpm.platform.enchantmentLevel(tool, net.minecraft.world.item.enchantment.Enchantments.SILK_TOUCH)
+        val xp = state.getExpDrop(level, level.random, pos, fortune, silkTouch)
+        *///?}
         if (xp > 0) state.block.popExperience(level, pos, xp)
     }
 }

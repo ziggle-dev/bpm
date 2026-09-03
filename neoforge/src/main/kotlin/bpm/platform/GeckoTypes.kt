@@ -173,7 +173,11 @@ typealias GeoEntity = software.bernie.geckolib.animatable.GeoEntity
 typealias MolangQueries = software.bernie.geckolib.core.molang.MolangQueries
 typealias DataTickets = software.bernie.geckolib.constant.DataTickets
 typealias DataTicket<D> = software.bernie.geckolib.core.`object`.DataTicket<D>
-typealias GeoRenderProvider = software.bernie.geckolib.animatable.client.RenderProvider
+// Forge's own client extension rather than one of GeckoLib's: on this loader an item's custom renderer
+// is asked for through `IClientItemExtensions.getCustomRenderer`, which is what `initializeClient` fills
+// in -- see the item bases. GeckoLib 4.8's Fabric jar has its own `RenderProvider` for the same job; the
+// Forge jar has no such type, because Forge already had one.
+typealias GeoRenderProvider = net.minecraftforge.client.extensions.common.IClientItemExtensions
 typealias GeoModel<T> = software.bernie.geckolib.model.GeoModel<T>
 typealias SingletonGeoAnimatable = software.bernie.geckolib.animatable.SingletonGeoAnimatable
 *///?}
@@ -251,29 +255,16 @@ interface GeoRenderedItem : GeoItem {
     }
 }
 //?} else {
-/*interface GeoRenderedItem : GeoItem {
+/*/**
+ * On this loader the question is not GeckoLib's at all.
+ *
+ * Forge asks an item for its client extensions through `Item.initializeClient`, and reads the renderer
+ * off `IClientItemExtensions.getCustomRenderer`. So this interface only names the provider, and the
+ * item BASES answer `initializeClient` with it -- a base can override a method on `Item`, which an
+ * interface cannot do without colliding with the one the class already inherits.
+ */
+interface GeoRenderedItem : GeoItem {
 
     fun geoRenderProvider(): GeoRenderProvider
-
-    override fun createRenderer(consumer: java.util.function.Consumer<Any>) {
-        consumer.accept(geoRenderProvider())
-    }
-
-    /**
-     * The provider, made on first ask and kept.
-     *
-     * An interface holds no state, so the cache is beside it rather than in it. It is asked only from
-     * `RenderProvider.of`, which is client code, so building the renderer lazily here is what keeps a
-     * dedicated server from ever touching it -- the same guard `GeoItem.makeRenderer` uses upstream.
-     */
-    override fun getRenderProvider(): java.util.function.Supplier<Any> = geoRenderProviderOf(this)
 }
-
-private val geoRenderProviders = java.util.concurrent.ConcurrentHashMap<GeoRenderedItem, java.util.function.Supplier<Any>>()
-
-private fun geoRenderProviderOf(item: GeoRenderedItem): java.util.function.Supplier<Any> =
-    geoRenderProviders.computeIfAbsent(item) {
-        val provider = item.geoRenderProvider()
-        java.util.function.Supplier { provider }
-    }
 *///?}

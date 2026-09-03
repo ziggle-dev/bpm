@@ -48,6 +48,21 @@ import java.util.function.Consumer
  * handler used to repeat — "is this entity actually a player" — happens here once, which is why
  * [BpmEvents.playerDeath] can be typed as a player rather than as a living thing.
  */
+/**
+ * Add a listener for [type].
+ *
+ * The two buses disagree about how a listener names its event. NeoForge's takes the class and the
+ * consumer; MinecraftForge's takes a bare consumer and reads the event type off the lambda's generic
+ * signature -- which a Kotlin lambda does not carry -- so on that era the four-argument overload, the
+ * one that is handed the class, is the only one that works.
+ */
+//? if >=1.20.2 {
+private fun <T : net.neoforged.bus.api.Event> IEventBus.on(type: Class<T>, handler: Consumer<T>) = addListener(type, handler)
+//?} else {
+/*private fun <T : net.minecraftforge.eventbus.api.Event> IEventBus.on(type: Class<T>, handler: Consumer<T>) =
+    addListener(net.minecraftforge.eventbus.api.EventPriority.NORMAL, false, type, handler)
+*///?}
+
 object NeoEventBridge {
 
     fun install(bus: IEventBus) {
@@ -57,7 +72,7 @@ object NeoEventBridge {
          * and this is where that event comes from on this loader. RightClickBlock fires just before the
          * interaction, and cancelling it with a result is what "first" means.
          */
-        bus.addListener(PlayerInteractEvent.RightClickBlock::class.java, Consumer { e ->
+        bus.on(PlayerInteractEvent.RightClickBlock::class.java, Consumer { e ->
             val payload = UseOnBlock(e.level, e.entity, e.hand, e.pos, e.face ?: net.minecraft.core.Direction.UP)
             BpmEvents.useOnBlock.fire(payload)
             payload.result?.let { r ->
@@ -66,31 +81,31 @@ object NeoEventBridge {
             }
         })
 
-        bus.addListener(ServerAboutToStartEvent::class.java, Consumer { BpmEvents.serverStarting.fire(it.server) })
+        bus.on(ServerAboutToStartEvent::class.java, Consumer { BpmEvents.serverStarting.fire(it.server) })
         /*
          * Not a rename. From 1.20.2 the tick events are their own classes with `Pre` and `Post` nested
          * inside; on 1.20.1 there is ONE `TickEvent.ServerTickEvent` carrying a phase, and subscribing
          * without checking it fires this twice per tick -- once at the start and once at the end.
          */
         //? if >=1.20.2 {
-        bus.addListener(ServerTickEvent.Post::class.java, Consumer { BpmEvents.serverTickEnd.fire(it.server) })
+        bus.on(ServerTickEvent.Post::class.java, Consumer { BpmEvents.serverTickEnd.fire(it.server) })
         //?} else {
-        /*bus.addListener(TickEvent.ServerTickEvent::class.java, Consumer { e ->
+        /*bus.on(TickEvent.ServerTickEvent::class.java, Consumer { e ->
             if (e.phase == TickEvent.Phase.END) BpmEvents.serverTickEnd.fire(e.server)
         })
         *///?}
-        bus.addListener(ServerStoppingEvent::class.java, Consumer { BpmEvents.serverStopping.fire(it.server) })
+        bus.on(ServerStoppingEvent::class.java, Consumer { BpmEvents.serverStopping.fire(it.server) })
 
-        bus.addListener(PlayerEvent.PlayerLoggedInEvent::class.java, Consumer { e ->
+        bus.on(PlayerEvent.PlayerLoggedInEvent::class.java, Consumer { e ->
             (e.entity as? ServerPlayer)?.let(BpmEvents.playerJoin::fire)
         })
-        bus.addListener(PlayerEvent.PlayerLoggedOutEvent::class.java, Consumer { e ->
+        bus.on(PlayerEvent.PlayerLoggedOutEvent::class.java, Consumer { e ->
             (e.entity as? ServerPlayer)?.let(BpmEvents.playerLeave::fire)
         })
-        bus.addListener(PlayerEvent.PlayerRespawnEvent::class.java, Consumer { e ->
+        bus.on(PlayerEvent.PlayerRespawnEvent::class.java, Consumer { e ->
             (e.entity as? ServerPlayer)?.let { BpmEvents.playerRespawn.fire(Respawn(it, e.isEndConquered)) }
         })
-        bus.addListener(LivingDeathEvent::class.java, Consumer { e ->
+        bus.on(LivingDeathEvent::class.java, Consumer { e ->
             (e.entity as? ServerPlayer)?.let(BpmEvents.playerDeath::fire)
         })
 
@@ -101,26 +116,26 @@ object NeoEventBridge {
          * listened for differs, and the two bodies below are identical apart from that name.
          */
         //? if >=26.1 {
-        /*bus.addListener(net.neoforged.neoforge.event.level.block.BreakBlockEvent::class.java, Consumer { e ->
+        /*bus.on(net.neoforged.neoforge.event.level.block.BreakBlockEvent::class.java, Consumer { e ->
             val level = e.level as? ServerLevel ?: return@Consumer
             if (!BpmEvents.blockBreak.fire(BlockBreak(level, e.pos, e.state, e.player))) e.isCanceled = true
         })
         *///?} else {
-        bus.addListener(BlockEvent.BreakEvent::class.java, Consumer { e ->
+        bus.on(BlockEvent.BreakEvent::class.java, Consumer { e ->
             val level = e.level as? ServerLevel ?: return@Consumer
             if (!BpmEvents.blockBreak.fire(BlockBreak(level, e.pos, e.state, e.player))) e.isCanceled = true
         })
         //?}
 
-        bus.addListener(RegisterCommandsEvent::class.java, Consumer { e ->
+        bus.on(RegisterCommandsEvent::class.java, Consumer { e ->
             BpmEvents.registerCommands.fire(CommandRegistration(e.dispatcher, e.buildContext))
         })
 
-        bus.addListener(PlayerEvent.ItemCraftedEvent::class.java, Consumer { e ->
+        bus.on(PlayerEvent.ItemCraftedEvent::class.java, Consumer { e ->
             BpmEvents.itemCrafted.fire(Crafted(e.entity, e.crafting, e.inventory))
         })
 
-        bus.addListener(PlayerInteractEvent.LeftClickBlock::class.java, Consumer { e ->
+        bus.on(PlayerInteractEvent.LeftClickBlock::class.java, Consumer { e ->
             val phase = when (e.action) {
                 PlayerInteractEvent.LeftClickBlock.Action.START -> ClickPhase.START
                 PlayerInteractEvent.LeftClickBlock.Action.CLIENT_HOLD -> ClickPhase.HOLD
@@ -130,11 +145,11 @@ object NeoEventBridge {
             if (!BpmEvents.leftClickBlock.fire(LeftClickBlock(e.entity, e.pos, e.face, phase))) e.isCanceled = true
         })
 
-        bus.addListener(AttackEntityEvent::class.java, Consumer { e ->
+        bus.on(AttackEntityEvent::class.java, Consumer { e ->
             if (!BpmEvents.attackEntity.fire(AttackEntity(e.entity, e.target))) e.isCanceled = true
         })
 
-        bus.addListener(LivingDropsEvent::class.java, Consumer { e ->
+        bus.on(LivingDropsEvent::class.java, Consumer { e ->
             val player = e.entity as? ServerPlayer ?: return@Consumer
             // The stacks are copied here rather than in the listener: cancelling the event is what stops
             // the originals being spawned, and a listener that stashed the live ItemStacks would be

@@ -217,7 +217,10 @@ fun geoRenderProvider(renderer: () -> GeoItemRendererBase<*>?): bpm.platform.Geo
     /*return object : bpm.platform.GeoRenderProvider {
         private val made by lazy { renderer() }
 
-        override fun getCustomRenderer(): net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer? = made
+        // Forge's own default answers the vanilla item renderer, so a null here would be a hole rather
+        // than a fallback -- the provider is only ever asked for an item this mod draws itself.
+        override fun getCustomRenderer(): net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer =
+            made ?: super.getCustomRenderer()
     }
     *///?}
 }

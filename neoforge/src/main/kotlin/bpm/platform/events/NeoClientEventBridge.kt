@@ -44,6 +44,14 @@ import java.util.function.Consumer
  * render-stage hook is here because its shape IS known: two callers, both wanting the same stage, both
  * asking the same five questions of it. GUI layers went the same way, into `Hud` — see `HudRegistry`.
  */
+/** See the note on the same helper in [NeoEventBridge]: the two buses name an event differently. */
+//? if >=1.20.2 {
+private fun <T : net.neoforged.bus.api.Event> IEventBus.on(type: Class<T>, handler: Consumer<T>) = addListener(type, handler)
+//?} else {
+/*private fun <T : net.minecraftforge.eventbus.api.Event> IEventBus.on(type: Class<T>, handler: Consumer<T>) =
+    addListener(net.minecraftforge.eventbus.api.EventPriority.NORMAL, false, type, handler)
+*///?}
+
 object NeoClientEventBridge {
 
     //? if >=1.21.6 {
@@ -52,7 +60,7 @@ object NeoClientEventBridge {
     *///?}
 
     fun install(modBus: IEventBus, gameBus: IEventBus) {
-        modBus.addListener(FMLClientSetupEvent::class.java, Consumer { e ->
+        modBus.on(FMLClientSetupEvent::class.java, Consumer { e ->
             // enqueueWork because some of what runs here touches the game's own state.
             e.enqueueWork { BpmEvents.clientSetup.fire(Unit) }
         })
@@ -65,18 +73,18 @@ object NeoClientEventBridge {
          * unchecked listener would draw the deferred GUI twice a frame.
          */
         //? if >=1.20.2 {
-        gameBus.addListener(RenderFrameEvent.Post::class.java, Consumer { bpm.platform.client.drawDeferredGui() })
+        gameBus.on(RenderFrameEvent.Post::class.java, Consumer { bpm.platform.client.drawDeferredGui() })
         //?} else {
-        /*gameBus.addListener(TickEvent.RenderTickEvent::class.java, Consumer { e ->
+        /*gameBus.on(TickEvent.RenderTickEvent::class.java, Consumer { e ->
             if (e.phase == TickEvent.Phase.END) bpm.platform.client.drawDeferredGui()
         })
         *///?}
         *///?}
         //? if >=1.20.2 {
-        gameBus.addListener(ClientTickEvent.Pre::class.java, Consumer { BpmEvents.clientTickStart.fire(Unit) })
-        gameBus.addListener(ClientTickEvent.Post::class.java, Consumer { BpmEvents.clientTickEnd.fire(Unit) })
+        gameBus.on(ClientTickEvent.Pre::class.java, Consumer { BpmEvents.clientTickStart.fire(Unit) })
+        gameBus.on(ClientTickEvent.Post::class.java, Consumer { BpmEvents.clientTickEnd.fire(Unit) })
         //?} else {
-        /*gameBus.addListener(TickEvent.ClientTickEvent::class.java, Consumer { e ->
+        /*gameBus.on(TickEvent.ClientTickEvent::class.java, Consumer { e ->
             when (e.phase) {
                 TickEvent.Phase.START -> BpmEvents.clientTickStart.fire(Unit)
                 TickEvent.Phase.END -> BpmEvents.clientTickEnd.fire(Unit)
@@ -84,10 +92,10 @@ object NeoClientEventBridge {
             }
         })
         *///?}
-        gameBus.addListener(ClientPlayerNetworkEvent.LoggingOut::class.java, Consumer { BpmEvents.clientDisconnect.fire(Unit) })
-        gameBus.addListener(ScreenEvent.Init.Post::class.java, Consumer { BpmEvents.screenOpened.fire(it.screen) })
-        gameBus.addListener(PlayerInteractEvent.LeftClickEmpty::class.java, Consumer { BpmEvents.leftClickEmpty.fire(it.entity) })
-        gameBus.addListener(RegisterClientCommandsEvent::class.java, Consumer { e ->
+        gameBus.on(ClientPlayerNetworkEvent.LoggingOut::class.java, Consumer { BpmEvents.clientDisconnect.fire(Unit) })
+        gameBus.on(ScreenEvent.Init.Post::class.java, Consumer { BpmEvents.screenOpened.fire(it.screen) })
+        gameBus.on(PlayerInteractEvent.LeftClickEmpty::class.java, Consumer { BpmEvents.leftClickEmpty.fire(it.entity) })
+        gameBus.on(RegisterClientCommandsEvent::class.java, Consumer { e ->
             BpmEvents.registerClientCommands.fire(CommandRegistration(e.dispatcher, e.buildContext))
         })
 
@@ -105,9 +113,9 @@ object NeoClientEventBridge {
          * the aspect ratio alone -- the near and far planes cancel.
          */
         //? if >=1.21.9 {
-        /*gameBus.addListener(ViewportEvent.ComputeFov::class.java, Consumer { fov = it.fov.toFloat() })
+        /*gameBus.on(ViewportEvent.ComputeFov::class.java, Consumer { fov = it.fov.toFloat() })
 
-        gameBus.addListener(RenderLevelStageEvent.AfterTranslucentBlocks::class.java, Consumer { e ->
+        gameBus.on(RenderLevelStageEvent.AfterTranslucentBlocks::class.java, Consumer { e ->
             val pose = e.poseStack ?: return@Consumer
             val mc = net.minecraft.client.Minecraft.getInstance()
             val window = mc.window
@@ -135,9 +143,9 @@ object NeoClientEventBridge {
         // render state arrived. So this band names the subclass like the one above it, and rebuilds the
         // projection from the field of view the same way -- but the camera and the partial tick are still
         // on the event itself, which is what makes it a third arm rather than either neighbour.
-        gameBus.addListener(ViewportEvent.ComputeFov::class.java, Consumer { fov = it.fov.toFloat() })
+        gameBus.on(ViewportEvent.ComputeFov::class.java, Consumer { fov = it.fov.toFloat() })
 
-        gameBus.addListener(RenderLevelStageEvent.AfterTranslucentBlocks::class.java, Consumer { e ->
+        gameBus.on(RenderLevelStageEvent.AfterTranslucentBlocks::class.java, Consumer { e ->
             val window = net.minecraft.client.Minecraft.getInstance().window
             val projection = org.joml.Matrix4f().perspective(
                 Math.toRadians(fov.toDouble()).toFloat(),
@@ -150,7 +158,7 @@ object NeoClientEventBridge {
             )
         })
         *///?} else {
-        gameBus.addListener(net.neoforged.neoforge.client.event.RenderLevelStageEvent::class.java, Consumer { e ->
+        gameBus.on(net.neoforged.neoforge.client.event.RenderLevelStageEvent::class.java, Consumer { e ->
             if (e.stage != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) return@Consumer
             BpmEvents.worldRenderTranslucent.fire(
                 WorldRender(e.poseStack, e.camera.position, e.projectionMatrix, e.modelViewMatrix, bpm.platform.client.FrameDelta(e.partialTick))
@@ -158,7 +166,7 @@ object NeoClientEventBridge {
         })
         //?}
 
-        gameBus.addListener(InputEvent.InteractionKeyMappingTriggered::class.java, Consumer { e ->
+        gameBus.on(InputEvent.InteractionKeyMappingTriggered::class.java, Consumer { e ->
             if (!e.isUseItem) return@Consumer
             val player = net.minecraft.client.Minecraft.getInstance().player ?: return@Consumer
             if (!BpmEvents.useItemPressed.fire(player)) {
@@ -169,7 +177,7 @@ object NeoClientEventBridge {
             }
         })
 
-        gameBus.addListener(InputEvent.Key::class.java, Consumer { e ->
+        gameBus.on(InputEvent.Key::class.java, Consumer { e ->
             // InputEvent.Key cannot be cancelled, so a listener saying no cannot stop the press reaching
             // the game here. Keys clears the mapping's own down-state instead; see Keys.onKey.
             BpmEvents.rawKey.fire(RawKey(e.key, e.scanCode, e.action, e.modifiers))

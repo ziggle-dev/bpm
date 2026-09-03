@@ -84,7 +84,7 @@ object DeviceBlockEntities {
 }
 
 /** A device in item form: the same GeckoLib model, resting, in hand and in the inventory. */
-class DeviceBlockItem(block: Block, properties: Properties, val model: String, private val restAnimation: String) : BlockItem(block, properties), bpm.platform.GeoRenderedItem {
+class DeviceBlockItem(block: Block, properties: Properties, val model: String, private val restAnimation: String) : bpm.platform.BpmBlockItem(block, properties), bpm.platform.GeoRenderedItem {
     private val animCache: AnimatableInstanceCache = GeckoLibUtil.createInstanceCache(this)
     private val rest: RawAnimation = RawAnimation.begin().thenLoop(restAnimation)
 

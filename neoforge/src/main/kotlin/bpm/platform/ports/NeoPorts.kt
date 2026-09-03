@@ -281,6 +281,44 @@ class PortStorage(private val port: EnergyPort) :
 /** NeoForge counts energy in ints; a port may hold more. Saturate rather than wrap. */
 private fun clampToInt(value: Long): Int = value.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
 *///?} else {
+/*
+ * The three capability interfaces, named once.
+ *
+ * They are the same interfaces with the same methods on both sides of 1.20.2 -- NeoForge inherited
+ * Forge's item, fluid and energy capabilities wholesale and only moved them into its own package. So
+ * this is a rename and nothing else, and the twenty-odd uses below read the same on either.
+ *
+ * The one real difference is what a `FluidStack` carries alongside its fluid: a component patch from
+ * 1.20.5 and an NBT tag before it. That is what [fluidData] and [fluidStackOf] are for.
+ */
+//? if >=1.20.2 {
+private typealias CapItemHandler = net.neoforged.neoforge.items.IItemHandler
+private typealias CapItemHandlerModifiable = net.neoforged.neoforge.items.IItemHandlerModifiable
+private typealias CapFluidHandler = net.neoforged.neoforge.fluids.capability.IFluidHandler
+private typealias CapFluidAction = net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction
+private typealias CapFluidStack = net.neoforged.neoforge.fluids.FluidStack
+private typealias CapEnergyStorage = net.neoforged.neoforge.energy.IEnergyStorage
+//?} else {
+/*private typealias CapItemHandler = net.minecraftforge.items.IItemHandler
+private typealias CapItemHandlerModifiable = net.minecraftforge.items.IItemHandlerModifiable
+private typealias CapFluidHandler = net.minecraftforge.fluids.capability.IFluidHandler
+private typealias CapFluidAction = net.minecraftforge.fluids.capability.IFluidHandler.FluidAction
+private typealias CapFluidStack = net.minecraftforge.fluids.FluidStack
+private typealias CapEnergyStorage = net.minecraftforge.energy.IEnergyStorage
+*///?}
+
+//? if >=1.20.5 {
+private fun fluidData(stack: CapFluidStack): bpm.platform.ComponentPatch = stack.componentsPatch
+
+private fun fluidStackOf(volume: FluidVolume): CapFluidStack =
+    CapFluidStack(volume.fluid.builtInRegistryHolder(), volume.mb, volume.components)
+//?} else {
+/*private fun fluidData(stack: CapFluidStack): bpm.platform.ComponentPatch = stack.tag ?: net.minecraft.nbt.CompoundTag()
+
+private fun fluidStackOf(volume: FluidVolume): CapFluidStack =
+    CapFluidStack(volume.fluid, volume.mb, volume.components)
+*///?}
+
 /**
  * NeoForge's capabilities, in both directions.
  *
@@ -295,7 +333,7 @@ private fun clampToInt(value: Long): Int = value.coerceIn(0L, Int.MAX_VALUE.toLo
 
 // ---------------------------------------------------------------- items
 
-class HandlerPort(private val handler: net.neoforged.neoforge.items.IItemHandler) : ItemPort {
+class HandlerPort(private val handler: CapItemHandler) : ItemPort {
     override val slots: Int get() = handler.slots
     override fun stackIn(slot: Int): ItemStack = handler.getStackInSlot(slot)
     override fun insert(slot: Int, stack: ItemStack, simulate: Boolean): ItemStack = handler.insertItem(slot, stack, simulate)
@@ -304,13 +342,13 @@ class HandlerPort(private val handler: net.neoforged.neoforge.items.IItemHandler
     override fun isValid(slot: Int, stack: ItemStack): Boolean = handler.isItemValid(slot, stack)
 
     override fun setStackIn(slot: Int, stack: ItemStack): Boolean {
-        val modifiable = handler as? net.neoforged.neoforge.items.IItemHandlerModifiable ?: return false
+        val modifiable = handler as? CapItemHandlerModifiable ?: return false
         modifiable.setStackInSlot(slot, stack)
         return true
     }
 }
 
-class PortHandler(private val port: ItemPort) : net.neoforged.neoforge.items.IItemHandlerModifiable {
+class PortHandler(private val port: ItemPort) : CapItemHandlerModifiable {
     override fun getSlots(): Int = port.slots
     override fun getStackInSlot(slot: Int): ItemStack = port.stackIn(slot)
     override fun insertItem(slot: Int, stack: ItemStack, simulate: Boolean): ItemStack = port.insert(slot, stack, simulate)
@@ -325,13 +363,13 @@ class PortHandler(private val port: ItemPort) : net.neoforged.neoforge.items.IIt
 
 // ---------------------------------------------------------------- fluids
 
-fun net.neoforged.neoforge.fluids.FluidStack.toVolume(): FluidVolume =
-    if (isEmpty) FluidVolume.EMPTY else FluidVolume(fluid, Droplets.ofMb(amount), componentsPatch)
+fun CapFluidStack.toVolume(): FluidVolume =
+    if (isEmpty) FluidVolume.EMPTY else FluidVolume(fluid, Droplets.ofMb(amount), fluidData(this))
 
-fun FluidVolume.toStack(): net.neoforged.neoforge.fluids.FluidStack =
-    if (isEmpty) net.neoforged.neoforge.fluids.FluidStack.EMPTY else net.neoforged.neoforge.fluids.FluidStack(fluid.builtInRegistryHolder(), mb, components)
+fun FluidVolume.toStack(): CapFluidStack =
+    if (isEmpty) CapFluidStack.EMPTY else fluidStackOf(this)
 
-class HandlerFluidPort(private val handler: net.neoforged.neoforge.fluids.capability.IFluidHandler) : FluidPort {
+class HandlerFluidPort(private val handler: CapFluidHandler) : FluidPort {
     override val tanks: Int get() = handler.tanks
     override fun inTank(tank: Int): FluidVolume = handler.getFluidInTank(tank).toVolume()
     override fun tankCapacity(tank: Int): Long = Droplets.ofMb(handler.getTankCapacity(tank))
@@ -347,28 +385,28 @@ class HandlerFluidPort(private val handler: net.neoforged.neoforge.fluids.capabi
         handler.drain(Droplets.toMb(maxDroplets), action(simulate)).toVolume()
 
     private fun action(simulate: Boolean) =
-        if (simulate) net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction.SIMULATE else net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction.EXECUTE
+        if (simulate) CapFluidAction.SIMULATE else CapFluidAction.EXECUTE
 }
 
-class PortFluidHandler(private val port: FluidPort) : net.neoforged.neoforge.fluids.capability.IFluidHandler {
+class PortFluidHandler(private val port: FluidPort) : CapFluidHandler {
     override fun getTanks(): Int = port.tanks
-    override fun getFluidInTank(tank: Int): net.neoforged.neoforge.fluids.FluidStack = port.inTank(tank).toStack()
+    override fun getFluidInTank(tank: Int): CapFluidStack = port.inTank(tank).toStack()
     override fun getTankCapacity(tank: Int): Int = Droplets.toMb(port.tankCapacity(tank))
-    override fun isFluidValid(tank: Int, stack: net.neoforged.neoforge.fluids.FluidStack): Boolean = port.isValid(tank, stack.toVolume())
+    override fun isFluidValid(tank: Int, stack: CapFluidStack): Boolean = port.isValid(tank, stack.toVolume())
 
-    override fun fill(resource: net.neoforged.neoforge.fluids.FluidStack, action: net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction): Int =
+    override fun fill(resource: CapFluidStack, action: CapFluidAction): Int =
         Droplets.toMb(port.fill(resource.toVolume(), action.simulate()))
 
-    override fun drain(resource: net.neoforged.neoforge.fluids.FluidStack, action: net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction): net.neoforged.neoforge.fluids.FluidStack =
+    override fun drain(resource: CapFluidStack, action: CapFluidAction): CapFluidStack =
         port.drain(resource.toVolume(), action.simulate()).toStack()
 
-    override fun drain(maxDrain: Int, action: net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction): net.neoforged.neoforge.fluids.FluidStack =
+    override fun drain(maxDrain: Int, action: CapFluidAction): CapFluidStack =
         port.drain(Droplets.ofMb(maxDrain), action.simulate()).toStack()
 }
 
 // ---------------------------------------------------------------- energy
 
-class StoragePort(private val storage: net.neoforged.neoforge.energy.IEnergyStorage) : EnergyPort {
+class StoragePort(private val storage: CapEnergyStorage) : EnergyPort {
     override val stored: Long get() = storage.energyStored.toLong()
     override val capacity: Long get() = storage.maxEnergyStored.toLong()
     override fun canReceive(): Boolean = storage.canReceive()
@@ -381,7 +419,7 @@ class StoragePort(private val storage: net.neoforged.neoforge.energy.IEnergyStor
         storage.extractEnergy(clampToInt(amount), simulate).toLong()
 }
 
-class PortStorage(private val port: EnergyPort) : net.neoforged.neoforge.energy.IEnergyStorage {
+class PortStorage(private val port: EnergyPort) : CapEnergyStorage {
     override fun getEnergyStored(): Int = clampToInt(port.stored)
     override fun getMaxEnergyStored(): Int = clampToInt(port.capacity)
     override fun canReceive(): Boolean = port.canReceive()

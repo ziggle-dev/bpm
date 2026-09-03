@@ -7,7 +7,11 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.sounds.SoundEvent
 import net.minecraft.sounds.SoundEvents
 import net.minecraft.world.level.material.Fluid
+//? if >=1.20.2 {
 import net.neoforged.neoforge.common.SoundActions
+//?} else {
+/*import net.minecraftforge.common.SoundActions
+*///?}
 
 /**
  * NeoForge's `FluidType`, which is where this loader keeps a fluid's manners.

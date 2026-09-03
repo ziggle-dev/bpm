@@ -23,6 +23,21 @@ import net.minecraft.world.level.block.Block
  * added, which is the cheapest kind of wrong to be.
  */
 open class BpmItem(properties: Properties) : Item(properties) {
+    //? if <1.21 {
+    /*/**
+     * Forge asks the item for its client extensions; the provider this mod builds is one.
+     *
+     * This is on the base rather than on `GeoRenderedItem` because it overrides a method the class
+     * already has from `Item`, and a Kotlin interface bringing a second implementation of it would make
+     * every item ambiguous. An item that draws itself normally is not a [bpm.platform.GeoRenderedItem]
+     * and is left alone.
+     */
+    override fun initializeClient(consumer: java.util.function.Consumer<net.minecraftforge.client.extensions.common.IClientItemExtensions>) {
+        val provider = (this as? bpm.platform.GeoRenderedItem)?.geoRenderProvider() ?: return
+        consumer.accept(provider)
+    }
+    *///?}
+
 
     /** Add this item's own tooltip lines. */
     protected open fun lore(stack: ItemStack, add: (Component) -> Unit) {}
@@ -112,6 +127,21 @@ open class BpmItem(properties: Properties) : Item(properties) {
 
 /** The same tooltip hook, for an item that places a block and so cannot extend [BpmItem]. */
 open class BpmBlockItem(block: Block, properties: Properties) : BlockItem(block, properties) {
+    //? if <1.21 {
+    /*/**
+     * Forge asks the item for its client extensions; the provider this mod builds is one.
+     *
+     * This is on the base rather than on `GeoRenderedItem` because it overrides a method the class
+     * already has from `Item`, and a Kotlin interface bringing a second implementation of it would make
+     * every item ambiguous. An item that draws itself normally is not a [bpm.platform.GeoRenderedItem]
+     * and is left alone.
+     */
+    override fun initializeClient(consumer: java.util.function.Consumer<net.minecraftforge.client.extensions.common.IClientItemExtensions>) {
+        val provider = (this as? bpm.platform.GeoRenderedItem)?.geoRenderProvider() ?: return
+        consumer.accept(provider)
+    }
+    *///?}
+
 
     protected open fun lore(stack: ItemStack, add: (Component) -> Unit) {}
 

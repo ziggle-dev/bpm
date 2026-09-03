@@ -1,5 +1,18 @@
 package bpm.platform.ports
 
+/*
+ * The capability system was REPLACED at 1.20.2, not renamed.
+ *
+ * NeoForge's is a lookup: `Capabilities.ItemHandler.BLOCK` is a `BlockCapability`, asked of a level and
+ * a position, cached by a `BlockCapabilityCache`, and a block entity's provider is registered against
+ * its type in `RegisterCapabilitiesEvent`. MinecraftForge 1.20.1's is a query on the OBJECT:
+ * `getCapability(cap, side)` answers a `LazyOptional`, and a provider is ATTACHED to an object when
+ * `AttachCapabilitiesEvent` fires for it -- there is no per-type registration and no cache type.
+ *
+ * So the whole file is switched. What the two arms share is the seam they answer to: a `PortCache` that
+ * yields the three ports, and a `PortSink` that takes a block entity type and a factory.
+ */
+//? if >=1.20.2 {
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel
@@ -89,3 +102,129 @@ object NeoPortProviders : PortProviders {
         for (block in pending) block(sink)
     }
 }
+//?} else {
+/*import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.level.block.entity.BlockEntity
+import net.minecraft.world.level.block.entity.BlockEntityType
+import net.minecraftforge.common.capabilities.Capability
+import net.minecraftforge.common.capabilities.ForgeCapabilities
+import net.minecraftforge.common.capabilities.ICapabilityProvider
+import net.minecraftforge.common.util.LazyOptional
+import net.minecraftforge.event.AttachCapabilitiesEvent
+import net.minecraftforge.eventbus.api.EventPriority
+import net.minecraftforge.eventbus.api.IEventBus
+
+/** Forge's capability queries, asked of the block entity at a position. */
+object NeoPorts : PlatformPorts {
+
+    override fun cache(level: ServerLevel, pos: BlockPos, side: Direction?): PortCache = NeoPortCache(level, pos, side)
+
+    override fun playerInventory(player: Player): ItemPort? =
+        player.getCapability(ForgeCapabilities.ITEM_HANDLER).resolve().orElse(null)?.let(::HandlerPort)
+}
+
+/**
+ * There is no cache type on this band, so the "cache" is the position it was made for.
+ *
+ * A `LazyOptional` is invalidated by whoever handed it out, and holding one across ticks means holding
+ * a stale one when the block is replaced. Looking the block entity up each time is what the older API
+ * expects and is a hash lookup in the chunk -- the cost the newer `BlockCapabilityCache` removes.
+ */
+private class NeoPortCache(
+    private val level: ServerLevel,
+    private val pos: BlockPos,
+    private val side: Direction?,
+) : PortCache {
+
+    private fun <T> look(cap: Capability<T>): T? =
+        level.getBlockEntity(pos)?.getCapability(cap, side)?.resolve()?.orElse(null)
+
+    override val items: ItemPort? get() = look(ForgeCapabilities.ITEM_HANDLER)?.let(::HandlerPort)
+    override val fluids: FluidPort? get() = look(ForgeCapabilities.FLUID_HANDLER)?.let(::HandlerFluidPort)
+    override val energy: EnergyPort? get() = look(ForgeCapabilities.ENERGY)?.let(::StoragePort)
+}
+
+/**
+ * Providers, attached rather than registered.
+ *
+ * The declarations are collected exactly as they are on the newer band; what differs is where they go.
+ * `AttachCapabilitiesEvent<BlockEntity>` fires once per block entity as it is built, and the provider
+ * added there answers for that one object -- so the tables below are keyed by block entity TYPE and
+ * consulted when the event names one of ours.
+ */
+object NeoPortProviders : PortProviders {
+
+    private val pending = ArrayList<(PortSink) -> Unit>()
+    private val itemPorts = HashMap<BlockEntityType<*>, (BlockEntity, Direction?) -> ItemPort?>()
+    private val fluidPorts = HashMap<BlockEntityType<*>, (BlockEntity, Direction?) -> FluidPort?>()
+    private val energyPorts = HashMap<BlockEntityType<*>, (BlockEntity, Direction?) -> EnergyPort?>()
+
+    override fun providers(block: (PortSink) -> Unit) {
+        pending += block
+    }
+
+    /** Fill the tables and start listening. Called from the entry point. */
+    @Suppress("UNCHECKED_CAST")
+    fun install(gameBus: IEventBus) {
+        val sink = object : PortSink {
+            override fun <T : BlockEntity> items(type: BlockEntityType<T>, port: (T, Direction?) -> ItemPort?) {
+                itemPorts[type] = { be, side -> port(be as T, side) }
+            }
+
+            override fun <T : BlockEntity> fluids(type: BlockEntityType<T>, port: (T, Direction?) -> FluidPort?) {
+                fluidPorts[type] = { be, side -> port(be as T, side) }
+            }
+
+            override fun <T : BlockEntity> energy(type: BlockEntityType<T>, port: (T, Direction?) -> EnergyPort?) {
+                energyPorts[type] = { be, side -> port(be as T, side) }
+            }
+        }
+        for (block in pending) block(sink)
+        pending.clear()
+
+        gameBus.addGenericListener(
+            BlockEntity::class.java,
+            EventPriority.NORMAL,
+            false,
+            AttachCapabilitiesEvent::class.java as Class<AttachCapabilitiesEvent<BlockEntity>>,
+        ) { event ->
+            val be = event.`object`
+            val type = be.type
+            if (type !in itemPorts && type !in fluidPorts && type !in energyPorts) return@addGenericListener
+            event.addCapability(bpm.platform.idOf(bpm.Bpm.ID, "ports"), Attached(be))
+        }
+    }
+
+    /**
+     * One provider per block entity, answering all three capabilities.
+     *
+     * The `LazyOptional`s are made per side on first ask and kept, because Forge callers hold on to the
+     * one they were given and listen for its invalidation. They are all invalidated together when the
+     * block entity goes: `event.addListener` is fired by the dispatcher when the object is invalidated.
+     */
+    private class Attached(private val be: BlockEntity) : ICapabilityProvider {
+
+        private val made = HashMap<Pair<Capability<*>, Direction?>, LazyOptional<*>> ()
+
+        @Suppress("UNCHECKED_CAST")
+        override fun <T> getCapability(cap: Capability<T>, side: Direction?): LazyOptional<T> {
+            val existing = made[cap to side]
+            if (existing != null) return existing as LazyOptional<T>
+            val answer: LazyOptional<*> = when (cap) {
+                ForgeCapabilities.ITEM_HANDLER ->
+                    itemPorts[be.type]?.invoke(be, side)?.let { LazyOptional.of { PortHandler(it) } } ?: LazyOptional.empty<Any>()
+                ForgeCapabilities.FLUID_HANDLER ->
+                    fluidPorts[be.type]?.invoke(be, side)?.let { LazyOptional.of { PortFluidHandler(it) } } ?: LazyOptional.empty<Any>()
+                ForgeCapabilities.ENERGY ->
+                    energyPorts[be.type]?.invoke(be, side)?.let { LazyOptional.of { PortStorage(it) } } ?: LazyOptional.empty<Any>()
+                else -> LazyOptional.empty<Any>()
+            }
+            made[cap to side] = answer
+            return answer as LazyOptional<T>
+        }
+    }
+}
+*///?}
