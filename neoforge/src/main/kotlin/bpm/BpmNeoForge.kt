@@ -6,11 +6,16 @@ import bpm.net.ServerNet
 import bpm.runtime.RuntimeManager
 import bpm.world.BpmRegistries
 import java.util.function.Consumer
+//? if >=1.20.2 {
 import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
+//?} else {
+/*import thedarkcolour.kotlinforforge.forge.MOD_BUS
+*///?}
 
 /*
- * The same three names under two packages. Kotlin for Forge keeps its own package on both bands, so
- * `MOD_BUS` above needs no arm -- the 4.12 artifact for 1.20.1 is still `kotlinforforge.neoforge`.
+ * The same names under two packages, Kotlin for Forge included: this band takes KFF's FORGE artifact,
+ * because NeoForge 47 is still Forge underneath and its bus is net.minecraftforge's. See the note
+ * beside the dependency in neoforge/build.gradle.kts.
  */
 //? if >=1.20.2 {
 import net.neoforged.fml.common.Mod

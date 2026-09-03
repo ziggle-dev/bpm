@@ -93,6 +93,33 @@ internal fun boxEdges(box: net.minecraft.world.phys.AABB): List<Pair<net.minecra
     net.minecraft.client.renderer.RenderStateShard.TextureStateShard(texture, net.minecraft.util.TriState.FALSE, false)
 *///?}
 
+//? if <1.21.9 {
+/**
+ * The render-state shards a custom `RenderType` is assembled from.
+ *
+ * They are `protected static` on `RenderStateShard` -- meant for the game's own render types -- and a
+ * protected STATIC is reachable from a subclass, which is what this is. NeoForge's own transformer
+ * opens them from 1.20.2, so on those bands this changes nothing; on 1.20.1 it is what makes the line
+ * and beam types buildable at all, without depending on a member-name mapping in an access transformer,
+ * which is not remapped on that band.
+ *
+ * The name and the two runnables are what any shard is built from; this one is never used AS a shard.
+ */
+private object Shards : net.minecraft.client.renderer.RenderStateShard("bpm:shards", Runnable {}, Runnable {}) {
+    val linesShader = RENDERTYPE_LINES_SHADER
+    val viewOffsetZLayering = VIEW_OFFSET_Z_LAYERING
+    val translucentTransparency = TRANSLUCENT_TRANSPARENCY
+    val additiveTransparency = ADDITIVE_TRANSPARENCY
+    val itemEntityTarget = ITEM_ENTITY_TARGET
+    val colorDepthWrite = COLOR_DEPTH_WRITE
+    val colorWrite = COLOR_WRITE
+    val noCull = NO_CULL
+    val noDepthTest = NO_DEPTH_TEST
+    val lequalDepthTest = LEQUAL_DEPTH_TEST
+    val noTexture = NO_TEXTURE
+}
+//?}
+
 //? if >=1.21.9 {
 /*/**
  * Every pipeline this mod draws with, declared together because they are registered together.
@@ -384,7 +411,6 @@ private fun colourQuads(name: String, pipeline: com.mojang.blaze3d.pipeline.Rend
     }
 
 private val lineTypeCache = HashMap<Pair<Boolean, Float>, RenderType>()
-
 // The width is still part of the TYPE on this band. Per-vertex line width is a 1.21.9 addition, so a
 // LineStateShard carries it here and the cache is keyed by width as well as by the depth test, exactly
 // as on 1.21.2.
@@ -397,13 +423,13 @@ private fun linesType(throughWalls: Boolean, width: Float): RenderType = lineTyp
         if (throughWalls) BpmPipelines.LINES_THROUGH_WALLS else net.minecraft.client.renderer.RenderPipelines.LINES,
         net.minecraft.client.renderer.RenderType.CompositeState.builder()
             .setLineState(net.minecraft.client.renderer.RenderStateShard.LineStateShard(java.util.OptionalDouble.of(width.toDouble())))
-            .setLayeringState(net.minecraft.client.renderer.RenderStateShard.VIEW_OFFSET_Z_LAYERING)
+            .setLayeringState(Shards.viewOffsetZLayering)
             // The ITEM-ENTITY target, as on the band below, not the main one the 1.21.9 arm names.
             // Drawing into it stopped working at 1.21.11, where the frame graph composites that target
             // before RenderLevelStageEvent fires. That really is a 1.21.9 change: VERIFIED in game on
             // 1.21.8, where the linker's lines and the transfer motes both draw correctly through this
             // target. Do not "fix" this to MAIN_TARGET without a symptom to go with it.
-            .setOutputState(net.minecraft.client.renderer.RenderStateShard.ITEM_ENTITY_TARGET)
+            .setOutputState(Shards.itemEntityTarget)
             .createCompositeState(false),
     )
 }
@@ -475,7 +501,7 @@ fun translucentCull(texture: ResourceLocation): RenderType = translucentCullCach
         net.minecraft.client.renderer.RenderType.CompositeState.builder()
             .setShaderState(net.minecraft.client.renderer.RenderStateShard.RENDERTYPE_ENTITY_TRANSLUCENT_SHADER)
             .setTextureState(net.minecraft.client.renderer.RenderStateShard.TextureStateShard(texture, net.minecraft.util.TriState.FALSE, false))
-            .setTransparencyState(net.minecraft.client.renderer.RenderStateShard.TRANSLUCENT_TRANSPARENCY)
+            .setTransparencyState(Shards.translucentTransparency)
             .setLightmapState(net.minecraft.client.renderer.RenderStateShard.LIGHTMAP)
             .setOverlayState(net.minecraft.client.renderer.RenderStateShard.OVERLAY)
             .createCompositeState(true),
@@ -502,16 +528,16 @@ private fun linesType(throughWalls: Boolean, width: Float): RenderType = lineTyp
         false,
         false,
         net.minecraft.client.renderer.RenderType.CompositeState.builder()
-            .setShaderState(net.minecraft.client.renderer.RenderStateShard.RENDERTYPE_LINES_SHADER)
+            .setShaderState(Shards.linesShader)
             .setLineState(net.minecraft.client.renderer.RenderStateShard.LineStateShard(java.util.OptionalDouble.of(width.toDouble())))
-            .setLayeringState(net.minecraft.client.renderer.RenderStateShard.VIEW_OFFSET_Z_LAYERING)
-            .setTransparencyState(net.minecraft.client.renderer.RenderStateShard.TRANSLUCENT_TRANSPARENCY)
-            .setOutputState(net.minecraft.client.renderer.RenderStateShard.ITEM_ENTITY_TARGET)
-            .setWriteMaskState(net.minecraft.client.renderer.RenderStateShard.COLOR_DEPTH_WRITE)
-            .setCullState(net.minecraft.client.renderer.RenderStateShard.NO_CULL)
+            .setLayeringState(Shards.viewOffsetZLayering)
+            .setTransparencyState(Shards.translucentTransparency)
+            .setOutputState(Shards.itemEntityTarget)
+            .setWriteMaskState(Shards.colorDepthWrite)
+            .setCullState(Shards.noCull)
             .setDepthTestState(
-                if (throughWalls) net.minecraft.client.renderer.RenderStateShard.NO_DEPTH_TEST
-                else net.minecraft.client.renderer.RenderStateShard.LEQUAL_DEPTH_TEST,
+                if (throughWalls) Shards.noDepthTest
+                else Shards.lequalDepthTest,
             )
             .createCompositeState(false),
     )
@@ -581,15 +607,15 @@ private fun colourQuads(name: String, additive: Boolean, depthWrite: Boolean): R
         false,
         net.minecraft.client.renderer.RenderType.CompositeState.builder()
             .setShaderState(positionColorShader())
-            .setTextureState(net.minecraft.client.renderer.RenderStateShard.NO_TEXTURE)
+            .setTextureState(Shards.noTexture)
             .setTransparencyState(
-                if (additive) net.minecraft.client.renderer.RenderStateShard.ADDITIVE_TRANSPARENCY
-                else net.minecraft.client.renderer.RenderStateShard.TRANSLUCENT_TRANSPARENCY,
+                if (additive) Shards.additiveTransparency
+                else Shards.translucentTransparency,
             )
-            .setCullState(net.minecraft.client.renderer.RenderStateShard.NO_CULL)
+            .setCullState(Shards.noCull)
             .setWriteMaskState(
-                if (depthWrite) net.minecraft.client.renderer.RenderStateShard.COLOR_DEPTH_WRITE
-                else net.minecraft.client.renderer.RenderStateShard.COLOR_WRITE,
+                if (depthWrite) Shards.colorDepthWrite
+                else Shards.colorWrite,
             )
             .createCompositeState(false),
     )
@@ -621,16 +647,16 @@ private fun linesType(throughWalls: Boolean, width: Float): RenderType = lineTyp
         false,
         false,
         net.minecraft.client.renderer.RenderType.CompositeState.builder()
-            .setShaderState(net.minecraft.client.renderer.RenderStateShard.RENDERTYPE_LINES_SHADER)
+            .setShaderState(Shards.linesShader)
             .setLineState(net.minecraft.client.renderer.RenderStateShard.LineStateShard(java.util.OptionalDouble.of(width.toDouble())))
-            .setLayeringState(net.minecraft.client.renderer.RenderStateShard.VIEW_OFFSET_Z_LAYERING)
-            .setTransparencyState(net.minecraft.client.renderer.RenderStateShard.TRANSLUCENT_TRANSPARENCY)
-            .setOutputState(net.minecraft.client.renderer.RenderStateShard.ITEM_ENTITY_TARGET)
-            .setWriteMaskState(net.minecraft.client.renderer.RenderStateShard.COLOR_DEPTH_WRITE)
-            .setCullState(net.minecraft.client.renderer.RenderStateShard.NO_CULL)
+            .setLayeringState(Shards.viewOffsetZLayering)
+            .setTransparencyState(Shards.translucentTransparency)
+            .setOutputState(Shards.itemEntityTarget)
+            .setWriteMaskState(Shards.colorDepthWrite)
+            .setCullState(Shards.noCull)
             .setDepthTestState(
-                if (throughWalls) net.minecraft.client.renderer.RenderStateShard.NO_DEPTH_TEST
-                else net.minecraft.client.renderer.RenderStateShard.LEQUAL_DEPTH_TEST,
+                if (throughWalls) Shards.noDepthTest
+                else Shards.lequalDepthTest,
             )
             .createCompositeState(false),
     )
@@ -700,15 +726,15 @@ private fun colourQuads(name: String, additive: Boolean, depthWrite: Boolean): R
         false,
         net.minecraft.client.renderer.RenderType.CompositeState.builder()
             .setShaderState(positionColorShader())
-            .setTextureState(net.minecraft.client.renderer.RenderStateShard.NO_TEXTURE)
+            .setTextureState(Shards.noTexture)
             .setTransparencyState(
-                if (additive) net.minecraft.client.renderer.RenderStateShard.ADDITIVE_TRANSPARENCY
-                else net.minecraft.client.renderer.RenderStateShard.TRANSLUCENT_TRANSPARENCY,
+                if (additive) Shards.additiveTransparency
+                else Shards.translucentTransparency,
             )
-            .setCullState(net.minecraft.client.renderer.RenderStateShard.NO_CULL)
+            .setCullState(Shards.noCull)
             .setWriteMaskState(
-                if (depthWrite) net.minecraft.client.renderer.RenderStateShard.COLOR_DEPTH_WRITE
-                else net.minecraft.client.renderer.RenderStateShard.COLOR_WRITE,
+                if (depthWrite) Shards.colorDepthWrite
+                else Shards.colorWrite,
             )
             .createCompositeState(false),
     )

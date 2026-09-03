@@ -58,7 +58,8 @@ object NeoFluidRegistrar : FluidRegistrar {
         block: () -> RegistryRef<out LiquidBlock>,
     ): FluidPair {
         val type = types.register(spec.name) { ->
-            FluidType(
+            fluidTypeOf(
+                spec,
                 FluidType.Properties.create()
                     .descriptionId(spec.descriptionId)
                     .lightLevel(spec.lightLevel)
@@ -132,3 +133,22 @@ object NeoFluidRegistrar : FluidRegistrar {
     }
     //?}
 }
+
+/**
+ * The fluid type, made with its appearance attached where the band has nowhere else to put it.
+ *
+ * From 1.20.2 a mod registers client extensions for a fluid type in an EVENT, so the type itself is
+ * plain. On 1.20.1 there is no such event: `FluidType.initializeClient` is how a type hands over its
+ * client extensions, so the type has to be a subclass that answers it.
+ */
+//? if >=1.20.2 {
+@Suppress("UNUSED_PARAMETER")
+private fun fluidTypeOf(spec: FluidSpec, properties: FluidType.Properties): FluidType = FluidType(properties)
+//?} else {
+/*private fun fluidTypeOf(spec: FluidSpec, properties: FluidType.Properties): FluidType =
+    object : FluidType(properties) {
+        override fun initializeClient(consumer: java.util.function.Consumer<IClientFluidTypeExtensions>) {
+            consumer.accept(NeoFluidRegistrar.looks(spec))
+        }
+    }
+*///?}

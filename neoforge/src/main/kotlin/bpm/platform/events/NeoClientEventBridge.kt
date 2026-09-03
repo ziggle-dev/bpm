@@ -158,10 +158,16 @@ object NeoClientEventBridge {
             )
         })
         *///?} else {
-        gameBus.on(net.neoforged.neoforge.client.event.RenderLevelStageEvent::class.java, Consumer { e ->
+        gameBus.on(RenderLevelStageEvent::class.java, Consumer { e ->
             if (e.stage != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) return@Consumer
             BpmEvents.worldRenderTranslucent.fire(
+                //? if >=1.20.2 {
                 WorldRender(e.poseStack, e.camera.position, e.projectionMatrix, e.modelViewMatrix, bpm.platform.client.FrameDelta(e.partialTick))
+                //?} else {
+                /*// The event does not carry the model-view here; it is the pose being drawn under, which
+                // is what the newer field holds too.
+                WorldRender(e.poseStack, e.camera.position, e.projectionMatrix, org.joml.Matrix4f(e.poseStack.last().pose()), bpm.platform.client.FrameDelta(e.partialTick))
+                *///?}
             )
         })
         //?}

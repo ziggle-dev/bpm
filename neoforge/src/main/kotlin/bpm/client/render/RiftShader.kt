@@ -15,14 +15,41 @@ import com.mojang.blaze3d.vertex.VertexFormat
 import bpm.platform.RenderType
 import bpm.platform.ResourceLocation
 
-/** Which rift the client draws. Switch live with `/bpm rift <cube|tear>`. */
+//? if <1.21.5 {
+/**
+ * The render-state shards a custom `RenderType` is assembled from.
+ *
+ * They are `protected static` on `RenderStateShard` -- meant for the game's own render types -- and a
+ * protected STATIC is reachable from a subclass, which is what this is. NeoForge's own transformer
+ * opens them from 1.20.2, so on those bands this changes nothing; on 1.20.1 it is what makes the line
+ * and beam types buildable at all, without depending on a member-name mapping in an access transformer,
+ * which is not remapped on that band.
+ *
+ * The name and the two runnables are what any shard is built from; this one is never used AS a shard.
+ */
+private object Shards : net.minecraft.client.renderer.RenderStateShard("bpm:shards", Runnable {}, Runnable {}) {
+    val linesShader = RENDERTYPE_LINES_SHADER
+    val viewOffsetZLayering = VIEW_OFFSET_Z_LAYERING
+    val translucentTransparency = TRANSLUCENT_TRANSPARENCY
+    val additiveTransparency = ADDITIVE_TRANSPARENCY
+    val itemEntityTarget = ITEM_ENTITY_TARGET
+    val colorDepthWrite = COLOR_DEPTH_WRITE
+    val colorWrite = COLOR_WRITE
+    val noCull = NO_CULL
+    val noDepthTest = NO_DEPTH_TEST
+    val lequalDepthTest = LEQUAL_DEPTH_TEST
+    val noTexture = NO_TEXTURE
+}
+//?}
 
+
+/** Which rift the client draws. Switch live with `/bpm rift <cube|tear>`. */
 /**
  * The two core shaders a rift can be made of, and the render types that carry them.
  *
  * **No samplers.** Both effects generate everything from value noise in the fragment shader, so there is no
  * texture to paint and no UV layout to keep in step. The format is
- * [DefaultVertexFormat.POSITION_TEX_COLOR_NORMAL] with [net.minecraft.client.renderer.RenderStateShard.NO_TEXTURE], and the three
+ * [DefaultVertexFormat.POSITION_TEX_COLOR_NORMAL] with [Shards.noTexture], and the three
  * non-position channels are carrying data rather than appearance:
  *
  * - **UV0** — where in the face this fragment sits, 0..1.
@@ -145,7 +172,11 @@ object RiftShader : bpm.platform.client.RiftLook {
     private var cube: net.minecraft.client.renderer.ShaderInstance? = null
     private var tear: net.minecraft.client.renderer.ShaderInstance? = null
 
+    //? if >=1.20.2 {
     fun register(event: net.neoforged.neoforge.client.event.RegisterShadersEvent) {
+    //?} else {
+    /*fun register(event: net.minecraftforge.client.event.RegisterShadersEvent) {
+    *///?}
         event.registerShader(net.minecraft.client.renderer.ShaderInstance(event.resourceProvider, rl("rift_cube"), FORMAT)) { cube = it }
         event.registerShader(net.minecraft.client.renderer.ShaderInstance(event.resourceProvider, rl("rift_tear"), FORMAT)) { tear = it }
         Bpm.LOGGER.info("bpm rift shaders registered (cube, tear)")
@@ -197,10 +228,10 @@ object RiftShader : bpm.platform.client.RiftLook {
         false,
         net.minecraft.client.renderer.RenderType.CompositeState.builder()
             .setShaderState(shader)
-            .setTextureState(net.minecraft.client.renderer.RenderStateShard.NO_TEXTURE)
-            .setTransparencyState(net.minecraft.client.renderer.RenderStateShard.ADDITIVE_TRANSPARENCY)
-            .setCullState(net.minecraft.client.renderer.RenderStateShard.NO_CULL)
-            .setWriteMaskState(net.minecraft.client.renderer.RenderStateShard.COLOR_DEPTH_WRITE)
+            .setTextureState(Shards.noTexture)
+            .setTransparencyState(Shards.additiveTransparency)
+            .setCullState(Shards.noCull)
+            .setWriteMaskState(Shards.colorDepthWrite)
             .createCompositeState(false),
     )
     //?}

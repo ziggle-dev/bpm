@@ -984,8 +984,9 @@ abstract class GeoBlockRendererBase<T>(
     /** Draw whatever this renderer hangs off the model, once the model itself is drawn. */
     protected open fun afterModel(blockEntity: T, poseStack: com.mojang.blaze3d.vertex.PoseStack, draw: WorldDraw, partialTick: Float, packedLight: Int) {}
 
-    // GeckoLib's own `render` keeps the type parameter on the Forge artifact -- the erased signature
-    // that the Fabric copy has to match is a quirk of that jar, not of 4.8.
+    // 4.8's GeoBlockRenderer writes its own `render` with the ERASED parameter -- `BlockEntity`, not `T`
+    // -- so the method to override there is spelled with that type and the animatable is cast back.
+    //? if >=1.21 {
     override fun render(
         animatable: T,
         partialTick: Float,
@@ -997,6 +998,20 @@ abstract class GeoBlockRendererBase<T>(
         super.render(animatable, partialTick, poseStack, bufferSource, packedLight, packedOverlay)
         afterModel(animatable, poseStack, BufferedDraw(bufferSource), partialTick, packedLight)
     }
+    //?} else {
+    /*@Suppress("UNCHECKED_CAST")
+    override fun render(
+        animatable: net.minecraft.world.level.block.entity.BlockEntity,
+        partialTick: Float,
+        poseStack: com.mojang.blaze3d.vertex.PoseStack,
+        bufferSource: net.minecraft.client.renderer.MultiBufferSource,
+        packedLight: Int,
+        packedOverlay: Int,
+    ) {
+        super.render(animatable, partialTick, poseStack, bufferSource, packedLight, packedOverlay)
+        afterModel(animatable as T, poseStack, BufferedDraw(bufferSource), partialTick, packedLight)
+    }
+    *///?}
 
 
 }

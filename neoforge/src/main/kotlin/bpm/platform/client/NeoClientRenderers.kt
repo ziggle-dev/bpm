@@ -15,6 +15,20 @@ package bpm.platform.client
  * its own texture name, which is what the callers want: they look it up in the block atlas, and one of
  * them opens the PNG.
  */
+/*
+ * The two registration events that are only a rename, named once.
+ *
+ * `EntityRenderersEvent.RegisterRenderers` and `RegisterKeyMappingsEvent` are the same events with the
+ * same methods on both sides of 1.20.2. The HUD one below is NOT -- see [NeoHudRegistry].
+ */
+//? if >=1.20.2 {
+private typealias RenderersEvent = net.neoforged.neoforge.client.event.EntityRenderersEvent.RegisterRenderers
+private typealias KeyMappingsEvent = net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent
+//?} else {
+/*private typealias RenderersEvent = net.minecraftforge.client.event.EntityRenderersEvent.RegisterRenderers
+private typealias KeyMappingsEvent = net.minecraftforge.client.event.RegisterKeyMappingsEvent
+*///?}
+
 object NeoFluidAppearance : FluidAppearance {
     //? if >=26.1 {
     /*override fun of(fluid: net.minecraft.world.level.material.Fluid): FluidLook {
@@ -29,7 +43,11 @@ object NeoFluidAppearance : FluidAppearance {
     }
     *///?} else {
     override fun of(fluid: net.minecraft.world.level.material.Fluid): FluidLook {
+        //? if >=1.20.2 {
         val ext = net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions.of(fluid)
+        //?} else {
+        /*val ext = net.minecraftforge.client.extensions.common.IClientFluidTypeExtensions.of(fluid)
+        *///?}
         val still = ext.stillTexture
         return FluidLook(still, ext.flowingTexture ?: still, ext.tintColor)
     }
@@ -44,7 +62,7 @@ object NeoRendererRegistry : RendererRegistry {
         pending += block
     }
 
-    fun onRegisterRenderers(event: net.neoforged.neoforge.client.event.EntityRenderersEvent.RegisterRenderers) {
+    fun onRegisterRenderers(event: RenderersEvent) {
         val sink = object : RendererSink {
             override fun <T : net.minecraft.world.level.block.entity.BlockEntity> blockEntity(
                 type: net.minecraft.world.level.block.entity.BlockEntityType<out T>,
@@ -68,7 +86,7 @@ object NeoKeyRegistry : KeyRegistry {
         pending += block
     }
 
-    fun onRegisterKeys(event: net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent) {
+    fun onRegisterKeys(event: KeyMappingsEvent) {
         for (block in pending) block { mapping -> event.register(mapping) }
     }
 }
@@ -81,6 +99,15 @@ object NeoKeyRegistry : KeyRegistry {
  * vanilla layers — so the readout draws where it always did, and now through the same mechanism as the
  * linker overlay rather than a second one.
  */
+/**
+ * The HUD, which is the one client registry that is not a rename.
+ *
+ * From 1.20.2 the HUD is a stack of LAYERS and a mod inserts one relative to another by id. On 1.20.1
+ * it is a list of OVERLAYS registered by name, positioned relative to a vanilla overlay, and each is
+ * handed the `ForgeGui` as well as the graphics and the frame time. The mod draws the same two things
+ * either way, so only the wrapper and the event differ.
+ */
+//? if >=1.20.2 {
 object NeoHudRegistry : HudRegistry {
     private val pending = ArrayList<(net.neoforged.neoforge.client.event.RegisterGuiLayersEvent) -> Unit>()
 
@@ -110,3 +137,28 @@ object NeoHudRegistry : HudRegistry {
         for (block in pending) block(event)
     }
 }
+//?} else {
+/*object NeoHudRegistry : HudRegistry {
+    private val pending = ArrayList<(net.minecraftforge.client.event.RegisterGuiOverlaysEvent) -> Unit>()
+
+    override fun aboveCrosshair(id: bpm.platform.ResourceLocation, layer: HudLayer) {
+        pending += { e ->
+            e.registerAbove(net.minecraftforge.client.gui.overlay.VanillaGuiOverlay.CROSSHAIR.id(), id.path, wrap(layer))
+        }
+    }
+
+    override fun onTop(id: bpm.platform.ResourceLocation, layer: HudLayer) {
+        pending += { e -> e.registerAboveAll(id.path, wrap(layer)) }
+    }
+
+    /** The overlay is handed the gui and the screen size as well; neither is anything the mod draws by. */
+    private fun wrap(layer: HudLayer) =
+        net.minecraftforge.client.gui.overlay.IGuiOverlay { _, graphics, partialTick, _, _ ->
+            layer.draw(graphics, bpm.platform.client.FrameDelta(partialTick))
+        }
+
+    fun onRegisterGuiLayers(event: net.minecraftforge.client.event.RegisterGuiOverlaysEvent) {
+        for (block in pending) block(event)
+    }
+}
+*///?}

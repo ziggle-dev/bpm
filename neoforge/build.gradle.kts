@@ -456,6 +456,7 @@ if (legacyBand) {
          */
         enable { neoForgeVersion = neoVersion }
     }
+
 } else {
     extensions.configure<net.neoforged.moddevgradle.dsl.NeoForgeExtension>(moddevExtension) {
         version = neoVersion
@@ -470,6 +471,14 @@ extensions.configure<net.neoforged.moddevgradle.dsl.ModDevExtension>(moddevExten
      */
     if (stonecutter.eval(minecraftVersion, ">=1.21.5 <1.21.9")) {
         accessTransformers.from(rootProject.file("neoforge/accesstransformer/bpm.cfg"))
+    }
+
+    /*
+     * A second one, for 1.20.1 alone: the render-type pieces this band builds a custom RenderType from.
+     * NeoForge's own transformer opens them from 1.20.2; Forge 47's does not.
+     */
+    if (legacyBand) {
+        accessTransformers.from(rootProject.file("neoforge/accesstransformer/bpm-1.20.1.cfg"))
     }
 
     runs {
@@ -573,7 +582,20 @@ val bundled = listOf(
 )
 
 dependencies {
-    implementation("thedarkcolour:kotlinforforge-neoforge:$kffVersion")
+    /*
+     * The FORGE flavour on 1.20.1, and it is the bus that decides.
+     *
+     * NeoForge 47.1.106 is still Forge underneath: `DeferredRegister.register` takes a
+     * `net.minecraftforge.eventbus.api.IEventBus`. The `-neoforge` KFF artifact is built against
+     * `net.neoforged.bus.api.IEventBus`, which is NOT on this band's classpath -- MOD_BUS then has a
+     * type the compiler cannot even see, and every listener registration fails with a class it cannot
+     * access rather than with a version complaint.
+     */
+    if (legacyBand) {
+        implementation("thedarkcolour:kotlinforforge:$kffVersion")
+    } else {
+        implementation("thedarkcolour:kotlinforforge-neoforge:$kffVersion")
+    }
     // GeckoLib is NOT optional — the models are the mod. Its coordinate names the Minecraft version,
     // so a node whose version GeckoLib has not published for will fail here, loudly, which is right.
     // GeckoLib is not on the Cloudsmith maven for 26.x; see the note beside `geckolib_version_26_2`.
@@ -591,7 +613,16 @@ dependencies {
          * version they are the same file.
          */
         val geckoLoader = if (legacyBand) "forge" else "neoforge"
-        implementation("software.bernie.geckolib:geckolib-$geckoLoader-$minecraftVersion:$geckolibVersion")
+        /*
+         * Through `modImplementation` on 1.20.1, which the legacy plugin provides and which remaps.
+         *
+         * A Forge mod jar is published with vanilla methods under their SRG names -- GeckoLib's
+         * `GeoBlockRenderer` overrides `render` as `m_6922_`, and nothing else in it is renamed.
+         * Compiled against the raw jar the override is invisible and `super.render` reads as abstract.
+         * Everything from 1.20.2 is published against Mojang names and needs none of this.
+         */
+        val geckoConfiguration = if (legacyBand) "modImplementation" else "implementation"
+        add(geckoConfiguration, "software.bernie.geckolib:geckolib-$geckoLoader-$minecraftVersion:$geckolibVersion")
         /*
          * GeckoLib 4.8 ships mclib inside its jar rather than declaring it, and the Forge artifact's POM
          * does not mention it -- so the Molang parser's own SUPERTYPE is missing from the compile
