@@ -26,10 +26,15 @@ import net.minecraft.world.item.ItemStack
 //? if >=26.1 {
 /*internal val net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant.patch: bpm.platform.ComponentPatch
     get() = componentsPatch
-*///?} else {
+*///?} elif >=1.20.5 {
 internal val net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant.patch: bpm.platform.ComponentPatch
     get() = components
-//?}
+//?} else {
+/*// A tag rather than a component patch, and it is null when the variant carries nothing -- which is
+// what an empty compound says on this band, so the two agree about "no data".
+internal val net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant.patch: bpm.platform.ComponentPatch
+    get() = nbt ?: net.minecraft.nbt.CompoundTag()
+*///?}
 
 /**
  * Fabric's transfer API, behind the mod's ports.

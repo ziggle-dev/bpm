@@ -395,19 +395,9 @@ class ClickJob(
         return false
     }
 
-    private fun arm(player: ServerPlayer, stack: ItemStack): List<Pair<Holder<Attribute>, AttributeModifier>> {
-        val applied = ArrayList<Pair<Holder<Attribute>, AttributeModifier>>()
-        stack.forEachModifier(EquipmentSlot.MAINHAND) { attribute, modifier ->
-            val instance = player.attributes.getInstance(attribute) ?: return@forEachModifier
-            instance.addOrUpdateTransientModifier(modifier)
-            applied += attribute to modifier
-        }
-        return applied
-    }
+    private fun arm(player: ServerPlayer, stack: ItemStack): Any = bpm.platform.armWithModifiers(player, stack)
 
-    private fun disarm(player: ServerPlayer, applied: List<Pair<Holder<Attribute>, AttributeModifier>>) {
-        for ((attribute, modifier) in applied) player.attributes.getInstance(attribute)?.removeModifier(modifier.id())
-    }
+    private fun disarm(player: ServerPlayer, applied: Any) = bpm.platform.disarmModifiers(player, applied)
 
     companion object {
         /**

@@ -29,7 +29,13 @@ object FabricWorldActor : WorldActor {
     private val byLevel = HashMap<ServerLevel, ServerPlayer>()
 
     override fun player(level: ServerLevel): ServerPlayer = byLevel.getOrPut(level) {
+        //? if >=1.20.5 {
         ServerPlayer(level.server, level, profile, net.minecraft.server.level.ClientInformation.createDefault())
+        //?} else {
+        /*// A player carried no client settings here -- view distance, chat visibility and the rest were
+        // sent afterwards rather than handed to the constructor. A fake player never sends them.
+        ServerPlayer(level.server, level, profile)
+        *///?}
     }
 
     /**

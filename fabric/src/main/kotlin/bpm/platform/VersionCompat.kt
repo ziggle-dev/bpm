@@ -252,15 +252,15 @@ fun recipeIdOf(entry: bpm.platform.RecipeEntry<*>): bpm.platform.ResourceLocatio
     type: net.minecraft.world.item.crafting.RecipeType<T>,
     input: I,
 ): bpm.platform.RecipeEntry<T>? =
-    level.recipeManager.getRecipeFor(type, input, level).orElse(null)
+    level.recipeManager.getRecipeFor(type, input, level).map { bpm.platform.RecipeEntry(it) }.orElse(null)
 
 fun recipeById(
     level: net.minecraft.world.level.Level,
     id: bpm.platform.ResourceLocation,
-): bpm.platform.RecipeEntry<*>? = level.recipeManager.byKey(id).orElse(null)
+): bpm.platform.RecipeEntry<*>? = level.recipeManager.byKey(id).map { bpm.platform.RecipeEntry(it) }.orElse(null)
 
 /** The recipe carries its own id on this band, which is where getId() went at 1.20.5. */
-fun recipeIdOf(entry: bpm.platform.RecipeEntry<*>): bpm.platform.ResourceLocation = entry.id
+fun recipeIdOf(entry: bpm.platform.RecipeEntry<*>): bpm.platform.ResourceLocation = entry.id()
 *///?}
 
 /**
@@ -685,4 +685,71 @@ fun windBurstSound(): net.minecraft.sounds.SoundEvent = net.minecraft.sounds.Sou
 /*fun gustParticle(): net.minecraft.core.particles.SimpleParticleType = net.minecraft.core.particles.ParticleTypes.CLOUD
 
 fun windBurstSound(): net.minecraft.sounds.SoundEvent = net.minecraft.sounds.SoundEvents.ENDER_DRAGON_FLAP
+*///?}
+
+/**
+ * Apply a stack's main-hand attribute modifiers to [player], and take them off again.
+ *
+ * Three things changed at 1.20.5 and none of them changed what this does. An attribute became a
+ * `Holder<Attribute>`; the modifiers stopped being a `Multimap` and are walked with `forEachModifier`;
+ * and a modifier is keyed by a `ResourceLocation` rather than a UUID, which is why removing one is
+ * `removeModifier(id)` there and `removeModifier(uuid)` here.
+ *
+ * The token handed back is opaque on purpose: the caller only ever passes it straight back, and its
+ * element type is one of the things that differs.
+ */
+//? if >=1.20.5 {
+fun armWithModifiers(player: net.minecraft.server.level.ServerPlayer, stack: net.minecraft.world.item.ItemStack): Any {
+    val applied = ArrayList<Pair<net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute>, net.minecraft.world.entity.ai.attributes.AttributeModifier>>()
+    stack.forEachModifier(net.minecraft.world.entity.EquipmentSlot.MAINHAND) { attribute, modifier ->
+        val instance = player.attributes.getInstance(attribute) ?: return@forEachModifier
+        instance.addOrUpdateTransientModifier(modifier)
+        applied += attribute to modifier
+    }
+    return applied
+}
+
+@Suppress("UNCHECKED_CAST")
+fun disarmModifiers(player: net.minecraft.server.level.ServerPlayer, token: Any) {
+    val applied = token as List<Pair<net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute>, net.minecraft.world.entity.ai.attributes.AttributeModifier>>
+    for ((attribute, modifier) in applied) player.attributes.getInstance(attribute)?.removeModifier(modifier.id())
+}
+//?} else {
+/*fun armWithModifiers(player: net.minecraft.server.level.ServerPlayer, stack: net.minecraft.world.item.ItemStack): Any {
+    val applied = ArrayList<Pair<net.minecraft.world.entity.ai.attributes.Attribute, net.minecraft.world.entity.ai.attributes.AttributeModifier>>()
+    for (entry in stack.getAttributeModifiers(net.minecraft.world.entity.EquipmentSlot.MAINHAND).entries()) {
+        val instance = player.attributes.getInstance(entry.key) ?: continue
+        instance.addTransientModifier(entry.value)
+        applied += entry.key to entry.value
+    }
+    return applied
+}
+
+@Suppress("UNCHECKED_CAST")
+fun disarmModifiers(player: net.minecraft.server.level.ServerPlayer, token: Any) {
+    val applied = token as List<Pair<net.minecraft.world.entity.ai.attributes.Attribute, net.minecraft.world.entity.ai.attributes.AttributeModifier>>
+    for ((attribute, modifier) in applied) player.attributes.getInstance(attribute)?.removeModifier(modifier.id)
+}
+*///?}
+
+/**
+ * Name a container block entity.
+ *
+ * A custom name became a component at 1.20.5 and is applied as a patch; before that it was a field on
+ * the block entity with its own setter. `setCustomName` still exists on the newer band but the patch is
+ * how a placed container is given one, so this keeps the newer route rather than the older one twice.
+ */
+//? if >=1.20.5 {
+fun nameContainer(container: net.minecraft.world.level.block.entity.BlockEntity, name: net.minecraft.network.chat.Component) {
+    container.applyComponents(
+        net.minecraft.core.component.DataComponentMap.EMPTY,
+        net.minecraft.core.component.DataComponentPatch.builder()
+            .set(net.minecraft.core.component.DataComponents.CUSTOM_NAME, name)
+            .build(),
+    )
+}
+//?} else {
+/*fun nameContainer(container: net.minecraft.world.level.block.entity.BlockEntity, name: net.minecraft.network.chat.Component) {
+    (container as? net.minecraft.world.level.block.entity.BaseContainerBlockEntity)?.setCustomName(name)
+}
 *///?}

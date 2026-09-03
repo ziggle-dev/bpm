@@ -56,8 +56,14 @@ abstract class InputScreen(title: Component) : Screen(title) {
     /** A key came up. */
     protected open fun onKeyUp(key: Int, scan: Int, modifiers: Int): Boolean = false
 
+    //? if >=1.20.5 {
     override fun mouseScrolled(mouseX: Double, mouseY: Double, scrollX: Double, scrollY: Double): Boolean =
         onScroll(mouseX, mouseY, scrollX, scrollY) || super.mouseScrolled(mouseX, mouseY, scrollX, scrollY)
+    //?} else {
+    /*// One axis: a horizontal wheel is not something the older screen is told about, so it is always 0.
+    override fun mouseScrolled(mouseX: Double, mouseY: Double, delta: Double): Boolean =
+        onScroll(mouseX, mouseY, 0.0, delta) || super.mouseScrolled(mouseX, mouseY, delta)
+    *///?}
 
     //? if >=1.21.9 {
     /*override fun mouseClicked(event: net.minecraft.client.input.MouseButtonEvent, doubleClick: Boolean): Boolean =
@@ -125,9 +131,13 @@ abstract class InputScreen(title: Component) : Screen(title) {
     protected fun drawDefaultBackground(g: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
         //? if >=26.1 {
         /*super.extractBackground(g, mouseX, mouseY, partialTick)
-        *///?} else {
+        *///?} elif >=1.20.5 {
         super.renderBackground(g, mouseX, mouseY, partialTick)
-        //?}
+        //?} else {
+        /*// The older background is told nothing but where to draw: it is a dim and a blur, and neither
+        // asks about the mouse or the frame.
+        super.renderBackground(g)
+        *///?}
     }
 
     //? if >=26.1 {
@@ -139,7 +149,7 @@ abstract class InputScreen(title: Component) : Screen(title) {
     override fun extractBackground(g: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
         onBackground(g, mouseX, mouseY, partialTick)
     }
-    *///?} else {
+    *///?} elif >=1.20.5 {
     override fun render(g: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
         super.render(g, mouseX, mouseY, partialTick)
         onDraw(g, mouseX, mouseY, partialTick)
@@ -148,7 +158,18 @@ abstract class InputScreen(title: Component) : Screen(title) {
     override fun renderBackground(g: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
         onBackground(g, mouseX, mouseY, partialTick)
     }
-    //?}
+    //?} else {
+    /*override fun render(g: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
+        super.render(g, mouseX, mouseY, partialTick)
+        onDraw(g, mouseX, mouseY, partialTick)
+    }
+
+    // The mouse and the frame are not part of the older question, and the hook's own callers do not read
+    // them from the background pass -- they draw a fill and stop.
+    override fun renderBackground(g: GuiGraphics) {
+        onBackground(g, 0, 0, 0f)
+    }
+    *///?}
 }
 
 /**

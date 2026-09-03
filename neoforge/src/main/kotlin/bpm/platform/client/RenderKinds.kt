@@ -848,19 +848,6 @@ private fun gpuTextureOf(t: net.minecraft.client.renderer.texture.AbstractTextur
  * preview is still rendering. The strip is poorer; nothing else in the editor is affected, and nothing
  * pretends to have drawn something it did not.
  */
-//? if >=1.21.9 {
-/*// `PlayerSkin.texture()` became `body()`, and a skin's parts are ClientAssets rather than bare ids.
-fun skinHandle(skin: net.minecraft.world.entity.player.PlayerSkin): Long? =
-    textureHandle(skin.body().texturePath())
-*///?} elif >=1.21.5 {
-/*// PlayerSkin only moved package at 1.21.9; the lookup is the same on both.
-fun skinHandle(skin: net.minecraft.client.resources.PlayerSkin): Long? =
-    textureHandle(skin.texture())
-*///?} else {
-fun skinHandle(skin: net.minecraft.client.resources.PlayerSkin): Long? =
-    net.minecraft.client.Minecraft.getInstance().textureManager.getTexture(skin.texture()).id.toLong()
-//?}
-
 /**
  * The texture handle for a player's head, by uuid.
  *
@@ -898,7 +885,7 @@ fun playerHeadHandle(uuid: java.util.UUID): Long? {
 }
 *///?}
 
-/** The handle of an offscreen target's colour attachment. See [skinHandle] for why this can be null. */
+/** The handle of an offscreen target's colour attachment. See [playerHeadHandle] for why this can be null. */
 fun targetHandle(target: com.mojang.blaze3d.pipeline.RenderTarget): Long? {
     //? if >=1.21.5 {
     /*return target.colorTexture?.let { ImGuiTextures.handleFor(it) }
@@ -938,7 +925,13 @@ fun renderItemPreview(
  * every band -- the reason for it is unchanged, only which side of the seam it sits on.
  */
 private val previewBuffers: net.minecraft.client.renderer.MultiBufferSource.BufferSource by lazy {
+    //? if >=1.20.5 {
     net.minecraft.client.renderer.MultiBufferSource.immediate(com.mojang.blaze3d.vertex.ByteBufferBuilder(1536))
+    //?} else {
+    /*// The growable byte buffer behind a buffer source was still a BufferBuilder here; the split into a
+    // raw ByteBufferBuilder and the builder that writes into it came later.
+    net.minecraft.client.renderer.MultiBufferSource.immediate(com.mojang.blaze3d.vertex.BufferBuilder(1536))
+    *///?}
 }
 
 fun renderItemPreview(
@@ -951,8 +944,14 @@ fun renderItemPreview(
     target.bindWrite(true)
     com.mojang.blaze3d.systems.RenderSystem.backupProjectionMatrix()
     val modelView = com.mojang.blaze3d.systems.RenderSystem.getModelViewStack()
+    //? if >=1.20.5 {
     modelView.pushMatrix()
     modelView.identity()
+    //?} else {
+    /*// A PoseStack rather than a Matrix4fStack: same stack, older spelling.
+    modelView.pushPose()
+    modelView.setIdentity()
+    *///?}
     applyModelView()
     /*
      * A 16-unit GUI space against an IDENTITY model-view, both set here.
@@ -968,7 +967,11 @@ fun renderItemPreview(
         graphics.renderItem(stack, 0, 0)
         graphics.flush()
     } finally {
+        //? if >=1.20.5 {
         modelView.popMatrix()
+        //?} else {
+        /*modelView.popPose()
+        *///?}
         applyModelView()
         com.mojang.blaze3d.systems.RenderSystem.restoreProjectionMatrix()
         target.unbindWrite()

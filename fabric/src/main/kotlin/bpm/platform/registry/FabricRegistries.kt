@@ -5,7 +5,6 @@ import bpm.platform.idOf
 import net.fabricmc.fabric.api.`object`.builder.v1.entity.FabricDefaultAttributeRegistry
 import net.minecraft.core.Holder
 import net.minecraft.core.Registry
-import net.minecraft.core.component.DataComponentType
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceKey
 import bpm.platform.ResourceLocation
@@ -168,7 +167,7 @@ private class FabricComponentRegistrar(private val namespace: String, private va
         val id = idOf(namespace, name)
         val ref = FabricRef<ComponentKey<T>>(id)
         defer {
-            val type = configure(DataComponentType.builder()).build()
+            val type = configure(net.minecraft.core.component.DataComponentType.builder()).build()
             ref.reference = Registry.registerForHolder(BuiltInRegistries.DATA_COMPONENT_TYPE, id, type)
                 as Holder.Reference<ComponentKey<T>>
         }

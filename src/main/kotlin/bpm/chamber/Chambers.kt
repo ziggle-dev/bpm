@@ -264,7 +264,7 @@ class Chambers : bpm.platform.TagStore() {
                     val state = Blocks.CHEST.defaultBlockState().setValue(ChestBlock.FACING, facing).setValue(ChestBlock.WATERLOGGED, level.getFluidState(cell).`is`(Fluids.WATER))
                     level.setBlock(cell, state, 3)
                     chest = level.getBlockEntity(cell) as? ChestBlockEntity
-                    if (chest != null && name != null) chest.applyComponents(net.minecraft.core.component.DataComponentMap.EMPTY, net.minecraft.core.component.DataComponentPatch.builder().set(net.minecraft.core.component.DataComponents.CUSTOM_NAME, name).build())
+                    if (chest != null && name != null) bpm.platform.nameContainer(chest, name)
                 }
             }
             val drop = Vec3(at.x + 0.5, at.y + 0.5, at.z + 0.5)

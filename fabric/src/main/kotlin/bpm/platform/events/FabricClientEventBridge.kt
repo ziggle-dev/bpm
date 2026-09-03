@@ -88,7 +88,12 @@ object FabricClientEventBridge {
                     ctx.camera().position,
                     ctx.projectionMatrix(),
                     org.joml.Matrix4f(ctx.matrixStack()!!.last().pose()),
+                    //? if >=1.20.5 {
                     bpm.platform.client.FrameDelta(ctx.tickCounter()),
+                    //?} else {
+                    /*// A bare float rather than a DeltaTracker; the seam holds either.
+                    bpm.platform.client.FrameDelta(ctx.tickDelta()),
+                    *///?}
                 ),
             )
         }
